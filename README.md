@@ -1,0 +1,598 @@
+# 🚀 Code Studio AutoCommit Agent
+
+[![Node.js](https://img.shields.io/badge/Node.js-16%2B-green)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-macOS%20|%20Linux%20|%20Windows-lightgrey)](README.md)
+[![GitHub](https://img.shields.io/badge/GitHub-SecondBrainAI-black)](https://github.com/secondbrainAI-limited/code_studio_autocommitAgent)
+
+A sophisticated automatic git commit system that watches for file changes and commit messages, automatically committing and pushing changes with proper branching strategies, version management, and daily rollover handling.
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Configuration](#-configuration)
+- [Branching Strategy](#-branching-strategy)
+- [VS Code Integration](#-vs-code-integration)
+- [Troubleshooting](#-troubleshooting)
+- [API Reference](#-api-reference)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+## ✨ Features
+
+### Core Functionality
+- **🔄 Automatic Commits** - Watches for file changes and commits automatically
+- **📝 Commit Message Validation** - Enforces conventional commit format
+- **🌳 Smart Branching** - Daily branches with automatic rollover at midnight
+- **📊 Version Management** - Micro-revision versioning (v0.20, v0.21, etc.)
+- **🚀 Auto Push** - Optionally pushes commits to remote repository
+- **📜 Change Tracking** - Maintains changelog of all automated commits
+
+### Developer Experience
+- **🎨 Interactive Setup** - Wizard-based configuration for new developers
+- **🔧 VS Code Integration** - Tasks and settings for seamless workflow
+- **🐛 Debug Mode** - Comprehensive logging for troubleshooting
+- **⚡ Debounced Operations** - Prevents commit spam with smart delays
+- **🔐 Safe Operations** - Non-destructive merges and conflict handling
+
+### Advanced Features
+- **🌍 Timezone Support** - Configurable timezone for daily branches
+- **🔄 Daily Rollover** - Automatic branch management at day boundaries
+- **📌 Version Tags** - Creates git tags for version milestones
+- **🗄️ Archive Management** - Automatic archival of old branches
+- **💾 State Recovery** - Resumes from last known state on restart
+
+## 🌐 Installation from GitHub
+
+### Clone the Repository
+
+```bash
+# Clone the repository
+git clone https://github.com/secondbrainAI-limited/code_studio_autocommitAgent.git AutoCommit
+
+# Navigate to the directory
+cd AutoCommit
+
+# Run the quick setup
+./quick-start.sh
+```
+
+### Or Add as a Submodule
+
+```bash
+# Add as a git submodule to your project
+git submodule add https://github.com/secondbrainAI-limited/code_studio_autocommitAgent.git AutoCommit
+
+# Initialize and update the submodule
+git submodule init
+git submodule update
+
+# Run setup
+cd AutoCommit && ./quick-start.sh
+```
+
+## 🚀 Quick Start
+
+```bash
+# 1. Clone or copy this folder to your project
+cp -r ScriptAutoCommit /path/to/your/project/
+
+# 2. Navigate to your project
+cd /path/to/your/project
+
+# 3. Run the setup wizard
+node ScriptAutoCommit/setup-auto-commit.js
+
+# 4. Start the auto-commit worker
+npm run auto-commit
+```
+
+That's it! The system is now watching for changes and will auto-commit when you create commit messages.
+
+## 📦 Installation
+
+### Prerequisites
+
+- **Node.js** v16.0.0 or higher
+- **npm** or **yarn**
+- **Git** initialized in your project
+- **macOS**, **Linux**, or **Windows** with WSL
+
+### Step-by-Step Installation
+
+1. **Copy the ScriptAutoCommit folder to your project root:**
+   ```bash
+   cp -r ScriptAutoCommit /path/to/your/project/
+   ```
+
+2. **Run the setup script:**
+   ```bash
+   cd /path/to/your/project
+   node ScriptAutoCommit/setup-auto-commit.js
+   ```
+
+3. **Follow the interactive prompts:**
+   - Enter your 3-letter developer initials (e.g., "abc")
+   - Confirm the configuration settings
+   - The script will install dependencies and create necessary files
+
+4. **Verify installation:**
+   ```bash
+   # Check that npm packages were installed
+   npm list chokidar execa
+   
+   # Verify scripts were added to package.json
+   npm run --list | grep auto-commit
+   ```
+
+### Manual Installation
+
+If you prefer manual setup:
+
+1. **Install dependencies:**
+   ```bash
+   npm install --save-dev chokidar execa
+   ```
+
+2. **Add to package.json:**
+   ```json
+   {
+     "type": "module",
+     "scripts": {
+       "auto-commit": "node ScriptAutoCommit/auto-commit-worker.js",
+       "auto-commit:debug": "AC_DEBUG=true node ScriptAutoCommit/auto-commit-worker.js",
+       "auto-commit:setup": "node ScriptAutoCommit/setup-auto-commit.js"
+     }
+   }
+   ```
+
+3. **Create commit message file:**
+   ```bash
+   touch .claude-commit-msg
+   ```
+
+4. **Set environment variables:**
+   ```bash
+   export AC_BRANCH_PREFIX="dev_abc_"  # Replace abc with your initials
+   export AC_TZ="America/New_York"     # Your timezone
+   ```
+
+## 📖 Usage
+
+### Starting the Worker
+
+There are multiple ways to start the auto-commit worker:
+
+#### Via NPM Scripts
+```bash
+# Normal mode
+npm run auto-commit
+
+# Debug mode (verbose logging)
+npm run auto-commit:debug
+```
+
+#### Via Personal Shell Script
+```bash
+# After setup, you'll have a personalized script
+./run-auto-commit-abc.sh         # Replace abc with your initials
+./run-auto-commit-abc.sh --debug # Debug mode
+./run-auto-commit-abc.sh --no-push # Local commits only
+```
+
+#### Via VS Code Tasks
+1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+2. Type "Tasks: Run Task"
+3. Select "🚀 Start Auto-Commit Worker"
+
+### Creating Commits
+
+1. **Make your code changes** as normal
+
+2. **Create a commit message** in `.claude-commit-msg`:
+   ```bash
+   echo "feat(auth): add OAuth2 integration" > .claude-commit-msg
+   ```
+
+3. **The worker automatically:**
+   - Detects the message file change
+   - Validates the commit format
+   - Stages all changes
+   - Creates the commit
+   - Pushes to remote (if enabled)
+   - Clears the message file
+
+### Commit Message Format
+
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+type(scope): subject
+
+body (optional)
+```
+
+#### Types
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation changes
+- `style` - Code style changes (formatting, etc.)
+- `refactor` - Code refactoring
+- `test` - Test additions/changes
+- `chore` - Maintenance tasks
+
+#### Examples
+```bash
+# Feature
+echo "feat(api): add user authentication endpoint" > .claude-commit-msg
+
+# Bug fix
+echo "fix(parser): handle null input gracefully" > .claude-commit-msg
+
+# Documentation
+echo "docs(readme): update installation instructions" > .claude-commit-msg
+
+# With body
+cat > .claude-commit-msg << 'EOF'
+feat(dashboard): add real-time analytics
+
+- Implement WebSocket connection
+- Add chart visualization components
+- Create data aggregation pipeline
+EOF
+```
+
+### Stopping the Worker
+
+#### Via Terminal
+```bash
+# Find and kill the process
+pkill -f "node.*auto-commit-worker"
+
+# Or press Ctrl+C in the terminal running the worker
+```
+
+#### Via VS Code
+1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+2. Type "Tasks: Run Task"
+3. Select "🛑 Stop Auto-Commit Worker"
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Configure behavior via environment variables:
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `AC_BRANCH_PREFIX` | Prefix for version branches | `dev_sdd_` | `dev_abc_` |
+| `AC_DAILY_PREFIX` | Prefix for daily branches | `dev_sdd_` | `dev_abc_` |
+| `AC_TZ` | Timezone for daily rollover | `Asia/Dubai` | `America/New_York` |
+| `AC_PUSH` | Auto-push to remote | `true` | `false` |
+| `AC_REQUIRE_MSG` | Require commit message | `true` | `false` |
+| `AC_MSG_MIN_BYTES` | Min message size | `20` | `30` |
+| `AC_MSG_PATTERN` | Commit format regex | Conventional | Custom regex |
+| `AC_DEBOUNCE_MS` | File change delay | `1500` | `2000` |
+| `AC_MSG_DEBOUNCE_MS` | Message change delay | `3000` | `5000` |
+| `AC_CLEAR_MSG_WHEN` | When to clear message | `push` | `commit`, `never` |
+| `AC_ROLLOVER_PROMPT` | Prompt on rollover | `true` | `false` |
+| `AC_DEBUG` | Enable debug logging | `false` | `true` |
+
+### Configuration Files
+
+#### `.env` File
+Create a `.env` file in your project root:
+
+```bash
+# Developer Settings
+AC_BRANCH_PREFIX=dev_abc_
+AC_DAILY_PREFIX=dev_abc_
+AC_TZ=America/New_York
+
+# Git Settings
+AC_PUSH=true
+
+# Message Requirements
+AC_REQUIRE_MSG=true
+AC_MSG_MIN_BYTES=20
+
+# Timing
+AC_DEBOUNCE_MS=1500
+AC_MSG_DEBOUNCE_MS=3000
+
+# Behavior
+AC_CLEAR_MSG_WHEN=push
+AC_ROLLOVER_PROMPT=true
+AC_DEBUG=false
+```
+
+#### VS Code Settings
+The setup script creates `.vscode/settings.json` with terminal environment variables:
+
+```json
+{
+  "terminal.integrated.env.osx": {
+    "AC_BRANCH_PREFIX": "dev_abc_",
+    "AC_TZ": "America/New_York"
+  }
+}
+```
+
+## 🌳 Branching Strategy
+
+The system uses a sophisticated branching strategy:
+
+### Daily Development Branches
+- Format: `dev_{initials}_YYYY-MM-DD`
+- Example: `dev_abc_2025-09-25`
+- Created automatically at midnight or first commit of the day
+- All daily work happens here
+
+### Version Branches
+- Format: `v{major}.{minor}`
+- Example: `v0.20`, `v0.21`
+- Increments by 0.01 each day
+- Represents daily snapshots
+
+### Workflow
+
+```mermaid
+graph LR
+    A[main] --> B[v0.20]
+    B --> C[dev_abc_2025-09-24]
+    C --> D[commits...]
+    D --> E[Midnight Rollover]
+    E --> F[Merge v0.20 to main]
+    F --> G[Create v0.21 from main]
+    G --> H[Create dev_abc_2025-09-25]
+```
+
+1. **Daily Work**: Commits go to daily branch
+2. **Midnight Rollover**:
+   - Previous version branch merges to main
+   - New version branch created from main
+   - New daily branch created from version branch
+3. **Archive**: Old branches moved to `Archive/` folder
+
+## 💻 VS Code Integration
+
+### Tasks
+
+The setup creates VS Code tasks (`.vscode/tasks.json`):
+
+- **🚀 Start Auto-Commit Worker** - Launches the worker
+- **🛑 Stop Auto-Commit Worker** - Terminates the worker
+- **📝 Create Commit Message** - Opens message file
+- **📊 Show Git Status** - Displays current git state
+
+### Keyboard Shortcuts
+
+Add to `.vscode/keybindings.json`:
+
+```json
+[
+  {
+    "key": "cmd+alt+c",
+    "command": "workbench.action.tasks.runTask",
+    "args": "🚀 Start Auto-Commit Worker"
+  },
+  {
+    "key": "cmd+alt+m",
+    "command": "workbench.action.tasks.runTask",
+    "args": "📝 Create Commit Message"
+  }
+]
+```
+
+### Extensions
+
+Recommended VS Code extensions:
+- **GitLens** - Enhanced git integration
+- **Conventional Commits** - Commit message helper
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### Worker Not Starting
+```bash
+# Check Node.js version
+node --version  # Should be v16+
+
+# Verify dependencies
+npm list chokidar execa
+
+# Check for running instances
+ps aux | grep auto-commit-worker
+
+# Run in debug mode
+AC_DEBUG=true node ScriptAutoCommit/auto-commit-worker.js
+```
+
+#### Commits Not Being Created
+```bash
+# Check git status
+git status
+
+# Verify branch
+git branch --show-current
+
+# Check commit message file
+cat .claude-commit-msg
+
+# Ensure message meets requirements
+wc -c .claude-commit-msg  # Should be > 20 bytes
+```
+
+#### Push Failures
+```bash
+# Check remote configuration
+git remote -v
+
+# Test manual push
+git push origin $(git branch --show-current)
+
+# Verify credentials
+git config --list | grep credential
+```
+
+#### Daily Rollover Issues
+```bash
+# Check timezone setting
+echo $AC_TZ
+
+# Verify branch structure
+git branch -a | grep dev_
+
+# Manual rollover (advanced)
+git checkout main
+git merge v0.20  # Previous version
+git checkout -b v0.21  # New version
+```
+
+### Debug Mode
+
+Enable comprehensive logging:
+
+```bash
+# Via environment variable
+AC_DEBUG=true npm run auto-commit
+
+# Via npm script
+npm run auto-commit:debug
+
+# Check debug output location
+tail -f auto-commit-debug.log
+```
+
+### Log Files
+
+The system creates logs for debugging:
+- **Console output** - Real-time status
+- **Git operations** - In git reflog
+- **Error conditions** - Stderr output
+
+## 📚 API Reference
+
+### Auto-Commit Worker
+
+#### Main Functions
+
+```javascript
+/**
+ * Initialize the auto-commit worker
+ * @param {Object} config - Configuration object
+ * @param {string} config.branchPrefix - Branch prefix (e.g., 'dev_abc_')
+ * @param {string} config.timezone - IANA timezone
+ * @param {boolean} config.autoPush - Enable auto-push
+ */
+async function initializeWorker(config)
+
+/**
+ * Watch for file changes
+ * @param {string[]} paths - Paths to watch
+ * @param {Object} options - Chokidar options
+ */
+function watchFiles(paths, options)
+
+/**
+ * Handle daily rollover
+ * @param {Date} currentDate - Current date
+ * @returns {Promise<boolean>} Success status
+ */
+async function handleDailyRollover(currentDate)
+```
+
+### Setup Script
+
+#### Main Functions
+
+```javascript
+/**
+ * Run interactive setup
+ * @returns {Promise<Object>} Configuration object
+ */
+async function runSetup()
+
+/**
+ * Validate developer initials
+ * @param {string} initials - 3-letter initials
+ * @returns {string|null} Validated initials or null
+ */
+function validateInitials(initials)
+
+/**
+ * Create VS Code integration
+ * @param {string} projectRoot - Project root path
+ * @param {string} initials - Developer initials
+ */
+function setupVSCodeIntegration(projectRoot, initials)
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. **Fork the repository**
+2. **Create a feature branch:**
+   ```bash
+   git checkout -b feat/amazing-feature
+   ```
+3. **Commit your changes:**
+   ```bash
+   echo "feat(core): add amazing feature" > .claude-commit-msg
+   ```
+4. **Push to your fork:**
+   ```bash
+   git push origin feat/amazing-feature
+   ```
+5. **Open a Pull Request**
+
+### Development Setup
+
+```bash
+# Clone the repo
+git clone https://github.com/yourusername/ScriptAutoCommit.git
+
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Run linter
+npm run lint
+```
+
+### Code Style
+
+- Use ES6+ features
+- Follow ESLint configuration
+- Add JSDoc comments for functions
+- Write tests for new features
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Node.js](https://nodejs.org/)
+- Uses [Chokidar](https://github.com/paulmillr/chokidar) for file watching
+- Uses [Execa](https://github.com/sindresorhus/execa) for process management
+- Follows [Conventional Commits](https://www.conventionalcommits.org/) specification
+
+## 📞 Support
+
+- **Repository**: [GitHub - code_studio_autocommitAgent](https://github.com/secondbrainAI-limited/code_studio_autocommitAgent)
+- **Issues**: [GitHub Issues](https://github.com/secondbrainAI-limited/code_studio_autocommitAgent/issues)
+- **Organization**: [SecondBrainAI Limited](https://github.com/secondbrainAI-limited)
+
+---
+
+<div align="center">
+  Made with ❤️ by developers, for developers
+</div>

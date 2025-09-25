@@ -1,0 +1,41 @@
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Build outputs
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.backup.*
+.claude-commit-msg
+CLAUDE_CHANGELOG.md
+
+# Personal run scripts (created per developer)
+run-auto-commit-*.sh

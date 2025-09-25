@@ -1,0 +1,39 @@
+{
+  "name": "code-studio-autocommit-agent",
+  "version": "1.0.0",
+  "description": "Code Studio AutoCommit Agent - Automated Git commit system with intelligent branching and VS Code integration",
+  "type": "module",
+  "main": "auto-commit-worker.js",
+  "scripts": {
+    "start": "node auto-commit-worker.js",
+    "setup": "node setup-auto-commit.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "git",
+    "automation",
+    "commit",
+    "workflow",
+    "vscode",
+    "branching",
+    "development-tools"
+  ],
+  "author": "Sachin Dev Duggal",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "execa": "^7.1.1"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/secondbrainAI-limited/code_studio_autocommitAgent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/secondbrainAI-limited/code_studio_autocommitAgent/issues"
+  },
+  "homepage": "https://github.com/secondbrainAI-limited/code_studio_autocommitAgent#readme"
+}
