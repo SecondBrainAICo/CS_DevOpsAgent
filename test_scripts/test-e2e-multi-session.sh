@@ -81,7 +81,11 @@ setup_test_env() {
     git config user.email "test@example.com"
     
     # Copy CS_DevOpsAgent files
-    cp -r "$(dirname "$0")"/{*.js,*.sh,package.json} "$TEST_REPO/" 2>/dev/null || true
+    mkdir -p "$TEST_REPO/src"
+    cp -r "$(dirname "$0")/../src"/*.js "$TEST_REPO/src/"
+    cp -r "$(dirname "$0")/../deploy_test"/*.sh "$TEST_REPO/"
+    cp "$(dirname "$0")/../package.json" "$TEST_REPO/"
+    cp "$(dirname "$0")/../.env.example" "$TEST_REPO/.env" 2>/dev/null || true
     
     # Create initial commit
     echo "# Test Repository" > README.md
@@ -112,7 +116,7 @@ test_basic_autocommit() {
     cd "$TEST_REPO"
     
     # Start the devops-agent worker in background
-    node cs-devops-agent-worker.js > "${LOG_DIR}/worker_basic.log" 2>&1 &
+    node src/cs-devops-agent-worker.js > "${LOG_DIR}/worker_basic.log" 2>&1 &
     local WORKER_PID=$!
     
     sleep 2  # Wait for worker to start
@@ -194,7 +198,7 @@ test_session_persistence() {
     
     # Start first session
     export SESSION_ID="session_1"
-    node cs-devops-agent-worker.js > "${LOG_DIR}/session_1.log" 2>&1 &
+    node src/cs-devops-agent-worker.js > "${LOG_DIR}/session_1.log" 2>&1 &
     local SESSION_1_PID=$!
     
     sleep 2
