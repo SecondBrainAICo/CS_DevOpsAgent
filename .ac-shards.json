@@ -1,0 +1,14 @@
+{
+  "worktree": ["worktree-manager.js", "worktree/**"],
+  "autocommit": ["auto-commit-worker.js", "autocommit/**"],
+  "agent": ["run-with-agent.js", "agent/**"],
+  "webapp": ["webapp/**", "app/**", "frontend/**"],
+  "services": ["services/**", "src/services/**"],
+  "infra": ["infra/**", "infrastructure/**", "ops/**", "Documentation/infrastructure.md"],
+  "shared": ["shared/**", "packages/**", "libs/**"],
+  "scripts": ["scripts/**", "Scripts_Dev/**", "setup-*.js", "setup-*.sh"],
+  "tests": ["test_cases/**", "jest.config.*", "*.spec.js", "*.test.js"],
+  "docs": ["*.md", "product_requirement_docs/**", "Documentation/**"],
+  "config": ["package.json", "package-lock.json", ".vscode/**", ".*rc", ".*config.*"],
+  "default": ["**"]
+}

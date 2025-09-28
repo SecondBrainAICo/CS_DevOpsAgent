@@ -39,3 +39,6 @@ CLAUDE_CHANGELOG.md
 
 # Personal run scripts (created per developer)
 run-auto-commit-*.shtest_cases/**/test-repo/
+.ac-prep
+.ac
+.git/.ac

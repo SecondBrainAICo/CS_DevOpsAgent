@@ -191,3 +191,77 @@ infra(deps): add worktree management dependencies
 - `AC_BRANCH_PREFIX`: Prefix for agent branches
 - `AC_TRACK_INFRA`: Enable infrastructure tracking (default: true)
 - `AC_INFRA_DOC_PATH`: Path to infrastructure doc (default: /Documentation/infrastructure.md)
+
+---
+
+## Prep TODO & Coordination (Multi-Agent Handshake)
+
+**Purpose:** Prevent agents from stepping on each other by publishing an _edit plan_ before changing files. The commit agent reads these plans, reserves shards (coarse path buckets), and either **acknowledges** or **blocks** the work.
+
+### Agent Workflow
+
+**Agents MUST write** a single JSON at `.ac-prep/<agent>.json` **before** edits and wait for `.ac/ack/<agent>.json`.
+
+### Prep JSON Format
+```json
+{
+  "agent": "<agent-id>",
+  "task": "<short-slug>",
+  "branch": "<target-branch>",
+  "paths": ["<glob1>", "<glob2>"],
+  "shards": ["<shard1>", "<shard2>"],
+  "reason": "<why>",
+  "priority": 1-10,
+  "createdAt": "<ISO-8601>",
+  "ttlMs": 600000
+}
+```
+
+### Flow
+
+1. **Write prep file** → `.ac-prep/<agent>.json`
+2. **Wait for acknowledgment** → `.ac/ack/<agent>.json`
+3. **Check status**:
+   - `status:"ok"` → proceed only within acknowledged paths/shards
+   - `status:"blocked"` → do not edit; narrow scope or wait; re-publish
+   - `status:"queued"` → wait for turn based on priority
+4. **After edits** → write `.claude-commit-msg` (Conventional Commit + 1–3 bullets)
+5. **If alert appears** → `.git/.ac/alerts/<agent>.md` → re-run with narrower scope
+
+### Shard System
+
+Shards live in `.ac-shards.json`. The commit agent:
+- **Reserves shards** on prep, acks or blocks
+- **At commit**, claims shards and stages only owned files
+- **Overlapping work** is blocked/queued/branched per config
+- **Writes human alerts** to `.git/.ac/alerts/<agent>.md` when overlap occurs
+
+### Priority Levels
+- `10`: Critical hotfix
+- `7-9`: High priority features
+- `4-6`: Normal development
+- `1-3`: Low priority/cleanup
+
+### Conflict Resolution Strategy
+```
+AC_SHARD_STRATEGY options:
+- "block": Prevent overlapping edits (default)
+- "branch": Create agent-specific branches
+- "queue": Queue based on priority and timestamp
+```
+
+### Agent Identification
+Agents are identified by:
+- Environment variable: `AGENT_NAME` or `AI_AGENT`
+- Auto-detection from API keys (Claude, Copilot, Cursor, etc.)
+- Session-based: `session-${USER}@${HOSTNAME}`
+
+### Monitoring
+Check coordination status:
+```bash
+ls -la .ac-prep/      # Pending prep requests
+ls -la .ac/ack/       # Acknowledgments
+ls -la .git/.ac/alerts/  # Conflict alerts
+cat .git/.ac/claims/*.json  # Active claims
+```
+
