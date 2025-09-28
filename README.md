@@ -4,26 +4,27 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20|%20Linux%20|%20Windows-lightgrey)](README.md)
 [![GitHub](https://img.shields.io/badge/GitHub-SecondBrainAI-black)](https://github.com/secondbrainAI-limited/code_studio_autocommitAgent)
-[![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)](RELEASE_NOTES.md)
+[![Version](https://img.shields.io/badge/version-2.1.0-brightgreen)](Update%20Notes/2025-01-28-multi-agent-coordination.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](test_cases/)
 
 **Built by [Sachin Dev Duggal](https://github.com/sachindduggal) | [SecondBrain AI](https://github.com/secondbrainAI-limited)**
 
 A sophisticated multi-agent Git automation system that enables multiple AI coding assistants to work simultaneously on the same codebase without conflicts. Features automatic worktree management, infrastructure change tracking, intelligent commit detection, and comprehensive testing infrastructure.
 
-## 📋 Table of Contents
+## 📝 Table of Contents
 
-- [Features](#-features)
-- [Quick Start](#-quick-start)
-- [Installation](#-installation)
-- [Usage](#-usage)
-- [Configuration](#-configuration)
-- [Branching Strategy](#-branching-strategy)
-- [VS Code Integration](#-vs-code-integration)
-- [Troubleshooting](#-troubleshooting)
-- [API Reference](#-api-reference)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Features](#✨-features)
+- [Quick Start](#🚀-quick-start)
+- [Installation](#📦-installation)
+- [Usage](#📖-usage)
+- [Multi-Agent Coordination](#🤝-multi-agent-coordination-new-v210)
+- [Configuration](#⚙️-configuration)
+- [Branching Strategy](#🌳-branching-strategy)
+- [VS Code Integration](#💻-vs-code-integration)
+- [Troubleshooting](#🐛-troubleshooting)
+- [API Reference](#📚-api-reference)
+- [Contributing](#🤝-contributing)
+- [License](#📄-license)
 
 ## ✨ Features
 
@@ -33,6 +34,14 @@ A sophisticated multi-agent Git automation system that enables multiple AI codin
 - **⚡ Zero Conflicts** - Agents work in parallel without stepping on each other
 - **🌲 Smart Branch Naming** - `agent/{name}/{task}` convention for clarity
 - **📁 Infrastructure Tracking** - Documents changes in `/Documentation/infrastructure.md`
+
+### 🤝 Multi-Agent Coordination System (v2.1.0 - NEW)
+- **📋 Prep TODO Handshake** - Agents request permission before editing files
+- **🎯 Shard-Based Reservations** - Path-based conflict prevention with 12 logical shards
+- **⚖️ Priority Queue System** - 10-level priority for task scheduling (1-10)
+- **🚦 Real-Time Monitoring** - Track agent status with `monitor-agents.sh`
+- **🔔 Conflict Alerts** - Automatic notifications in `.git/.ac/alerts/`
+- **🎨 Three Strategies** - Block, branch, or queue overlapping work
 
 ### Core Functionality
 - **🔄 Automatic Commits** - Watches for file changes and commits automatically
@@ -329,6 +338,64 @@ node worktree-manager.js merge --agent claude
 node worktree-manager.js cleanup --agent claude --delete-branches
 ```
 
+### 🤝 Multi-Agent Coordination (NEW v2.1.0)
+
+#### Setup Coordination System
+```bash
+# One-time setup (idempotent - safe to re-run)
+./setup-prep-handshake.sh
+```
+
+#### For AI Agents - Request Edit Permission
+```bash
+# Basic usage: agent-prep.sh <task> <path-pattern> <priority>
+./agent-prep.sh "update-docs" "*.md" 5
+./agent-prep.sh "fix-bug" "src/**/*.js" 8
+./agent-prep.sh "cleanup" "tests/**" 2
+```
+
+#### Monitor Agent Activity
+```bash
+# Real-time coordination status
+./monitor-agents.sh
+
+# Output shows:
+# 📝 Pending Prep Requests
+# ✅ Active Acknowledgments
+# ⚠️ Active Alerts
+# 🔒 Active Claims
+# 📊 Shard Configuration
+```
+
+#### Shard Categories
+The codebase is divided into 12 logical shards:
+- **worktree**: Worktree management files
+- **autocommit**: Auto-commit worker files
+- **agent**: Agent runner files
+- **tests**: Test cases and configs
+- **docs**: Documentation files
+- **config**: Configuration files
+- **scripts**: Script files
+- **services**: Service layer
+- **webapp**: Web application
+- **infra**: Infrastructure
+- **shared**: Shared libraries
+- **default**: Everything else
+
+#### Priority Levels
+- `10`: Critical hotfix
+- `7-9`: High priority features
+- `4-6`: Normal development
+- `1-3`: Low priority/cleanup
+
+#### Conflict Resolution Strategies
+```bash
+# Set via environment variable
+export AC_SHARD_STRATEGY=block   # Prevent overlaps (default)
+export AC_SHARD_STRATEGY=branch  # Create agent branches
+export AC_SHARD_STRATEGY=queue   # Queue by priority
+```
+
 ### Stopping the Worker
 
 #### Via Terminal
@@ -476,6 +543,12 @@ Add to `.vscode/keybindings.json`:
 Recommended VS Code extensions:
 - **GitLens** - Enhanced git integration
 - **Conventional Commits** - Commit message helper
+
+## 📚 Update Notes
+
+For detailed information about recent updates and new features:
+- [v2.1.0 - Multi-Agent Coordination](Update%20Notes/2025-01-28-multi-agent-coordination.md) - January 28, 2025
+- [v2.0.0 - Multi-Agent Worktree Support](RELEASE_NOTES.md) - January 28, 2025
 
 ## 🐛 Troubleshooting
 
