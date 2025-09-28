@@ -4,8 +4,12 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20|%20Linux%20|%20Windows-lightgrey)](README.md)
 [![GitHub](https://img.shields.io/badge/GitHub-SecondBrainAI-black)](https://github.com/secondbrainAI-limited/code_studio_autocommitAgent)
+[![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)](RELEASE_NOTES.md)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](test_cases/)
 
-A sophisticated automatic git commit system that watches for file changes and commit messages, automatically committing and pushing changes with proper branching strategies, version management, and daily rollover handling.
+**Built by [Sachin Dev Duggal](https://github.com/sachindduggal) | [SecondBrain AI](https://github.com/secondbrainAI-limited)**
+
+A sophisticated multi-agent Git automation system that enables multiple AI coding assistants to work simultaneously on the same codebase without conflicts. Features automatic worktree management, infrastructure change tracking, intelligent commit detection, and comprehensive testing infrastructure.
 
 ## 📋 Table of Contents
 
@@ -22,6 +26,13 @@ A sophisticated automatic git commit system that watches for file changes and co
 - [License](#-license)
 
 ## ✨ Features
+
+### 🤖 Multi-Agent Worktree Management (NEW)
+- **🔍 Automatic Agent Detection** - Identifies AI agents from environment (Claude, Copilot, Cursor, Aider, Warp)
+- **🏗️ Isolated Workspaces** - Each agent gets its own Git worktree with dedicated branch
+- **⚡ Zero Conflicts** - Agents work in parallel without stepping on each other
+- **🌲 Smart Branch Naming** - `agent/{name}/{task}` convention for clarity
+- **📁 Infrastructure Tracking** - Documents changes in `/Documentation/infrastructure.md`
 
 ### Core Functionality
 - **🔄 Automatic Commits** - Watches for file changes and commits automatically
@@ -44,6 +55,8 @@ A sophisticated automatic git commit system that watches for file changes and co
 - **📌 Version Tags** - Creates git tags for version milestones
 - **🗄️ Archive Management** - Automatic archival of old branches
 - **💾 State Recovery** - Resumes from last known state on restart
+- **🧪 Targeted Testing** - Only runs tests for changed areas
+- **📊 Infrastructure Documentation** - Auto-generates infrastructure change logs
 
 ## 🌐 Installation from GitHub
 
@@ -243,6 +256,77 @@ feat(dashboard): add real-time analytics
 - Add chart visualization components
 - Create data aggregation pipeline
 EOF
+```
+
+### Multi-Agent Support (NEW)
+
+#### 🎯 IMPORTANT: Using AI Agents with House Rules
+
+When using AI coding assistants (Claude, Copilot, Cursor, etc.) with this repository:
+
+1. **Include the House Rules in Your Prompt:**
+   ```
+   Please follow the house rules defined in houserules.md for all code changes.
+   ```
+
+2. **For Claude specifically:**
+   ```
+   @houserules.md - Please read and follow these house rules for all interactions.
+   ```
+
+3. **For GitHub Copilot Chat:**
+   ```
+   #file:houserules.md - Follow these guidelines for all suggestions.
+   ```
+
+The `houserules.md` file contains:
+- Testing requirements (test-first development)
+- Infrastructure documentation policies
+- Commit message formats
+- Code style guidelines
+- Worktree management rules
+
+#### Running with Specific Agent
+```bash
+# Run with Claude
+node run-with-agent.js --agent claude --repo /path/to/repo --task feature-auth
+
+# Run with Copilot
+node run-with-agent.js --agent copilot --repo /path/to/repo --task refactor-api
+
+# Auto-detect agent from environment
+node run-with-agent.js --detect --repo /path/to/repo
+
+# List all active worktrees
+node run-with-agent.js --list --repo /path/to/repo
+```
+
+#### Environment Variables for Agents
+```bash
+# Specify agent
+export AGENT_NAME=claude
+export AGENT_TASK=authentication
+
+# Control worktree creation
+export AC_USE_WORKTREE=true  # Enable worktrees (default: auto)
+
+# Agent-specific commit messages
+export AC_MSG_FILE=.claude-commit-msg
+```
+
+#### Managing Worktrees
+```bash
+# Create worktree for an agent
+node worktree-manager.js create --agent claude --task auth-feature
+
+# List all worktrees
+node worktree-manager.js list
+
+# Merge agent's work
+node worktree-manager.js merge --agent claude
+
+# Clean up worktrees
+node worktree-manager.js cleanup --agent claude --delete-branches
 ```
 
 ### Stopping the Worker

@@ -348,6 +348,46 @@ Initialized: ${new Date().toISOString()}
     log.info('CLAUDE_CHANGELOG.md already exists');
   }
   
+  // Setup Documentation/infrastructure.md
+  const docDir = path.join(projectRoot, 'Documentation');
+  const infraDocPath = path.join(docDir, 'infrastructure.md');
+  
+  if (!fs.existsSync(docDir)) {
+    fs.mkdirSync(docDir, { recursive: true });
+    log.success('Created Documentation directory');
+  }
+  
+  if (!fs.existsSync(infraDocPath)) {
+    const infraTemplate = `# Infrastructure Change Log
+
+This document tracks all infrastructure changes made to the project. It is automatically updated when infrastructure-related files are modified.
+
+## Format Guidelines
+
+Each entry should follow this format:
+\`\`\`
+## [Date] - [Agent/Developer Name]
+### Category: [Config|Dependencies|Build|Architecture|Database|API|Security]
+**Change Type**: [Added|Modified|Removed|Fixed]
+**Component**: [Affected component/service]
+**Description**: Brief description of the change
+**Reason**: Why this change was necessary
+**Impact**: Potential impacts or considerations
+**Files Changed**: 
+- file1.js
+- config/settings.json
+\`\`\`
+
+---
+
+<!-- New entries will be added above this line -->`;
+    
+    fs.writeFileSync(infraDocPath, infraTemplate);
+    log.success('Created infrastructure documentation template');
+  } else {
+    log.info('Documentation/infrastructure.md already exists');
+  }
+  
   // Setup CLAUDE.md if it doesn't exist
   const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
   if (!fs.existsSync(claudeMdPath)) {

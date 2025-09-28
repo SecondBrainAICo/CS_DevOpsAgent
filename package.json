@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node auto-commit-worker.js",
     "setup": "node setup-auto-commit.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest test_cases/",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:worktree": "jest test_cases/worktree/"
   },
   "keywords": [
     "git",
@@ -24,7 +27,9 @@
     "chokidar": "^3.5.3",
     "execa": "^7.1.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
   "engines": {
     "node": ">=16.0.0"
   },

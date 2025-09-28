@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+export LOG_LEVEL="${LOG_LEVEL:-info}"
+export TRACE="${TRACE:-0}"
+echo "Running targeted tests before push..."
+scripts/run-tests --changed || {
+  echo "Tests failed. Aborting push."
+  exit 1
+}

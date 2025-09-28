@@ -1,0 +1,17 @@
+# Test Cases Directory
+
+This directory contains test cases organized by area and component.
+
+Structure:
+```
+test_cases/
+├── worktree/
+│   └── manager/     # Tests for worktree management
+├── autocommit/
+│   └── worker/      # Tests for auto-commit worker
+└── agent/
+    └── runner/      # Tests for agent runner
+```
+
+Test files follow the naming convention:
+`YYYYMMDD_<short-slug>_spec.(js|ts|py|go|rb|java)`

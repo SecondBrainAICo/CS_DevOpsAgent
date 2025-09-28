@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+source "$ROOT/scripts/lib/log.sh"
+
+SCOPE="changed"   # changed | all | path
+TARGET_PATH=""
+BASE_REF="${BASE_REF:-origin/main}"
+HEAD_REF="${HEAD_REF:-HEAD}"
+
+# Parse flags
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --all)     SCOPE="all"; shift ;;
+    --changed) SCOPE="changed"; shift ;;
+    --base)    BASE_REF="$2"; shift 2 ;;
+    --head)    HEAD_REF="$2"; shift 2 ;;
+    -v|--verbose) LOG_LEVEL="debug"; shift ;;
+    -q|--quiet)   LOG_LEVEL="warn"; shift ;;
+    -*)
+      log_warn "Unknown flag: $1"; shift ;;
+    *)
+      # If a path is provided, treat as direct target
+      if [ -d "$1" ]; then
+        SCOPE="path"; TARGET_PATH="$1"; shift
+      else
+        log_warn "Ignoring unknown arg: $1"; shift
+      fi
+      ;;
+  esac
+done
+
+log_group_start "Test run setup"
+log_info "LOG_LEVEL=$LOG_LEVEL TRACE=$TRACE"
+log_info "SCOPE=$SCOPE BASE_REF=$BASE_REF HEAD_REF=$HEAD_REF TARGET_PATH=${TARGET_PATH:-<none>}"
+log_group_end
+
+langs=()
+
+has_any() { git ls-files "$1" >/dev/null 2>&1 && [ -n "$(git ls-files "$1")" ]; }
+
+# AutoCommit is JavaScript-based
+if has_any "*.js" || has_any "package.json"; then langs+=("node"); fi
+if has_any "*.py"; then langs+=("python"); fi
+if has_any "*.go"; then langs+=("go"); fi
+if has_any "pom.xml" || has_any "build.gradle" || has_any "build.gradle.kts"; then langs+=("java"); fi
+if has_any "Gemfile" || has_any "*.rb"; then langs+=("ruby"); fi
+
+if [ ${#langs[@]} -eq 0 ]; then
+  log_warn "No detectable languages. Exiting."
+  exit 0
+fi
+
+# Collect candidate test directories
+declare -a test_dirs=()
+
+if [ "$SCOPE" = "path" ]; then
+  test_dirs+=("$TARGET_PATH")
+elif [ "$SCOPE" = "changed" ]; then
+  if changed=$(scripts/changed-areas.sh --base "$BASE_REF" --head "$HEAD_REF"); then
+    while IFS= read -r line; do
+      [ -z "$line" ] && continue
+      test_dirs+=("$line")
+    done <<< "$changed"
+  fi
+fi
+
+# Fallbacks
+if [ "$SCOPE" = "all" ] || [ ${#test_dirs[@]} -eq 0 ]; then
+  if [ "$SCOPE" = "changed" ]; then
+    log_warn "No targeted test dirs inferred. Falling back to full suite."
+  fi
+  # collect all leaf test folders to avoid scanning entire repo
+  mapfile -t all_dirs < <(find test_cases -type d 2>/dev/null || true)
+  if [ ${#all_dirs[@]} -eq 0 ]; then
+    log_warn "No test_cases/ found. Exiting."
+    exit 0
+  fi
+  test_dirs=("${all_dirs[@]}")
+fi
+
+# De-dup and ensure dirs exist
+mapfile -t test_dirs < <(printf "%s\n" "${test_dirs[@]}" | sort -u)
+log_group_start "Planned test directories"
+printf "%s\n" "${test_dirs[@]}" | sed 's/^/- /'
+log_group_end
+
+run_python() {
+  if ! command -v pytest >/dev/null 2>&1; then
+    log_error "pytest not found. Install with: pip install -U pytest"
+    return 1
+  fi
+  if [ "${#test_dirs[@]}" -gt 0 ]; then
+    pytest -q "${test_dirs[@]}"
+  else
+    pytest -q
+  fi
+}
+
+run_node() {
+  if [ ! -f package.json ]; then
+    log_debug "No package.json; skipping node tests."
+    return 0
+  fi
+  
+  # For AutoCommit, we'll use Jest for testing
+  if npx --yes -- jest --version >/dev/null 2>&1; then
+    if [ "${#test_dirs[@]}" -gt 0 ]; then
+      npx --yes jest --runInBand "${test_dirs[@]}"
+    else
+      npx --yes jest --runInBand
+    fi
+  elif npx --yes -- vitest --version >/dev/null 2>&1; then
+    if [ "${#test_dirs[@]}" -gt 0 ]; then
+      npx --yes vitest run "${test_dirs[@]}"
+    else
+      npx --yes vitest run
+    fi
+  else
+    log_error "Neither jest nor vitest found. Install: npm i -D jest"
+    return 1
+  fi
+}
+
+run_go() {
+  # go test cannot target our folder layout directly; let's run full module
+  go test ./...
+}
+
+run_java() {
+  if [ -f "gradlew" ]; then
+    ./gradlew test
+  elif [ -f "mvnw" ]; then
+    ./mvnw -q -DskipTests=false test
+  elif command -v mvn >/dev/null 2>&1; then
+    mvn -q -DskipTests=false test
+  elif command -v gradle >/dev/null 2>&1; then
+    gradle test
+  else
+    log_error "No Java build tool found (Gradle/Maven)."
+    return 1
+  fi
+}
+
+run_ruby() {
+  if command -v rspec >/dev/null 2>&1; then
+    if [ "${#test_dirs[@]}" -gt 0 ]; then
+      rspec "${test_dirs[@]}"
+    else
+      rspec
+    fi
+  else
+    log_error "rspec not found. Install: bundle add rspec && bundle exec rspec --init"
+    return 1
+  fi
+}
+
+rc=0
+for l in "${langs[@]}"; do
+  log_group_start "Running $l tests"
+  case "$l" in
+    python) run_python || rc=$? ;;
+    node)   run_node   || rc=$? ;;
+    go)     run_go     || rc=$? ;;
+    java)   run_java   || rc=$? ;;
+    ruby)   run_ruby   || rc=$? ;;
+  esac
+  log_group_end
+done
+
+if [ "$rc" -ne 0 ]; then
+  log_error "One or more test suites failed with code $rc"
+else
+  log_info "All planned test suites passed."
+fi
+exit $rc

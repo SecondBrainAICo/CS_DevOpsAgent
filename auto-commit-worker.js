@@ -580,11 +580,13 @@ function isQuietNow() {
  * Executes a single commit cycle:
  * 1. CHECK FOR DAY ROLLOVER (handle if we crossed midnight)
  * 2. Ensure we're on correct branch
- * 3. Stage all changes (except message file)
- * 4. Read and validate commit message
- * 5. Commit with message
- * 6. Push to remote (if enabled)
- * 7. Clear message file (if configured)
+ * 3. Detect infrastructure changes
+ * 4. Stage all changes (except message file)
+ * 5. Read and validate commit message
+ * 6. Update infrastructure documentation if needed
+ * 7. Commit with message (enhanced if infra changes)
+ * 8. Push to remote (if enabled)
+ * 9. Clear message file (if configured)
  * 
  * @param {string} repoRoot - Repository root path
  * @param {string} msgPath - Path to commit message file
@@ -601,6 +603,16 @@ async function commitOnce(repoRoot, msgPath) {
     log(`branch target=${BRANCH} ensured ok=${ensured.ok} created=${ensured.created} switched=${ensured.switched}`);
     if (!ensured.ok) return;
 
+    // Get list of changed files for infrastructure detection
+    const { stdout: changedFiles } = await run("git", ["diff", "--name-only", "HEAD"]);
+    const changedFilesList = changedFiles ? changedFiles.split('\n').filter(f => f) : [];
+    
+    // Detect infrastructure changes
+    const infraChanges = detectInfrastructureChanges(changedFilesList);
+    if (infraChanges.hasInfraChanges) {
+      log(infraChanges.summary);
+    }
+
     await run("git", ["add", "-A"]);
     await unstageIfStaged(path.relative(repoRoot, msgPath));
 
@@ -608,12 +620,36 @@ async function commitOnce(repoRoot, msgPath) {
     log(`staged files=${n}`);
     if (n === 0) return;
 
-    const msg = readMsgFile(msgPath);
+    let msg = readMsgFile(msgPath);
     const header = (msg.split("\n")[0] || "").slice(0, 120);
     dlog("msgPath:", path.relative(repoRoot, msgPath), "size:", msg.length, "header:", header);
 
+    // Enhance commit message if infrastructure changes detected
+    if (infraChanges.hasInfraChanges && !msg.startsWith('infra')) {
+      const originalMsg = msg;
+      const [firstLine, ...rest] = msg.split('\n');
+      
+      // If the message doesn't already have infra prefix, add it
+      if (!firstLine.match(/^(feat|fix|docs|style|refactor|test|chore|infra)/)) {
+        msg = `infra: ${firstLine}`;
+      } else {
+        msg = firstLine.replace(/^(\w+)/, 'infra');
+      }
+      
+      // Add infrastructure details to commit body
+      const infraDetails = `\n\nInfrastructure changes:\n${infraChanges.files.map(f => `- ${f.file} (${f.category})`).join('\n')}`;
+      msg = rest.length > 0 ? `${msg}\n${rest.join('\n')}${infraDetails}` : `${msg}${infraDetails}`;
+    }
+
     let committed = false;
     if (REQUIRE_MSG && conventionalHeaderOK(msg)) {
+      // Update infrastructure documentation before commit
+      if (infraChanges.hasInfraChanges) {
+        await updateInfrastructureDoc(infraChanges, msg);
+        // Re-stage to include the documentation update
+        await run("git", ["add", "Documentation/infrastructure.md"]);
+      }
+      
       const tmp = path.join(repoRoot, ".git", ".ac-msg.txt");
       fs.writeFileSync(tmp, msg + "\n");
       committed = (await run("git", ["commit", "-F", tmp])).ok;
@@ -655,23 +691,307 @@ function schedule(repoRoot, msgPath) {
 }
 
 // ============================================================================
+// INFRASTRUCTURE CHANGE DETECTION
+// ============================================================================
+
+/**
+ * Detect if changes include infrastructure files
+ * @param {string[]} changedFiles - Array of changed file paths
+ * @returns {object} - Infrastructure change details
+ */
+function detectInfrastructureChanges(changedFiles) {
+  const infraPatterns = [
+    { pattern: /package(-lock)?\.json$/, category: 'Dependencies' },
+    { pattern: /\.env(\..*)?$/, category: 'Config' },
+    { pattern: /.*config.*\.(js|json|yml|yaml)$/, category: 'Config' },
+    { pattern: /Dockerfile$/, category: 'Build' },
+    { pattern: /docker-compose\.(yml|yaml)$/, category: 'Build' },
+    { pattern: /\.github\/workflows\//, category: 'Build' },
+    { pattern: /migrations?\//, category: 'Database' },
+    { pattern: /(routes?|api)\//, category: 'API' },
+    { pattern: /\.gitlab-ci\.yml$/, category: 'Build' },
+    { pattern: /webpack\.config\.js$/, category: 'Build' },
+    { pattern: /tsconfig\.json$/, category: 'Build' },
+    { pattern: /jest\.config\.js$/, category: 'Build' },
+    { pattern: /\.eslintrc/, category: 'Build' },
+    { pattern: /\.prettierrc/, category: 'Build' }
+  ];
+  
+  const detected = {
+    hasInfraChanges: false,
+    categories: new Set(),
+    files: [],
+    summary: ''
+  };
+  
+  for (const file of changedFiles) {
+    for (const { pattern, category } of infraPatterns) {
+      if (pattern.test(file)) {
+        detected.hasInfraChanges = true;
+        detected.categories.add(category);
+        detected.files.push({ file, category });
+        break;
+      }
+    }
+  }
+  
+  if (detected.hasInfraChanges) {
+    detected.summary = `Infrastructure changes detected in: ${Array.from(detected.categories).join(', ')}`;
+  }
+  
+  return detected;
+}
+
+/**
+ * Update infrastructure documentation
+ * @param {object} infraChanges - Infrastructure change details
+ * @param {string} commitMsg - Commit message
+ */
+async function updateInfrastructureDoc(infraChanges, commitMsg) {
+  const TRACK_INFRA = (process.env.AC_TRACK_INFRA || "true").toLowerCase() !== "false";
+  if (!TRACK_INFRA || !infraChanges.hasInfraChanges) return;
+  
+  const docPath = path.join(
+    process.cwd(),
+    process.env.AC_INFRA_DOC_PATH || 'Documentation/infrastructure.md'
+  );
+  
+  // Ensure Documentation directory exists
+  const docDir = path.dirname(docPath);
+  if (!fs.existsSync(docDir)) {
+    fs.mkdirSync(docDir, { recursive: true });
+  }
+  
+  // Create file if it doesn't exist
+  if (!fs.existsSync(docPath)) {
+    const template = `# Infrastructure Change Log
+
+This document tracks all infrastructure changes made to the project.
+
+---
+
+<!-- New entries will be added above this line -->`;
+    fs.writeFileSync(docPath, template);
+  }
+  
+  // Prepare entry
+  const date = new Date().toISOString().split('T')[0];
+  const agent = process.env.AGENT_NAME || process.env.USER || 'System';
+  const categories = Array.from(infraChanges.categories).join(', ');
+  
+  const entry = `
+## ${date} - ${agent}
+
+### Category: ${categories}
+**Change Type**: Modified
+**Component**: ${infraChanges.files[0].category}
+**Description**: ${commitMsg.split('\n')[0]}
+**Files Changed**: 
+${infraChanges.files.map(f => `- ${f.file}`).join('\n')}
+
+---
+`;
+  
+  // Read current content and insert new entry
+  let content = fs.readFileSync(docPath, 'utf8');
+  const insertMarker = '<!-- New entries will be added above this line -->';
+  
+  if (content.includes(insertMarker)) {
+    content = content.replace(insertMarker, entry + '\n' + insertMarker);
+  } else {
+    content += '\n' + entry;
+  }
+  
+  fs.writeFileSync(docPath, content);
+  log(`Updated infrastructure documentation: ${docPath}`);
+}
+
+// ============================================================================
+// WORKTREE DETECTION AND MANAGEMENT
+// ============================================================================
+
+/**
+ * Detect if we're running AutoCommit on another repository and should use worktrees
+ * @param {string} repoRoot - The root of the target repository
+ * @returns {object} - Worktree info or null
+ */
+async function detectAndSetupWorktree(repoRoot) {
+  // Check if we're in the AutoCommit repo itself - never use worktrees here
+  const autoCommitMarkers = ['worktree-manager.js', 'auto-commit-worker.js', 'setup-auto-commit.js'];
+  const isAutoCommitRepo = autoCommitMarkers.every(file => 
+    fs.existsSync(path.join(repoRoot, file))
+  );
+  
+  if (isAutoCommitRepo) {
+    dlog("Running in AutoCommit repository - worktrees disabled");
+    return null;
+  }
+  
+  // Check environment variables for agent identification
+  const agentName = process.env.AGENT_NAME || process.env.AI_AGENT || null;
+  const agentTask = process.env.AGENT_TASK || process.env.AI_TASK || 'development';
+  const useWorktree = (process.env.AC_USE_WORKTREE || "auto").toLowerCase();
+  
+  // Skip worktree if explicitly disabled
+  if (useWorktree === "false" || useWorktree === "no") {
+    dlog("Worktree usage disabled via AC_USE_WORKTREE");
+    return null;
+  }
+  
+  // If no agent name provided, try to detect from environment
+  let detectedAgent = agentName;
+  if (!detectedAgent) {
+    // Check for common AI agent indicators
+    if (process.env.COPILOT_API_KEY || process.env.GITHUB_COPILOT_ENABLED) {
+      detectedAgent = 'copilot';
+    } else if (process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY) {
+      detectedAgent = 'claude';
+    } else if (process.env.CURSOR_API_KEY || process.env.CURSOR_ENABLED) {
+      detectedAgent = 'cursor';
+    } else if (process.env.AIDER_API_KEY || process.env.OPENAI_API_KEY) {
+      detectedAgent = 'aider';
+    } else if (process.env.USER && process.env.USER.includes('agent')) {
+      detectedAgent = process.env.USER.replace(/[^a-zA-Z0-9]/g, '');
+    }
+  }
+  
+  // Only proceed if we have an agent name or it's explicitly requested
+  if (!detectedAgent && useWorktree !== "true") {
+    dlog("No agent detected and worktrees not explicitly requested");
+    return null;
+  }
+  
+  // Generate agent name if needed
+  if (!detectedAgent) {
+    detectedAgent = `agent-${Date.now().toString(36)}`;
+    log(`Generated agent name: ${detectedAgent}`);
+  }
+  
+  // Check if we're already in a worktree
+  const { stdout: worktreeList } = await run("git", ["worktree", "list", "--porcelain"]);
+  const currentPath = process.cwd();
+  const isInWorktree = worktreeList.includes(currentPath) && 
+                       !worktreeList.startsWith(`worktree ${currentPath}\n`);
+  
+  if (isInWorktree) {
+    log(`Already running in worktree: ${currentPath}`);
+    return { isWorktree: true, path: currentPath, agent: detectedAgent };
+  }
+  
+  // Try to use existing worktree manager if available
+  const worktreeManagerPath = path.join(repoRoot, '.worktrees', 'worktree-manager.js');
+  const hasWorktreeManager = fs.existsSync(worktreeManagerPath) || 
+                             fs.existsSync(path.join(repoRoot, 'worktree-manager.js'));
+  
+  if (hasWorktreeManager) {
+    log(`Found worktree manager - creating worktree for ${detectedAgent}`);
+    const { ok, stdout } = await run("node", [
+      worktreeManagerPath,
+      "create",
+      "--agent", detectedAgent,
+      "--task", agentTask
+    ]);
+    
+    if (ok) {
+      const worktreePath = path.join(repoRoot, '.worktrees', `${detectedAgent}-${agentTask}`);
+      log(`Worktree created at: ${worktreePath}`);
+      return { isWorktree: true, path: worktreePath, agent: detectedAgent, created: true };
+    }
+  }
+  
+  // Fallback: Create simple worktree without manager
+  const worktreesDir = path.join(repoRoot, '.worktrees');
+  const worktreeName = `${detectedAgent}-${agentTask}`;
+  const worktreePath = path.join(worktreesDir, worktreeName);
+  const branchName = `agent/${detectedAgent}/${agentTask}`;
+  
+  if (!fs.existsSync(worktreePath)) {
+    log(`Creating worktree for ${detectedAgent} at ${worktreePath}`);
+    
+    // Ensure worktrees directory exists
+    if (!fs.existsSync(worktreesDir)) {
+      fs.mkdirSync(worktreesDir, { recursive: true });
+    }
+    
+    // Create worktree with new branch
+    const { ok } = await run("git", [
+      "worktree", "add", 
+      "-b", branchName,
+      worktreePath,
+      "HEAD"
+    ]);
+    
+    if (ok) {
+      // Create agent config file
+      const agentConfig = {
+        agent: detectedAgent,
+        worktree: worktreeName,
+        branch: branchName,
+        task: agentTask,
+        created: new Date().toISOString(),
+        autoCommit: {
+          enabled: true,
+          prefix: `agent_${detectedAgent}_`,
+          messagePrefix: `[${detectedAgent.toUpperCase()}]`
+        }
+      };
+      
+      fs.writeFileSync(
+        path.join(worktreePath, '.agent-config'),
+        JSON.stringify(agentConfig, null, 2)
+      );
+      
+      log(`Worktree created successfully for ${detectedAgent}`);
+      return { isWorktree: true, path: worktreePath, agent: detectedAgent, created: true };
+    } else {
+      log(`Failed to create worktree for ${detectedAgent}`);
+    }
+  } else {
+    log(`Using existing worktree at: ${worktreePath}`);
+    return { isWorktree: true, path: worktreePath, agent: detectedAgent };
+  }
+  
+  return null;
+}
+
+// ============================================================================
 // MAIN ENTRY POINT - Initialize and start the auto-commit worker
 // ============================================================================
 
 /**
  * MAIN EXECUTION FLOW:
  * 1. Setup: Find git root, change to it
- * 2. Daily Rollover: Check if new day, handle merges if needed
- * 3. Message File: Locate .claude-commit-msg file
- * 4. Startup Commit: Commit pending changes if message exists
- * 5. File Watcher: Monitor all files for changes
- * 6. Message Trigger: Auto-commit when message file updates
- * 7. Loop forever...
+ * 2. Worktree Detection: Check if we should use worktrees for agent isolation
+ * 3. Daily Rollover: Check if new day, handle merges if needed
+ * 4. Message File: Locate .claude-commit-msg file
+ * 5. Startup Commit: Commit pending changes if message exists
+ * 6. File Watcher: Monitor all files for changes
+ * 7. Message Trigger: Auto-commit when message file updates
+ * 8. Loop forever...
  */
 (async () => {
   const { stdout: toplevel } = await run("git", ["rev-parse", "--show-toplevel"]);
   const repoRoot = toplevel.trim() || process.cwd();
-  process.chdir(repoRoot);
+  
+  // Check if we should use a worktree for this agent
+  const worktreeInfo = await detectAndSetupWorktree(repoRoot);
+  
+  if (worktreeInfo && worktreeInfo.created) {
+    // If we just created a worktree, we need to switch to it
+    log(`Switching to worktree at: ${worktreeInfo.path}`);
+    process.chdir(worktreeInfo.path);
+    
+    // Update environment variables for the worktree context
+    process.env.AGENT_NAME = worktreeInfo.agent;
+    process.env.AC_BRANCH_PREFIX = `agent_${worktreeInfo.agent}_`;
+    process.env.AC_MSG_FILE = `.${worktreeInfo.agent}-commit-msg`;
+  } else if (worktreeInfo && worktreeInfo.isWorktree) {
+    // Already in a worktree, just ensure we're using it
+    process.chdir(worktreeInfo.path);
+  } else {
+    // No worktree, proceed normally
+    process.chdir(repoRoot);
+  }
 
   log(`repo=${repoRoot}`);
   log(`node=${process.version} cwd=${process.cwd()}`);
