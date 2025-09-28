@@ -8,6 +8,10 @@
 
 set -e  # Exit on error
 
+# Resolve repository root based on this script's location
+SCRIPT_DIR="$(cd -- "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -82,7 +86,6 @@ setup_test_env() {
     
     # Copy CS_DevOpsAgent files
     mkdir -p "$TEST_REPO/src"
-    REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
     cp -r "$REPO_ROOT/src"/*.js "$TEST_REPO/src/"
     cp -r "$REPO_ROOT/deploy_test"/*.sh "$TEST_REPO/"
     cp "$REPO_ROOT/package.json" "$TEST_REPO/"
