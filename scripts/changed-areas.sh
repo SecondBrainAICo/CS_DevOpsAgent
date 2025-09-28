@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
+
+# Redirect log output to stderr to keep stdout clean
+exec 3>&1
+exec 1>&2
 source "$ROOT/scripts/lib/log.sh"
 
 BASE="${BASE_REF:-origin/main}"
@@ -74,7 +78,13 @@ done <<< "$changed_files"
 
 # Unique + existing or prospective test dirs
 unique=($(printf "%s\n" "${areas[@]}" | sort -u))
+
+# Output test dirs to original stdout
+exec 1>&3
 for a in "${unique[@]}"; do
   echo "$a"
 done
+
+# Restore stderr for final log
+exec 1>&2
 log_group_end
