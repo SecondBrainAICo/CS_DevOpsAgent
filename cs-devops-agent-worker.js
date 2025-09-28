@@ -293,8 +293,26 @@ async function pushBranch(branch) {
     console.error("  git remote add origin <git-url>");
     return false;
   }
+  
+  // First attempt to push
   let r = await run("git", ["push", remote, branch]);
-  if (!r.ok) r = await run("git", ["push", "-u", remote, branch]);
+  
+  // If push failed, check if it's because we're behind
+  if (!r.ok) {
+    // Try to pull and merge remote changes
+    log("Push failed, attempting to pull remote changes...");
+    const pullResult = await run("git", ["pull", "--no-rebase", remote, branch]);
+    
+    if (pullResult.ok) {
+      log("Successfully pulled and merged remote changes, retrying push...");
+      // Retry push after successful pull
+      r = await run("git", ["push", remote, branch]);
+    } else {
+      // If pull also failed, try setting upstream
+      r = await run("git", ["push", "-u", remote, branch]);
+    }
+  }
+  
   return r.ok;
 }
 

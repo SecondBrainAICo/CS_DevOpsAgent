@@ -208,11 +208,25 @@ git worktree prune
 git worktree remove <path> --force
 ```
 
-### Issue: Remote push failures
-**Solution**: Pull latest changes first
+### Issue: Remote push failures - Branch Behind Remote
+**Solution**: The CS_DevOpsAgent now handles this automatically!
+
+**Automatic Handling (New Feature)**:
+The `cs-devops-agent-worker.js` now automatically pulls and merges remote changes when a push fails due to the branch being behind. This happens transparently without user intervention.
+
+**Manual Resolution** (if automatic handling fails):
 ```bash
-git pull --rebase origin main
+git pull --no-rebase origin main  # Merge remote changes
 git push origin main
+```
+
+**Testing the Push-Behind Scenario**:
+```bash
+# Run the dedicated test
+./test-push-behind-scenario.sh
+
+# Keep test artifacts for debugging
+KEEP_TEST_DIR=1 ./test-push-behind-scenario.sh
 ```
 
 ## Performance Metrics
