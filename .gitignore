@@ -38,7 +38,34 @@ build/
 CLAUDE_CHANGELOG.md
 
 # Personal run scripts (created per developer)
-run-auto-commit-*.shtest_cases/**/test-repo/
+run-auto-commit-*.sh
+test_cases/**/test-repo/
 .ac-prep
 .ac
 .git/.ac
+
+# Local deployment files (unique to SecondBrain developers)
+deploy-to-scripts-dev.sh
+deploy-autocommit.sh
+build-cli-package.sh
+DEPLOYMENT_OPTIONS.md
+
+# Test workspaces
+test-standalone-workspace/
+test-e2e-workspace/
+
+# Binary builds
+dist/
+binary-wrapper.js
+binary-package.json
+ac-agent-*
+
+# CLI build artifacts
+src/
+CLI_README.md
+.npmrc
+
+# Local configuration overrides
+*.local
+*.local.*
+local-config/
