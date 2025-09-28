@@ -119,7 +119,15 @@ test_basic_autocommit() {
     
     cd "$TEST_REPO"
     
-    # Start the devops-agent worker in background
+    # Start the devops-agent worker in background with test env
+    AC_PUSH=false \
+    AC_REQUIRE_MSG=true \
+    AC_MSG_MIN_BYTES=10 \
+    AC_CLEAR_MSG_WHEN=commit \
+    AC_TRIGGER_ON_MSG=true \
+    AC_MSG_DEBOUNCE_MS=800 \
+    AC_DEBOUNCE_MS=400 \
+    AC_DEBUG=true \
     node src/cs-devops-agent-worker.js > "${LOG_DIR}/worker_basic.log" 2>&1 &
     local WORKER_PID=$!
     
@@ -202,6 +210,7 @@ test_session_persistence() {
     
     # Start first session
     export SESSION_ID="session_1"
+    AC_PUSH=false AC_REQUIRE_MSG=true AC_MSG_MIN_BYTES=10 AC_CLEAR_MSG_WHEN=commit AC_TRIGGER_ON_MSG=true AC_MSG_DEBOUNCE_MS=800 AC_DEBOUNCE_MS=400 AC_DEBUG=true \
     node src/cs-devops-agent-worker.js > "${LOG_DIR}/session_1.log" 2>&1 &
     local SESSION_1_PID=$!
     
