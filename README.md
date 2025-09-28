@@ -11,6 +11,8 @@
 
 A sophisticated multi-agent Git automation system that enables multiple AI coding assistants to work simultaneously on the same codebase without conflicts. Features automatic worktree management, infrastructure change tracking, intelligent commit detection, and comprehensive testing infrastructure.
 
+Born a little out of frustration that I couldn't get multiple agents to work on the same codebase so this was more for our own development - hopefully it helps you. 
+
 ## 📝 Table of Contents
 
 - [Features](#✨-features)
