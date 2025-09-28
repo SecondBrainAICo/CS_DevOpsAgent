@@ -69,3 +69,6 @@ CLI_README.md
 *.local
 *.local.*
 local-config/
+
+# Local deployment folder (contains deployment scripts and runtime files)
+local_deploy/
