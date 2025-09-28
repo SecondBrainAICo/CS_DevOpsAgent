@@ -210,7 +210,7 @@ npm run cs-devops-agent:debug
 #### Via VS Code Tasks
 1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
 2. Type "Tasks: Run Task"
-3. Select "🚀 Start Auto-Commit Worker"
+3. Select "🚀 Start DevOps Agent Worker"
 
 ### Creating Commits
 
@@ -411,7 +411,7 @@ pkill -f "node.*cs-devops-agent-worker"
 #### Via VS Code
 1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
 2. Type "Tasks: Run Task"
-3. Select "🛑 Stop Auto-Commit Worker"
+3. Select "🛑 Stop DevOps Agent Worker"
 
 ## ⚙️ Configuration
 
@@ -516,8 +516,8 @@ graph LR
 
 The setup creates VS Code tasks (`.vscode/tasks.json`):
 
-- **🚀 Start Auto-Commit Worker** - Launches the worker
-- **🛑 Stop Auto-Commit Worker** - Terminates the worker
+- **🚀 Start DevOps Agent Worker** - Launches the worker
+- **🛑 Stop DevOps Agent Worker** - Terminates the worker
 - **📝 Create Commit Message** - Opens message file
 - **📊 Show Git Status** - Displays current git state
 
@@ -530,7 +530,7 @@ Add to `.vscode/keybindings.json`:
   {
     "key": "cmd+alt+c",
     "command": "workbench.action.tasks.runTask",
-    "args": "🚀 Start Auto-Commit Worker"
+    "args": "🚀 Start DevOps Agent Worker"
   },
   {
     "key": "cmd+alt+m",
@@ -636,7 +636,7 @@ The system creates logs for debugging:
 
 ## 📚 API Reference
 
-### Auto-Commit Worker
+### DevOps Agent Worker
 
 #### Main Functions
 

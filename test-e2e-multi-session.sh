@@ -4,7 +4,7 @@
 # CS_DevOpsAgent End-to-End Multi-Session Test Suite
 # ==========================================
 # This script tests the complete functionality across multiple sessions
-# including auto-commit, multi-agent coordination, and session persistence
+# including devops-agent, multi-agent coordination, and session persistence
 
 set -e  # Exit on error
 
@@ -105,13 +105,13 @@ EOF
     print_success "Test environment setup complete"
 }
 
-# Test 1: Basic auto-commit functionality
+# Test 1: Basic devops-agent functionality
 test_basic_autocommit() {
-    print_test "Basic auto-commit functionality"
+    print_test "Basic devops-agent functionality"
     
     cd "$TEST_REPO"
     
-    # Start the auto-commit worker in background
+    # Start the devops-agent worker in background
     node cs-devops-agent-worker.js > "${LOG_DIR}/worker_basic.log" 2>&1 &
     local WORKER_PID=$!
     
@@ -121,15 +121,15 @@ test_basic_autocommit() {
     echo "Test content" > test_file.txt
     echo "test: basic commit" > .claude-commit-msg
     
-    sleep 3  # Wait for auto-commit to trigger
+    sleep 3  # Wait for devops-agent to trigger
     
     # Check if commit was created
     if git log --oneline | grep -q "test: basic commit"; then
         print_success "Auto-commit created successfully"
-        echo "PASS: Basic auto-commit" >> "$RESULTS_FILE"
+        echo "PASS: Basic devops-agent" >> "$RESULTS_FILE"
     else
         print_error "Auto-commit failed"
-        echo "FAIL: Basic auto-commit" >> "$RESULTS_FILE"
+        echo "FAIL: Basic devops-agent" >> "$RESULTS_FILE"
     fi
     
     # Cleanup

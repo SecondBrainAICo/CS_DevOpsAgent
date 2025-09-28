@@ -217,10 +217,10 @@ if [ -f "$TASKS" ]; then
         TMP="$(mktemp)"
         
         # Check if Auto Commit Worker task exists
-        if jq -e '.tasks[] | select(.label == "🚀 Start Auto-Commit Worker")' "$TASKS" >/dev/null 2>&1; then
+        if jq -e '.tasks[] | select(.label == "🚀 Start DevOps Agent Worker")' "$TASKS" >/dev/null 2>&1; then
             jq '
             (.tasks[] | 
-             select(.label == "🚀 Start Auto-Commit Worker") | 
+             select(.label == "🚀 Start DevOps Agent Worker") | 
              .options.env) += {
                 // Message-driven commits
                 "AC_TRIGGER_ON_MSG": "true",
@@ -258,7 +258,7 @@ if [ -f "$TASKS" ]; then
         fi
     else
         cat <<'NOTE'
-[note] jq not installed. Please add these env vars to the "🚀 Start Auto-Commit Worker" task options.env:
+[note] jq not installed. Please add these env vars to the "🚀 Start DevOps Agent Worker" task options.env:
 
 AC_TRIGGER_ON_MSG=true
 AC_MSG_DEBOUNCE_MS=3000
@@ -488,7 +488,7 @@ echo "🚀 Next Steps:"
 echo "========================================="
 echo "1. Agents should use: ./agent-prep.sh <task> <paths> <priority>"
 echo "2. Monitor status with: ./monitor-agents.sh"
-echo "3. Start Auto-Commit Worker to process prep requests"
+echo "3. Start DevOps Agent Worker to process prep requests"
 echo "4. Check .git/.ac/alerts/ for conflict notifications"
 echo
 echo "[done] Setup complete. Multi-agent coordination is ready!"

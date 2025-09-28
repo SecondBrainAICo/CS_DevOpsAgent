@@ -7,14 +7,14 @@ This guide provides comprehensive instructions for testing multi-session Git ope
 ## Test Suites Available
 
 ### 1. Standalone Multi-Session Test (`test-standalone-multi-session.sh`)
-**Purpose**: Tests pure Git operations without AutoCommit dependencies
+**Purpose**: Tests pure Git operations without DevOpsAgent dependencies
 **Requirements**: Only Git and Bash
 **Use Case**: Validating Git's concurrent session handling
 
 ### 2. E2E Multi-Session Test (`test-e2e-multi-session.sh`)
 **Purpose**: Tests the complete CS_DevOpsAgent system
-**Requirements**: Node.js, Git, AutoCommit components
-**Use Case**: Full system validation including auto-commit features
+**Requirements**: Node.js, Git, DevOpsAgent components
+**Use Case**: Full system validation including devops-agent features
 
 ## Quick Start
 

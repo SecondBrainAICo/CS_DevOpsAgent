@@ -2,7 +2,7 @@
 
 /**
  * ============================================================================
- * AUTO-COMMIT WORKER SETUP SCRIPT
+ * DEVOPS-AGENT WORKER SETUP SCRIPT
  * ============================================================================
  * 
  * This script sets up the cs-devops-agent worker for a new developer:
@@ -240,12 +240,12 @@ function setupVSCodeTasks(projectRoot, initials) {
   }
   
   // Remove old cs-devops-agent tasks if they exist
-  tasks.tasks = tasks.tasks.filter(task => !task.label.includes('Auto-Commit'));
+  tasks.tasks = tasks.tasks.filter(task => !task.label.includes('DevOps Agent'));
   
   // Add new cs-devops-agent tasks
   const autoCommitTasks = [
     {
-      label: '🚀 Start Auto-Commit Worker',
+      label: '🚀 Start DevOps Agent Worker',
       type: 'shell',
       command: 'node',
       args: ['ScriptCS_DevOpsAgent/cs-devops-agent-worker.js'],
@@ -269,7 +269,7 @@ function setupVSCodeTasks(projectRoot, initials) {
       }
     },
     {
-      label: '🛑 Stop Auto-Commit Worker',
+      label: '🛑 Stop DevOps Agent Worker',
       type: 'shell',
       command: 'pkill -f "node.*cs-devops-agent-worker" || echo "Worker not running"',
       problemMatcher: [],
@@ -467,7 +467,7 @@ feat(api): add webhook support for real-time notifications
 - Integrated webhook triggers into event processing pipeline
 \`\`\`
 
-## Auto-Commit Worker
+## DevOps Agent Worker
 The cs-devops-agent worker is configured to:
 - Use branch prefix: dev_${initials}_
 - Create daily branches: dev_${initials}_YYYY-MM-DD
@@ -717,10 +717,10 @@ function createRunScripts(projectRoot, initials, packageJson) {
   
   // Create a personalized shell script
   const scriptContent = `#!/bin/bash
-# Auto-Commit Worker Runner for ${initials.toUpperCase()}
+# DevOps Agent Worker Runner for ${initials.toUpperCase()}
 # Generated on ${new Date().toISOString()}
 
-echo "🚀 Starting Auto-Commit Worker"
+echo "🚀 Starting DevOps Agent Worker"
 echo "Developer: ${initials.toUpperCase()}"
 echo "Branch Prefix: dev_${initials}_"
 echo ""
@@ -760,7 +760,7 @@ node ScriptCS_DevOpsAgent/cs-devops-agent-worker.js
   log.success(`Created personalized run script: run-cs-devops-agent-${initials}.sh`);
   
   // Create a .env.example file
-  const envExampleContent = `# Auto-Commit Worker Configuration
+  const envExampleContent = `# DevOps Agent Worker Configuration
 # Copy to .env and customize as needed
 
 # Developer Settings
@@ -808,7 +808,7 @@ function printInstructions(initials) {
   console.log(`   ${colors.yellow}OR${colors.reset}`);
   console.log(`   ${colors.green}./run-cs-devops-agent-${initials}.sh${colors.reset}`);
   console.log(`   ${colors.yellow}OR${colors.reset}`);
-  console.log(`   ${colors.green}Use VS Code: Cmd+Shift+P → Tasks: Run Task → 🚀 Start Auto-Commit Worker${colors.reset}`);
+  console.log(`   ${colors.green}Use VS Code: Cmd+Shift+P → Tasks: Run Task → 🚀 Start DevOps Agent Worker${colors.reset}`);
   console.log('');
   
   console.log('2. Make your code changes');
@@ -866,7 +866,7 @@ function printInstructions(initials) {
 async function main() {
   console.clear();
   log.header();
-  console.log(colors.bright + '       AUTO-COMMIT WORKER SETUP WIZARD' + colors.reset);
+  console.log(colors.bright + '       DEVOPS-AGENT WORKER SETUP WIZARD' + colors.reset);
   log.header();
   console.log('');
   log.info('This wizard will configure the cs-devops-agent system for you.');

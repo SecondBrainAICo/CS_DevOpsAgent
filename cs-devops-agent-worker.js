@@ -3,7 +3,7 @@
 
 /**
  * ============================================================================
- * AUTO-COMMIT WORKER WITH INTELLIGENT BRANCH MANAGEMENT
+ * DEVOPS-AGENT WORKER WITH INTELLIGENT BRANCH MANAGEMENT
  * ============================================================================
  * 
  * PURPOSE:

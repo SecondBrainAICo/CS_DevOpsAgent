@@ -1,7 +1,7 @@
 {
-  "name": "code-studio-cs-devops-agent-agent",
+  "name": "cs-devops-agent",
   "version": "1.0.0",
-  "description": "Code Studio CS_DevOpsAgent Agent - Automated Git commit system with intelligent branching and VS Code integration",
+  "description": "Code Studio CS_DevOpsAgent Agent - DevOps automation system with intelligent branching and VS Code integration",
   "type": "module",
   "main": "cs-devops-agent-worker.js",
   "scripts": {

@@ -517,7 +517,7 @@ class WorktreeManager {
       return;
     }
     
-    log.header(`Starting Auto-Commit for ${agentName}`);
+    log.header(`Starting DevOps Agent for ${agentName}`);
     log.info(`Worktree: ${worktree.path}`);
     log.info(`Branch: ${worktree.branch}`);
     
