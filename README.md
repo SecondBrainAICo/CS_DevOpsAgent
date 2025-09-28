@@ -102,13 +102,13 @@ cd CS_DevOpsAgent && ./quick-start.sh
 
 ```bash
 # 1. Clone or copy this folder to your project
-cp -r ScriptCS_DevOpsAgent /path/to/your/project/
+cp -r CS_DevOpsAgent /path/to/your/project/
 
 # 2. Navigate to your project
 cd /path/to/your/project
 
 # 3. Run the setup wizard
-node ScriptCS_DevOpsAgent/setup-cs-devops-agent.js
+node CS_DevOpsAgent/src/setup-cs-devops-agent.js
 
 # 4. Start the cs-devops-agent worker
 npm run cs-devops-agent
@@ -129,13 +129,13 @@ That's it! The system is now watching for changes and will cs-devops-agent when 
 
 1. **Copy the ScriptCS_DevOpsAgent folder to your project root:**
    ```bash
-   cp -r ScriptCS_DevOpsAgent /path/to/your/project/
+cp -r CS_DevOpsAgent /path/to/your/project/
    ```
 
 2. **Run the setup script:**
    ```bash
    cd /path/to/your/project
-   node ScriptCS_DevOpsAgent/setup-cs-devops-agent.js
+   node CS_DevOpsAgent/src/setup-cs-devops-agent.js
    ```
 
 3. **Follow the interactive prompts:**
@@ -164,11 +164,11 @@ If you prefer manual setup:
 2. **Add to package.json:**
    ```json
    {
-     "type": "module",
+   "type": "module",
      "scripts": {
-       "cs-devops-agent": "node ScriptCS_DevOpsAgent/cs-devops-agent-worker.js",
-       "cs-devops-agent:debug": "AC_DEBUG=true node ScriptCS_DevOpsAgent/cs-devops-agent-worker.js",
-       "cs-devops-agent:setup": "node ScriptCS_DevOpsAgent/setup-cs-devops-agent.js"
+       "cs-devops-agent": "node CS_DevOpsAgent/src/cs-devops-agent-worker.js",
+       "cs-devops-agent:debug": "AC_DEBUG=true node CS_DevOpsAgent/src/cs-devops-agent-worker.js",
+       "cs-devops-agent:setup": "node CS_DevOpsAgent/src/setup-cs-devops-agent.js"
      }
    }
    ```

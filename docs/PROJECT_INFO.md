@@ -2,22 +2,29 @@
 
 ## Repository Details
 
-- **GitHub Repository**: https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent
-- **Organization**: SecondBrainAI Limited
-- **Local Path**: `/Volumes/Simba User Data/Development/SecondBrain_Code_Studio/CS_DevOpsAgent`
+- **GitHub Repository**: https://github.com/SecondBrainAICo/CS_DevOpsAgent
+- **Organization**: SecondBrain AI
 
 ## Project Structure
 
 ```
 CS_DevOpsAgent/
-├── cs-devops-agent-worker.js    # Main worker that watches and commits changes
-├── setup-cs-devops-agent.js     # Interactive setup wizard
-├── quick-start.sh          # One-command setup script
-├── README.md               # Comprehensive documentation
-├── package.json            # NPM package configuration
-├── LICENSE                 # MIT License
-├── .gitignore             # Git ignore rules
-└── PROJECT_INFO.md        # This file
+├── src/                   # Source code files
+│   ├── cs-devops-agent-worker.js    # Main worker
+│   ├── setup-cs-devops-agent.js     # Setup wizard
+│   ├── worktree-manager.js          # Agent isolation
+│   └── run-with-agent.js            # Agent runner
+├── docs/                  # Documentation
+│   ├── PROJECT_INFO.md    # This file
+│   ├── TESTING.md         # Test guide
+│   └── infrastructure.md  # Change tracking
+├── test_scripts/         # Test scripts
+├── test_cases/          # Jest test cases
+├── deploy_test/         # Deployment tests
+├── package.json         # NPM configuration
+├── LICENSE              # MIT License
+├── README.md            # Main documentation
+└── .gitignore          # Git ignore rules
 ```
 
 ## Key Features

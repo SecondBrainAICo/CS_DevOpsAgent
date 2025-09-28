@@ -1,5 +1,8 @@
-# Node modules
+# Node modules and dependencies
 node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Environment files
 .env
@@ -61,7 +64,7 @@ binary-package.json
 ac-agent-*
 
 # CLI build artifacts
-src/
+# src is now tracked (do not ignore)
 CLI_README.md
 .npmrc
 

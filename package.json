@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Code Studio CS_DevOpsAgent Agent - DevOps automation system with intelligent branching and VS Code integration",
   "type": "module",
-  "main": "cs-devops-agent-worker.js",
+  "main": "src/cs-devops-agent-worker.js",
   "scripts": {
-    "start": "node cs-devops-agent-worker.js",
-    "setup": "node setup-cs-devops-agent.js",
+    "start": "node src/cs-devops-agent-worker.js",
+    "setup": "node src/setup-cs-devops-agent.js",
     "test": "jest test_cases/",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
