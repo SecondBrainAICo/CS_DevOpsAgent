@@ -82,10 +82,11 @@ setup_test_env() {
     
     # Copy CS_DevOpsAgent files
     mkdir -p "$TEST_REPO/src"
-    cp -r "$(dirname "$0")/../src"/*.js "$TEST_REPO/src/"
-    cp -r "$(dirname "$0")/../deploy_test"/*.sh "$TEST_REPO/"
-    cp "$(dirname "$0")/../package.json" "$TEST_REPO/"
-    cp "$(dirname "$0")/../.env.example" "$TEST_REPO/.env" 2>/dev/null || true
+    REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+    cp -r "$REPO_ROOT/src"/*.js "$TEST_REPO/src/"
+    cp -r "$REPO_ROOT/deploy_test"/*.sh "$TEST_REPO/"
+    cp "$REPO_ROOT/package.json" "$TEST_REPO/"
+    cp "$REPO_ROOT/.env.example" "$TEST_REPO/.env" 2>/dev/null || true
     
     # Create initial commit
     echo "# Test Repository" > README.md
