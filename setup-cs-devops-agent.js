@@ -860,6 +860,56 @@ function printInstructions(initials) {
 }
 
 // ============================================================================
+// CLEANUP FUNCTIONS
+// ============================================================================
+
+function cleanupDevOpsAgentFiles(projectRoot) {
+  log.header();
+  log.title('🧹 Cleaning Up DevOpsAgent Files');
+  
+  const scriptsDir = path.join(projectRoot, 'ScriptCS_DevOpsAgent');
+  
+  // Check if this is a submodule deployment
+  const isSubmodule = fs.existsSync(path.join(scriptsDir, '.git'));
+  const devOpsAgentRoot = isSubmodule ? scriptsDir : path.join(projectRoot, 'DevOpsAgent');
+  
+  if (!fs.existsSync(devOpsAgentRoot)) {
+    log.info('No DevOpsAgent directory to clean up');
+    return;
+  }
+  
+  // Files to rename/archive in the DevOpsAgent folder
+  const filesToRename = [
+    { source: 'CLAUDE.md', target: 'CLAUDE.md.template' },
+    { source: 'houserules.md', target: 'houserules.md.template' },
+    { source: 'package.json', target: 'package.json.template' },
+    { source: '.env.example', target: '.env.template' }
+  ];
+  
+  for (const file of filesToRename) {
+    const sourcePath = path.join(devOpsAgentRoot, file.source);
+    const targetPath = path.join(devOpsAgentRoot, file.target);
+    
+    if (fs.existsSync(sourcePath) && !fs.existsSync(targetPath)) {
+      try {
+        fs.renameSync(sourcePath, targetPath);
+        log.success(`Renamed ${file.source} to ${file.target} in DevOpsAgent folder`);
+      } catch (error) {
+        log.warn(`Could not rename ${file.source}: ${error.message}`);
+      }
+    }
+  }
+  
+  // Create a .gitignore in DevOpsAgent to ignore deployed files
+  const devOpsGitignore = path.join(devOpsAgentRoot, '.gitignore');
+  if (!fs.existsSync(devOpsGitignore)) {
+    const ignoreContent = `# Ignore deployed files to avoid conflicts\n*.deployed\n.env\nnode_modules/\n`;
+    fs.writeFileSync(devOpsGitignore, ignoreContent);
+    log.success('Created .gitignore in DevOpsAgent folder');
+  }
+}
+
+// ============================================================================
 // MAIN SETUP FLOW
 // ============================================================================
 
@@ -917,6 +967,9 @@ async function main() {
     setupVSCodeTasks(projectRoot, initials);
     setupCommitFiles(projectRoot, initials);
     createRunScripts(projectRoot, initials, packageJson);
+    
+    // Clean up DevOpsAgent files to avoid duplicates
+    cleanupDevOpsAgentFiles(projectRoot);
     
     // Print instructions
     printInstructions(initials);
