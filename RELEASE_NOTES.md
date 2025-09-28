@@ -1,4 +1,4 @@
-# Release Notes - AutoCommit v2.0.0
+# Release Notes - CS_DevOpsAgent v2.0.0
 
 ## 🚀 Major Release: Multi-Agent Worktree Support & Infrastructure Tracking
 
@@ -9,7 +9,7 @@
 ## ✨ New Features
 
 ### 1. 🤖 Multi-Agent Worktree Management
-AutoCommit now supports multiple AI agents working on the same codebase simultaneously without conflicts!
+CS_DevOpsAgent now supports multiple AI agents working on the same codebase simultaneously without conflicts!
 
 #### Key Capabilities:
 - **Automatic Agent Detection**: Identifies AI agents from environment variables
@@ -140,14 +140,14 @@ TRACE=0                     # Deep tracing (0 or 1)
 
 ### For Existing Users:
 1. Pull the latest changes
-2. Run `node setup-auto-commit.js` to update configuration
+2. Run `node setup-cs-devops-agent.js` to update configuration
 3. Infrastructure documentation will be created automatically
 4. Existing workflows remain unchanged
 
 ### For New Users:
 1. Clone the repository
-2. Run `./quick-start.sh` or `node setup-auto-commit.js`
-3. Start using with `npm run auto-commit`
+2. Run `./quick-start.sh` or `node setup-cs-devops-agent.js`
+3. Start using with `npm run cs-devops-agent`
 
 ---
 
@@ -170,7 +170,7 @@ TRACE=0                     # Deep tracing (0 or 1)
 
 ## 🙏 Acknowledgments
 
-This release represents a major evolution of AutoCommit, transforming it from a simple auto-commit tool into a comprehensive multi-agent development platform. Special thanks to all contributors and users who provided feedback.
+This release represents a major evolution of CS_DevOpsAgent, transforming it from a simple cs-devops-agent tool into a comprehensive multi-agent development platform. Special thanks to all contributors and users who provided feedback.
 
 ---
 

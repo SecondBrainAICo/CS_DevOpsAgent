@@ -1,4 +1,4 @@
-# Claude House Rules for AutoCommit
+# Claude House Rules for CS_DevOpsAgent
 
 ## Testing Policy (Required)
 
@@ -69,7 +69,7 @@ If the current branch name or latest commit message contains fix: or bug:, targe
 
 CI blocks merge if: tests fail or a bugfix PR lacks an associated test.
 
-## Code Style Guidelines for AutoCommit
+## Code Style Guidelines for CS_DevOpsAgent
 
 ### Comment Style
 - Use descriptive header comments for major sections
@@ -90,7 +90,7 @@ CI blocks merge if: tests fail or a bugfix PR lacks an associated test.
 - Clean up resources on failure
 
 ### Worktree Management Specifics
-- Always check if running in AutoCommit repo itself
+- Always check if running in CS_DevOpsAgent repo itself
 - Detect agent from environment variables
 - Create isolated worktrees per agent
 - Maintain agent configuration files

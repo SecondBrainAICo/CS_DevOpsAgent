@@ -40,12 +40,12 @@ while IFS= read -r f; do
   [[ "$f" =~ ^scripts/ ]] && { log_debug "Skip script $f"; continue; }
   [[ "$f" =~ ^docs?/ ]] && { log_debug "Skip docs $f"; continue; }
 
-  # AutoCommit-specific patterns
+  # CS_DevOpsAgent-specific patterns
   if [[ "$f" =~ ^worktree-manager\.js$ ]]; then
     area="worktree"
     component="manager"
-  elif [[ "$f" =~ ^auto-commit-worker\.js$ ]]; then
-    area="autocommit"
+  elif [[ "$f" =~ ^cs-devops-agent-worker\.js$ ]]; then
+    area="cs-devops-agent"
     component="worker"
   elif [[ "$f" =~ ^run-with-agent\.js$ ]]; then
     area="agent"

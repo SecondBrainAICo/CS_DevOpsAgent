@@ -502,9 +502,9 @@ class WorktreeManager {
   }
 
   /**
-   * Run auto-commit worker in a specific worktree
+   * Run cs-devops-agent worker in a specific worktree
    */
-  runAutoCommit(agentName, worktreeName) {
+  runCS_DevOpsAgent(agentName, worktreeName) {
     const agentData = this.agents[agentName];
     if (!agentData) {
       log.error(`Agent not found: ${agentName}`);
@@ -531,8 +531,8 @@ class WorktreeManager {
       AC_WORKING_DIR: worktree.path
     };
     
-    // Start auto-commit worker
-    const autoCommitPath = path.join(this.repoRoot, 'auto-commit-worker.js');
+    // Start cs-devops-agent worker
+    const autoCommitPath = path.join(this.repoRoot, 'cs-devops-agent-worker.js');
     const child = spawn('node', [autoCommitPath], {
       cwd: worktree.path,
       env,
@@ -545,7 +545,7 @@ class WorktreeManager {
     
     // Handle graceful shutdown
     process.on('SIGINT', () => {
-      log.info('Stopping auto-commit worker...');
+      log.info('Stopping cs-devops-agent worker...');
       child.kill('SIGINT');
       process.exit(0);
     });
@@ -682,19 +682,19 @@ async function main() {
       break;
     }
     
-    case 'auto-commit': {
+    case 'cs-devops-agent': {
       const agentIdx = args.indexOf('--agent');
       const worktreeIdx = args.indexOf('--worktree');
       
       if (agentIdx === -1 || !args[agentIdx + 1] || worktreeIdx === -1 || !args[worktreeIdx + 1]) {
-        log.error('Usage: worktree-manager auto-commit --agent <name> --worktree <name>');
+        log.error('Usage: worktree-manager cs-devops-agent --agent <name> --worktree <name>');
         process.exit(1);
       }
       
       const agentName = args[agentIdx + 1];
       const worktreeName = args[worktreeIdx + 1];
       
-      manager.runAutoCommit(agentName, worktreeName);
+      manager.runCS_DevOpsAgent(agentName, worktreeName);
       break;
     }
     
@@ -731,8 +731,8 @@ Commands:
   cleanup   Clean up worktrees for an agent
             worktree-manager cleanup --agent <name> [--all] [--delete-branches]
             
-  auto-commit  Run auto-commit in an agent's worktree
-            worktree-manager auto-commit --agent <name> --worktree <name>
+  cs-devops-agent  Run cs-devops-agent in an agent's worktree
+            worktree-manager cs-devops-agent --agent <name> --worktree <name>
             
   parallel  Create parallel workspace for multiple agents
             worktree-manager parallel --agents agent1,agent2 --task <task>

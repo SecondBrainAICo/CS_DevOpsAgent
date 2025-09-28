@@ -12,7 +12,7 @@
  * 
  * KEY FEATURES:
  * 1. Automatic daily branch creation and management
- * 2. Watches for changes and auto-commits when ready
+ * 2. Watches for changes and cs-devops-agents when ready
  * 3. Micro-revision versioning (v0.20, v0.21, v0.22...)
  * 4. Intelligent commit message handling from .claude-commit-msg
  * 5. Daily rollover with automatic merging
@@ -88,7 +88,7 @@
  * ============================================================================
  * 
  * Basic usage:
- *   node auto-commit-worker.js
+ *   node cs-devops-agent-worker.js
  * 
  * The worker handles midnight crossovers automatically:
  * - If running when clock hits midnight, next commit triggers rollover
@@ -96,13 +96,13 @@
  * - Ensures commits always go to the correct daily branch
  * 
  * With custom branch:
- *   AC_BRANCH=feature-xyz node auto-commit-worker.js
+ *   AC_BRANCH=feature-xyz node cs-devops-agent-worker.js
  * 
  * Disable auto-push:
- *   AC_PUSH=false node auto-commit-worker.js
+ *   AC_PUSH=false node cs-devops-agent-worker.js
  * 
  * Custom timezone:
- *   AC_TZ="America/New_York" node auto-commit-worker.js
+ *   AC_TZ="America/New_York" node cs-devops-agent-worker.js
  * 
  * ============================================================================
  */
@@ -139,7 +139,7 @@ const TRIGGER_ON_MSG     = (process.env.AC_TRIGGER_ON_MSG || "true").toLowerCase
 const MSG_DEBOUNCE_MS    = Number(process.env.AC_MSG_DEBOUNCE_MS || 3000);
 
 const CONFIRM_ON_START     = (process.env.AC_CONFIRM_ON_START || "true").toLowerCase() !== "false";
-const AUTOCOMMIT_ON_START  = (process.env.AC_AUTOCOMMIT_ON_START || "true").toLowerCase() === "true";
+const CS_DEVOPS_AGENT_ON_START  = (process.env.AC_CS_DEVOPS_AGENT_ON_START || "true").toLowerCase() === "true";
 
 const USE_POLLING   = (process.env.AC_USE_POLLING || "false").toLowerCase() === "true";
 const DEBUG         = (process.env.AC_DEBUG || "true").toLowerCase() !== "false";
@@ -159,7 +159,7 @@ const VERSION_START_MINOR  = Number(process.env.AC_VERSION_START_MINOR || "20");
 const VERSION_BASE_REF     = process.env.AC_VERSION_BASE_REF || "origin/main";      // where new version branches start
 // ------------------------------------------------
 
-const log  = (...a) => console.log("[auto-commit]", ...a);
+const log  = (...a) => console.log("[cs-devops-agent]", ...a);
 const dlog = (...a) => { if (DEBUG) console.log("[debug]", ...a); };
 
 async function run(cmd, args, opts = {}) {
@@ -289,7 +289,7 @@ async function defaultRemote() {
 async function pushBranch(branch) {
   const remote = await defaultRemote();
   if (!remote) {
-    console.error("[auto-commit] No git remote configured. Run:");
+    console.error("[cs-devops-agent] No git remote configured. Run:");
     console.error("  git remote add origin <git-url>");
     return false;
   }
@@ -490,7 +490,7 @@ async function rolloverIfNewDay(repoRoot) {
       `  5) create today's branch: ${todayDaily} from ${vNext} and push`,
       dirty ? `\n⚠️  Working tree has uncommitted changes; rollover will be skipped.` : ""
     ].join("\n");
-    console.log("\n[auto-commit] " + plan + "\n");
+    console.log("\n[cs-devops-agent] " + plan + "\n");
     proceed = !dirty && (await promptYesNo("Proceed with daily rollover? (y/N) "));
   } else {
     // auto-rollover without prompt
@@ -518,7 +518,7 @@ async function rolloverIfNewDay(repoRoot) {
     // Merge the last version branch into main
     const mergeResult = await mergeInto("main", vLast);
     if (!mergeResult.ok) {
-      console.error("[auto-commit] Failed to merge ${vLast} into main. Resolve conflicts and restart.");
+      console.error("[cs-devops-agent] Failed to merge ${vLast} into main. Resolve conflicts and restart.");
       return;
     }
     
@@ -530,7 +530,7 @@ async function rolloverIfNewDay(repoRoot) {
   // Step 2: Create new version branch from updated main
   const r1 = await run("git", ["checkout", "-B", vNext, baseRef]);
   if (!r1.ok) { 
-    console.error("[auto-commit] failed to create version branch"); 
+    console.error("[cs-devops-agent] failed to create version branch"); 
     return; 
   }
   log(`Created new version branch: ${vNext} (micro-revision increment)`);
@@ -540,23 +540,23 @@ async function rolloverIfNewDay(repoRoot) {
     log(`Merging daily ${yDaily} into ${vNext}...`);
     const r2 = await mergeInto(vNext, yDaily);
     if (!r2.ok) {
-      console.error("[auto-commit] merge produced conflicts. Resolve, push, then restart worker.");
+      console.error("[cs-devops-agent] merge produced conflicts. Resolve, push, then restart worker.");
       return;
     }
   }
 
   // Step 4: Push the new version branch
   const pushedV = await pushBranch(vNext);
-  console.log(`[auto-commit] push ${vNext}: ${pushedV ? "ok" : "failed"}`);
+  console.log(`[cs-devops-agent] push ${vNext}: ${pushedV ? "ok" : "failed"}`);
 
   // Step 5: Create and push today's daily branch from the new version branch
   const r3 = await run("git", ["checkout", "-B", todayDaily, vNext]);
   if (!r3.ok) { 
-    console.error("[auto-commit] failed to create today's branch"); 
+    console.error("[cs-devops-agent] failed to create today's branch"); 
     return; 
   }
   const pushedD = await pushBranch(todayDaily);
-  console.log(`[auto-commit] push ${todayDaily}: ${pushedD ? "ok" : "failed"}`);
+  console.log(`[cs-devops-agent] push ${todayDaily}: ${pushedD ? "ok" : "failed"}`);
   
   log(`Daily rollover complete: ${vNext} (v0.${vNext.substring(3)/100} in semantic versioning)`);
 }
@@ -655,7 +655,7 @@ async function commitOnce(repoRoot, msgPath) {
       committed = (await run("git", ["commit", "-F", tmp])).ok;
       try { fs.unlinkSync(tmp); } catch {}
     } else if (!REQUIRE_MSG) {
-      committed = (await run("git", ["commit", "-m", "chore: auto-commit"])).ok;
+      committed = (await run("git", ["commit", "-m", "chore: cs-devops-agent"])).ok;
     } else {
       log("message not ready; skipping commit");
       return;
@@ -811,19 +811,19 @@ ${infraChanges.files.map(f => `- ${f.file}`).join('\n')}
 // ============================================================================
 
 /**
- * Detect if we're running AutoCommit on another repository and should use worktrees
+ * Detect if we're running CS_DevOpsAgent on another repository and should use worktrees
  * @param {string} repoRoot - The root of the target repository
  * @returns {object} - Worktree info or null
  */
 async function detectAndSetupWorktree(repoRoot) {
-  // Check if we're in the AutoCommit repo itself - never use worktrees here
-  const autoCommitMarkers = ['worktree-manager.js', 'auto-commit-worker.js', 'setup-auto-commit.js'];
-  const isAutoCommitRepo = autoCommitMarkers.every(file => 
+  // Check if we're in the CS_DevOpsAgent repo itself - never use worktrees here
+  const autoCommitMarkers = ['worktree-manager.js', 'cs-devops-agent-worker.js', 'setup-cs-devops-agent.js'];
+  const isCS_DevOpsAgentRepo = autoCommitMarkers.every(file => 
     fs.existsSync(path.join(repoRoot, file))
   );
   
-  if (isAutoCommitRepo) {
-    dlog("Running in AutoCommit repository - worktrees disabled");
+  if (isCS_DevOpsAgentRepo) {
+    dlog("Running in CS_DevOpsAgent repository - worktrees disabled");
     return null;
   }
   
@@ -955,7 +955,7 @@ async function detectAndSetupWorktree(repoRoot) {
 }
 
 // ============================================================================
-// MAIN ENTRY POINT - Initialize and start the auto-commit worker
+// MAIN ENTRY POINT - Initialize and start the cs-devops-agent worker
 // ============================================================================
 
 /**
@@ -1021,8 +1021,8 @@ async function detectAndSetupWorktree(repoRoot) {
     const header = readMsgFile(msgPath).split("\n")[0].slice(0, 120);
     log(`message header: ${header}`);
 
-    let proceed = AUTOCOMMIT_ON_START;
-    if (!AUTOCOMMIT_ON_START && CONFIRM_ON_START) {
+    let proceed = CS_DEVOPS_AGENT_ON_START;
+    if (!CS_DEVOPS_AGENT_ON_START && CONFIRM_ON_START) {
       proceed = await promptYesNo("Commit these changes now using the message file? (y/N) ");
     }
     if (proceed) await commitOnce(repoRoot, msgPath);

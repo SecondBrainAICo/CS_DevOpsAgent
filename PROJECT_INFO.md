@@ -1,17 +1,17 @@
-# Code Studio AutoCommit Agent - Project Information
+# Code Studio CS_DevOpsAgent Agent - Project Information
 
 ## Repository Details
 
-- **GitHub Repository**: https://github.com/secondbrainAI-limited/code_studio_autocommitAgent
+- **GitHub Repository**: https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent
 - **Organization**: SecondBrainAI Limited
-- **Local Path**: `/Volumes/Simba User Data/Development/SecondBrain_Code_Studio/AutoCommit`
+- **Local Path**: `/Volumes/Simba User Data/Development/SecondBrain_Code_Studio/CS_DevOpsAgent`
 
 ## Project Structure
 
 ```
-AutoCommit/
-├── auto-commit-worker.js    # Main worker that watches and commits changes
-├── setup-auto-commit.js     # Interactive setup wizard
+CS_DevOpsAgent/
+├── cs-devops-agent-worker.js    # Main worker that watches and commits changes
+├── setup-cs-devops-agent.js     # Interactive setup wizard
 ├── quick-start.sh          # One-command setup script
 ├── README.md               # Comprehensive documentation
 ├── package.json            # NPM package configuration
@@ -34,21 +34,21 @@ AutoCommit/
 ### Setup (for new projects)
 ```bash
 # Clone to a new project
-git clone https://github.com/secondbrainAI-limited/code_studio_autocommitAgent.git AutoCommit
-cd AutoCommit
+git clone https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent.git CS_DevOpsAgent
+cd CS_DevOpsAgent
 ./quick-start.sh
 ```
 
 ### Daily Usage
 ```bash
 # Start the worker
-npm run auto-commit
+npm run cs-devops-agent
 
 # Create a commit message
 echo "feat(module): description" > .claude-commit-msg
 
 # Stop the worker
-pkill -f "node.*auto-commit-worker"
+pkill -f "node.*cs-devops-agent-worker"
 ```
 
 ## Git Commands
@@ -81,7 +81,7 @@ The system uses these environment variables (set during setup):
 ## Development Workflow
 
 1. **Initial Setup**: Run `./quick-start.sh` in your project root
-2. **Start Worker**: `npm run auto-commit`
+2. **Start Worker**: `npm run cs-devops-agent`
 3. **Make Changes**: Edit your files normally
 4. **Commit**: Write message to `.claude-commit-msg`
 5. **Auto-Process**: Worker stages, commits, and pushes automatically
@@ -89,14 +89,14 @@ The system uses these environment variables (set during setup):
 
 ## Integration with SecondBrain Projects
 
-This auto-commit system is designed to work seamlessly with:
+This cs-devops-agent system is designed to work seamlessly with:
 - SecondBrain MVPEmails
 - DistilledConceptExtractor
 - Other SecondBrain Code Studio projects
 
 ## Support
 
-- **Issues**: https://github.com/secondbrainAI-limited/code_studio_autocommitAgent/issues
+- **Issues**: https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent/issues
 - **Organization**: https://github.com/secondbrainAI-limited
 
 ## License

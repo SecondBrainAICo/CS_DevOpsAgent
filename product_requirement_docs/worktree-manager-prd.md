@@ -1,7 +1,7 @@
 # Worktree Manager - Product Requirements Document
 
 ## Overview
-The Worktree Manager is a Git worktree orchestration system designed to enable multiple AI agents to collaborate on the same codebase simultaneously without conflicts. It extends the existing auto-commit infrastructure to support parallel development workflows.
+The Worktree Manager is a Git worktree orchestration system designed to enable multiple AI agents to collaborate on the same codebase simultaneously without conflicts. It extends the existing cs-devops-agent infrastructure to support parallel development workflows.
 
 ## Problem Statement
 When multiple AI agents (Claude, Copilot, Cursor, Aider, etc.) work on the same codebase concurrently on a single machine, they face:
@@ -15,7 +15,7 @@ The Worktree Manager creates isolated Git worktrees for each AI agent, providing
 - **Complete Isolation**: Each agent works in its own directory with its own branch
 - **Parallel Development**: Multiple agents can modify the same files without conflicts
 - **Agent Attribution**: Clear tracking of which agent made which changes
-- **Automated Workflows**: Integration with the existing auto-commit system
+- **Automated Workflows**: Integration with the existing cs-devops-agent system
 
 ## Key Features
 
@@ -44,7 +44,7 @@ The Worktree Manager creates isolated Git worktrees for each AI agent, providing
 - Preserves full history of agent contributions
 
 ### 5. Auto-Commit Integration
-- Each worktree runs its own auto-commit worker instance
+- Each worktree runs its own cs-devops-agent worker instance
 - Agent-specific commit message files
 - Environment variables customized per agent
 - Compatible with existing versioning strategy
@@ -63,7 +63,7 @@ repository/
 │   │   └── .vscode/            # VS Code settings
 │   └── copilot-refactor/       # Another agent worktree
 ├── worktree-manager.js          # Main orchestration module
-└── auto-commit-worker.js        # Existing auto-commit system
+└── cs-devops-agent-worker.js        # Existing cs-devops-agent system
 ```
 
 ### Configuration Files
@@ -113,8 +113,8 @@ node worktree-manager.js create --agent claude --task auth-feature
 # Navigate to worktree
 cd .worktrees/claude-auth-feature
 
-# Run auto-commit worker
-AC_BRANCH_PREFIX=agent_claude_ node ../../auto-commit-worker.js
+# Run cs-devops-agent worker
+AC_BRANCH_PREFIX=agent_claude_ node ../../cs-devops-agent-worker.js
 ```
 
 ### Multi-Agent Parallel Development
@@ -165,10 +165,10 @@ Removes worktrees and optionally deletes branches.
 node worktree-manager.js cleanup --agent <name> [--all] [--delete-branches]
 ```
 
-### `auto-commit`
-Runs auto-commit worker in a specific worktree.
+### `cs-devops-agent`
+Runs cs-devops-agent worker in a specific worktree.
 ```bash
-node worktree-manager.js auto-commit --agent <name> --worktree <name>
+node worktree-manager.js cs-devops-agent --agent <name> --worktree <name>
 ```
 
 ### `parallel`
@@ -183,7 +183,7 @@ node worktree-manager.js parallel --agents agent1,agent2 --task <task>
 - **Environment-Based Detection**: Automatically identifies AI agents from environment variables
 - **Supported Agents**: Claude, Copilot, Cursor, Aider, Warp (extensible)
 - **Fallback Mechanism**: Generates unique agent ID if no known agent detected
-- **Repository Awareness**: Detects when running in AutoCommit repo itself and disables worktrees
+- **Repository Awareness**: Detects when running in CS_DevOpsAgent repo itself and disables worktrees
 
 ### Smart Worktree Creation
 - **On-Demand Creation**: Creates worktrees only when working on external repositories
@@ -215,7 +215,7 @@ node worktree-manager.js parallel --agents agent1,agent2 --task <task>
 ## Integration Points
 
 ### With Auto-Commit Worker
-- Worktree manager sets environment variables for auto-commit
+- Worktree manager sets environment variables for cs-devops-agent
 - Each worktree runs its own worker instance
 - Compatible with existing versioning strategy (v0.20, v0.21, etc.)
 - Preserves daily branch workflow within each agent's namespace
@@ -260,4 +260,4 @@ node worktree-manager.js parallel --agents agent1,agent2 --task <task>
 - Developer satisfaction with multi-agent workflows
 
 ## Conclusion
-The Worktree Manager transforms the auto-commit system into a powerful multi-agent development platform. By providing isolated workspaces for each AI agent, it enables true parallel development while maintaining code quality and project coherence. This system is essential for scaling AI-assisted development beyond single-agent workflows.
+The Worktree Manager transforms the cs-devops-agent system into a powerful multi-agent development platform. By providing isolated workspaces for each AI agent, it enables true parallel development while maintaining code quality and project coherence. This system is essential for scaling AI-assisted development beyond single-agent workflows.

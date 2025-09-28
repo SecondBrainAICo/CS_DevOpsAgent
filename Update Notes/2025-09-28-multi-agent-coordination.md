@@ -61,7 +61,7 @@ Implemented a comprehensive **Multi-Agent Prep TODO Handshake System** to preven
 ## 🗂️ Directory Structure
 
 ```
-AutoCommit/
+CS_DevOpsAgent/
 ├── .ac-prep/              # Pending prep requests
 │   ├── _template.json     # Request template
 │   └── <agent>.json       # Agent-specific requests
@@ -83,7 +83,7 @@ The system divides the codebase into 12 logical shards:
 ```json
 {
   "worktree": ["worktree-manager.js", "worktree/**"],
-  "autocommit": ["auto-commit-worker.js", "autocommit/**"],
+  "cs-devops-agent": ["cs-devops-agent-worker.js", "cs-devops-agent/**"],
   "agent": ["run-with-agent.js", "agent/**"],
   "webapp": ["webapp/**", "app/**", "frontend/**"],
   "services": ["services/**", "src/services/**"],

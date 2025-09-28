@@ -5,7 +5,7 @@
  * AUTO-COMMIT WORKER SETUP SCRIPT
  * ============================================================================
  * 
- * This script sets up the auto-commit worker for a new developer:
+ * This script sets up the cs-devops-agent worker for a new developer:
  * 1. Prompts for developer's 3-letter initials
  * 2. Configures branch prefix (e.g., dev_sdd_ becomes dev_abc_)
  * 3. Installs required npm packages
@@ -13,7 +13,7 @@
  * 5. Sets up commit message files
  * 6. Creates a personalized run script
  * 
- * Usage: node setup-auto-commit.js
+ * Usage: node setup-cs-devops-agent.js
  * ============================================================================
  */
 
@@ -179,7 +179,7 @@ function setupVSCodeSettings(projectRoot, initials) {
     }
   }
   
-  // Add auto-commit settings
+  // Add cs-devops-agent settings
   settings['terminal.integrated.env.osx'] = settings['terminal.integrated.env.osx'] || {};
   settings['terminal.integrated.env.linux'] = settings['terminal.integrated.env.linux'] || {};
   settings['terminal.integrated.env.windows'] = settings['terminal.integrated.env.windows'] || {};
@@ -239,16 +239,16 @@ function setupVSCodeTasks(projectRoot, initials) {
     }
   }
   
-  // Remove old auto-commit tasks if they exist
+  // Remove old cs-devops-agent tasks if they exist
   tasks.tasks = tasks.tasks.filter(task => !task.label.includes('Auto-Commit'));
   
-  // Add new auto-commit tasks
+  // Add new cs-devops-agent tasks
   const autoCommitTasks = [
     {
       label: '🚀 Start Auto-Commit Worker',
       type: 'shell',
       command: 'node',
-      args: ['ScriptAutoCommit/auto-commit-worker.js'],
+      args: ['ScriptCS_DevOpsAgent/cs-devops-agent-worker.js'],
       options: {
         env: {
           AC_BRANCH_PREFIX: `dev_${initials}_`,
@@ -271,7 +271,7 @@ function setupVSCodeTasks(projectRoot, initials) {
     {
       label: '🛑 Stop Auto-Commit Worker',
       type: 'shell',
-      command: 'pkill -f "node.*auto-commit-worker" || echo "Worker not running"',
+      command: 'pkill -f "node.*cs-devops-agent-worker" || echo "Worker not running"',
       problemMatcher: [],
       presentation: {
         echo: true,
@@ -468,7 +468,7 @@ feat(api): add webhook support for real-time notifications
 \`\`\`
 
 ## Auto-Commit Worker
-The auto-commit worker is configured to:
+The cs-devops-agent worker is configured to:
 - Use branch prefix: dev_${initials}_
 - Create daily branches: dev_${initials}_YYYY-MM-DD
 - Auto-commit when .claude-commit-msg changes
@@ -707,9 +707,9 @@ function createRunScripts(projectRoot, initials, packageJson) {
   
   // Update package.json scripts
   packageJson.scripts = packageJson.scripts || {};
-  packageJson.scripts['auto-commit'] = 'node ScriptAutoCommit/auto-commit-worker.js';
-  packageJson.scripts['auto-commit:debug'] = 'AC_DEBUG=true node ScriptAutoCommit/auto-commit-worker.js';
-  packageJson.scripts['auto-commit:setup'] = 'node ScriptAutoCommit/setup-auto-commit.js';
+  packageJson.scripts['cs-devops-agent'] = 'node ScriptCS_DevOpsAgent/cs-devops-agent-worker.js';
+  packageJson.scripts['cs-devops-agent:debug'] = 'AC_DEBUG=true node ScriptCS_DevOpsAgent/cs-devops-agent-worker.js';
+  packageJson.scripts['cs-devops-agent:setup'] = 'node ScriptCS_DevOpsAgent/setup-cs-devops-agent.js';
   
   const packageJsonPath = path.join(projectRoot, 'package.json');
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
@@ -750,14 +750,14 @@ if [ "$1" == "--no-push" ] || [ "$1" == "-n" ]; then
   echo "📦 Push disabled (local commits only)"
 fi
 
-# Run the auto-commit worker
-node ScriptAutoCommit/auto-commit-worker.js
+# Run the cs-devops-agent worker
+node ScriptCS_DevOpsAgent/cs-devops-agent-worker.js
 `;
   
-  const scriptPath = path.join(projectRoot, `run-auto-commit-${initials}.sh`);
+  const scriptPath = path.join(projectRoot, `run-cs-devops-agent-${initials}.sh`);
   fs.writeFileSync(scriptPath, scriptContent);
   fs.chmodSync(scriptPath, '755');
-  log.success(`Created personalized run script: run-auto-commit-${initials}.sh`);
+  log.success(`Created personalized run script: run-cs-devops-agent-${initials}.sh`);
   
   // Create a .env.example file
   const envExampleContent = `# Auto-Commit Worker Configuration
@@ -803,10 +803,10 @@ function printInstructions(initials) {
   
   log.title('📚 Quick Start Guide:');
   console.log('');
-  console.log('1. Start the auto-commit worker:');
-  console.log(`   ${colors.green}npm run auto-commit${colors.reset}`);
+  console.log('1. Start the cs-devops-agent worker:');
+  console.log(`   ${colors.green}npm run cs-devops-agent${colors.reset}`);
   console.log(`   ${colors.yellow}OR${colors.reset}`);
-  console.log(`   ${colors.green}./run-auto-commit-${initials}.sh${colors.reset}`);
+  console.log(`   ${colors.green}./run-cs-devops-agent-${initials}.sh${colors.reset}`);
   console.log(`   ${colors.yellow}OR${colors.reset}`);
   console.log(`   ${colors.green}Use VS Code: Cmd+Shift+P → Tasks: Run Task → 🚀 Start Auto-Commit Worker${colors.reset}`);
   console.log('');
@@ -836,7 +836,7 @@ function printInstructions(initials) {
   console.log('• .vscode/settings.json - VS Code environment settings');
   console.log('• .vscode/tasks.json - VS Code task shortcuts');
   console.log('• package.json - NPM scripts');
-  console.log(`• run-auto-commit-${initials}.sh - Personal run script`);
+  console.log(`• run-cs-devops-agent-${initials}.sh - Personal run script`);
   console.log('• .claude-commit-msg - Commit message file');
   console.log('• CLAUDE_CHANGELOG.md - Change tracking');
   console.log('• CLAUDE.md - House rules for Claude');
@@ -846,9 +846,9 @@ function printInstructions(initials) {
   log.title('🔧 Debugging:');
   console.log('');
   console.log('Run with debug output:');
-  console.log(`   ${colors.green}npm run auto-commit:debug${colors.reset}`);
+  console.log(`   ${colors.green}npm run cs-devops-agent:debug${colors.reset}`);
   console.log(`   ${colors.yellow}OR${colors.reset}`);
-  console.log(`   ${colors.green}./run-auto-commit-${initials}.sh --debug${colors.reset}`);
+  console.log(`   ${colors.green}./run-cs-devops-agent-${initials}.sh --debug${colors.reset}`);
   console.log('');
   
   log.title('📖 Environment Variables:');
@@ -869,18 +869,18 @@ async function main() {
   console.log(colors.bright + '       AUTO-COMMIT WORKER SETUP WIZARD' + colors.reset);
   log.header();
   console.log('');
-  log.info('This wizard will configure the auto-commit system for you.');
+  log.info('This wizard will configure the cs-devops-agent system for you.');
   console.log('');
   
   // Find project root
   const projectRoot = findProjectRoot();
   log.info(`Project root: ${projectRoot}`);
   
-  // Ensure ScriptAutoCommit directory exists
-  const scriptsDir = path.join(projectRoot, 'ScriptAutoCommit');
+  // Ensure ScriptCS_DevOpsAgent directory exists
+  const scriptsDir = path.join(projectRoot, 'ScriptCS_DevOpsAgent');
   if (!fs.existsSync(scriptsDir)) {
-    log.error('ScriptAutoCommit folder not found! Please copy the folder to your project root.');
-    log.info('Run: cp -r ScriptAutoCommit /path/to/your/project/');
+    log.error('ScriptCS_DevOpsAgent folder not found! Please copy the folder to your project root.');
+    log.info('Run: cp -r ScriptCS_DevOpsAgent /path/to/your/project/');
     process.exit(1);
   }
   

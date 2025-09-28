@@ -1,9 +1,9 @@
-# 🚀 Code Studio AutoCommit Agent
+# 🚀 CS_DevOpsAgent - Code Studio DevOps Automation
 
 [![Node.js](https://img.shields.io/badge/Node.js-16%2B-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20|%20Linux%20|%20Windows-lightgrey)](README.md)
-[![GitHub](https://img.shields.io/badge/GitHub-SecondBrainAI-black)](https://github.com/secondbrainAI-limited/code_studio_autocommitAgent)
+[![GitHub](https://img.shields.io/badge/GitHub-SecondBrainAI-black)](https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent)
 [![Version](https://img.shields.io/badge/version-2.1.0-brightgreen)](Update%20Notes/2025-01-28-multi-agent-coordination.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](test_cases/)
 
@@ -73,10 +73,10 @@ A sophisticated multi-agent Git automation system that enables multiple AI codin
 
 ```bash
 # Clone the repository
-git clone https://github.com/secondbrainAI-limited/code_studio_autocommitAgent.git AutoCommit
+git clone https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent.git CS_DevOpsAgent
 
 # Navigate to the directory
-cd AutoCommit
+cd CS_DevOpsAgent
 
 # Run the quick setup
 ./quick-start.sh
@@ -86,33 +86,33 @@ cd AutoCommit
 
 ```bash
 # Add as a git submodule to your project
-git submodule add https://github.com/secondbrainAI-limited/code_studio_autocommitAgent.git AutoCommit
+git submodule add https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent.git CS_DevOpsAgent
 
 # Initialize and update the submodule
 git submodule init
 git submodule update
 
 # Run setup
-cd AutoCommit && ./quick-start.sh
+cd CS_DevOpsAgent && ./quick-start.sh
 ```
 
 ## 🚀 Quick Start
 
 ```bash
 # 1. Clone or copy this folder to your project
-cp -r ScriptAutoCommit /path/to/your/project/
+cp -r ScriptCS_DevOpsAgent /path/to/your/project/
 
 # 2. Navigate to your project
 cd /path/to/your/project
 
 # 3. Run the setup wizard
-node ScriptAutoCommit/setup-auto-commit.js
+node ScriptCS_DevOpsAgent/setup-cs-devops-agent.js
 
-# 4. Start the auto-commit worker
-npm run auto-commit
+# 4. Start the cs-devops-agent worker
+npm run cs-devops-agent
 ```
 
-That's it! The system is now watching for changes and will auto-commit when you create commit messages.
+That's it! The system is now watching for changes and will cs-devops-agent when you create commit messages.
 
 ## 📦 Installation
 
@@ -125,15 +125,15 @@ That's it! The system is now watching for changes and will auto-commit when you 
 
 ### Step-by-Step Installation
 
-1. **Copy the ScriptAutoCommit folder to your project root:**
+1. **Copy the ScriptCS_DevOpsAgent folder to your project root:**
    ```bash
-   cp -r ScriptAutoCommit /path/to/your/project/
+   cp -r ScriptCS_DevOpsAgent /path/to/your/project/
    ```
 
 2. **Run the setup script:**
    ```bash
    cd /path/to/your/project
-   node ScriptAutoCommit/setup-auto-commit.js
+   node ScriptCS_DevOpsAgent/setup-cs-devops-agent.js
    ```
 
 3. **Follow the interactive prompts:**
@@ -147,7 +147,7 @@ That's it! The system is now watching for changes and will auto-commit when you 
    npm list chokidar execa
    
    # Verify scripts were added to package.json
-   npm run --list | grep auto-commit
+   npm run --list | grep cs-devops-agent
    ```
 
 ### Manual Installation
@@ -164,9 +164,9 @@ If you prefer manual setup:
    {
      "type": "module",
      "scripts": {
-       "auto-commit": "node ScriptAutoCommit/auto-commit-worker.js",
-       "auto-commit:debug": "AC_DEBUG=true node ScriptAutoCommit/auto-commit-worker.js",
-       "auto-commit:setup": "node ScriptAutoCommit/setup-auto-commit.js"
+       "cs-devops-agent": "node ScriptCS_DevOpsAgent/cs-devops-agent-worker.js",
+       "cs-devops-agent:debug": "AC_DEBUG=true node ScriptCS_DevOpsAgent/cs-devops-agent-worker.js",
+       "cs-devops-agent:setup": "node ScriptCS_DevOpsAgent/setup-cs-devops-agent.js"
      }
    }
    ```
@@ -186,23 +186,23 @@ If you prefer manual setup:
 
 ### Starting the Worker
 
-There are multiple ways to start the auto-commit worker:
+There are multiple ways to start the cs-devops-agent worker:
 
 #### Via NPM Scripts
 ```bash
 # Normal mode
-npm run auto-commit
+npm run cs-devops-agent
 
 # Debug mode (verbose logging)
-npm run auto-commit:debug
+npm run cs-devops-agent:debug
 ```
 
 #### Via Personal Shell Script
 ```bash
 # After setup, you'll have a personalized script
-./run-auto-commit-abc.sh         # Replace abc with your initials
-./run-auto-commit-abc.sh --debug # Debug mode
-./run-auto-commit-abc.sh --no-push # Local commits only
+./run-cs-devops-agent-abc.sh         # Replace abc with your initials
+./run-cs-devops-agent-abc.sh --debug # Debug mode
+./run-cs-devops-agent-abc.sh --no-push # Local commits only
 ```
 
 #### Via VS Code Tasks
@@ -370,7 +370,7 @@ node worktree-manager.js cleanup --agent claude --delete-branches
 #### Shard Categories
 The codebase is divided into 12 logical shards:
 - **worktree**: Worktree management files
-- **autocommit**: Auto-commit worker files
+- **cs-devops-agent**: Auto-commit worker files
 - **agent**: Agent runner files
 - **tests**: Test cases and configs
 - **docs**: Documentation files
@@ -401,7 +401,7 @@ export AC_SHARD_STRATEGY=queue   # Queue by priority
 #### Via Terminal
 ```bash
 # Find and kill the process
-pkill -f "node.*auto-commit-worker"
+pkill -f "node.*cs-devops-agent-worker"
 
 # Or press Ctrl+C in the terminal running the worker
 ```
@@ -563,10 +563,10 @@ node --version  # Should be v16+
 npm list chokidar execa
 
 # Check for running instances
-ps aux | grep auto-commit-worker
+ps aux | grep cs-devops-agent-worker
 
 # Run in debug mode
-AC_DEBUG=true node ScriptAutoCommit/auto-commit-worker.js
+AC_DEBUG=true node ScriptCS_DevOpsAgent/cs-devops-agent-worker.js
 ```
 
 #### Commits Not Being Created
@@ -616,13 +616,13 @@ Enable comprehensive logging:
 
 ```bash
 # Via environment variable
-AC_DEBUG=true npm run auto-commit
+AC_DEBUG=true npm run cs-devops-agent
 
 # Via npm script
-npm run auto-commit:debug
+npm run cs-devops-agent:debug
 
 # Check debug output location
-tail -f auto-commit-debug.log
+tail -f cs-devops-agent-debug.log
 ```
 
 ### Log Files
@@ -640,7 +640,7 @@ The system creates logs for debugging:
 
 ```javascript
 /**
- * Initialize the auto-commit worker
+ * Initialize the cs-devops-agent worker
  * @param {Object} config - Configuration object
  * @param {string} config.branchPrefix - Branch prefix (e.g., 'dev_abc_')
  * @param {string} config.timezone - IANA timezone
@@ -712,7 +712,7 @@ Contributions are welcome! Please follow these steps:
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/ScriptAutoCommit.git
+git clone https://github.com/yourusername/ScriptCS_DevOpsAgent.git
 
 # Install dependencies
 npm install
@@ -744,8 +744,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Repository**: [GitHub - code_studio_autocommitAgent](https://github.com/secondbrainAI-limited/code_studio_autocommitAgent)
-- **Issues**: [GitHub Issues](https://github.com/secondbrainAI-limited/code_studio_autocommitAgent/issues)
+- **Repository**: [GitHub - code_studio_cs-devops-agentAgent](https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent)
+- **Issues**: [GitHub Issues](https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent/issues)
 - **Organization**: [SecondBrainAI Limited](https://github.com/secondbrainAI-limited)
 
 ---

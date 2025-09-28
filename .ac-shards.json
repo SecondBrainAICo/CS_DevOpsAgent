@@ -1,6 +1,6 @@
 {
   "worktree": ["worktree-manager.js", "worktree/**"],
-  "autocommit": ["auto-commit-worker.js", "autocommit/**"],
+  "cs-devops-agent": ["cs-devops-agent-worker.js", "cs-devops-agent/**"],
   "agent": ["run-with-agent.js", "agent/**"],
   "webapp": ["webapp/**", "app/**", "frontend/**"],
   "services": ["services/**", "src/services/**"],

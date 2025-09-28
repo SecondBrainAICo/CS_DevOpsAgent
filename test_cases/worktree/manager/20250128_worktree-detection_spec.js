@@ -3,7 +3,7 @@
  * - Area: worktree
  * - Component: manager
  * - Related Issue/PR: Initial worktree management implementation
- * - Repro Summary: AutoCommit should detect when running on external repos and create agent worktrees
+ * - Repro Summary: CS_DevOpsAgent should detect when running on external repos and create agent worktrees
  * - Expected Behavior: Should create isolated worktrees for different agents
  * - Regression Guard: Prevents conflicts when multiple agents work on same repo
  */
@@ -46,12 +46,12 @@ describe('Worktree Detection and Management', () => {
     }
   });
   
-  test('Should not create worktrees when running in AutoCommit repo itself', () => {
-    // Why it failed before: Without this check, AutoCommit would create worktrees for itself
+  test('Should not create worktrees when running in CS_DevOpsAgent repo itself', () => {
+    // Why it failed before: Without this check, CS_DevOpsAgent would create worktrees for itself
     
-    const markerFiles = ['worktree-manager.js', 'auto-commit-worker.js', 'setup-auto-commit.js'];
+    const markerFiles = ['worktree-manager.js', 'cs-devops-agent-worker.js', 'setup-cs-devops-agent.js'];
     
-    // Verify AutoCommit repo has all marker files
+    // Verify CS_DevOpsAgent repo has all marker files
     for (const file of markerFiles) {
       expect(fs.existsSync(path.join(autoCommitPath, file))).toBe(true);
     }
@@ -99,7 +99,7 @@ describe('Worktree Detection and Management', () => {
       // Set test environment
       Object.assign(process.env, env);
       
-      // The detection logic from auto-commit-worker.js would run here
+      // The detection logic from cs-devops-agent-worker.js would run here
       let detectedAgent = null;
       if (process.env.AGENT_NAME) detectedAgent = process.env.AGENT_NAME;
       else if (process.env.AI_AGENT) detectedAgent = process.env.AI_AGENT;
@@ -158,7 +158,7 @@ describe('Worktree Detection and Management', () => {
     
     fs.mkdirSync(worktreePath, { recursive: true });
     
-    // Create agent config (from auto-commit-worker.js logic)
+    // Create agent config (from cs-devops-agent-worker.js logic)
     const agentConfig = {
       agent: agentName,
       worktree: `${agentName}-${taskName}`,

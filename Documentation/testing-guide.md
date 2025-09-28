@@ -8,7 +8,7 @@
 
 ## 🎯 Overview
 
-This guide documents how to test and validate the multi-agent coordination system in AutoCommit. The system prevents conflicts when multiple AI agents (Claude, Copilot, Cursor, Warp, etc.) work on the same codebase simultaneously.
+This guide documents how to test and validate the multi-agent coordination system in CS_DevOpsAgent. The system prevents conflicts when multiple AI agents (Claude, Copilot, Cursor, Warp, etc.) work on the same codebase simultaneously.
 
 ## 🧪 Test Scripts Available
 

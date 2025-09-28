@@ -2,12 +2,12 @@
 
 /**
  * ============================================================================
- * RUN WITH AGENT - Helper script to run AutoCommit with agent worktrees
+ * RUN WITH AGENT - Helper script to run CS_DevOpsAgent with agent worktrees
  * ============================================================================
  * 
- * This script simplifies running AutoCommit with automatic worktree creation
+ * This script simplifies running CS_DevOpsAgent with automatic worktree creation
  * for different AI agents. It sets up the necessary environment variables
- * and launches the auto-commit worker in the appropriate context.
+ * and launches the cs-devops-agent worker in the appropriate context.
  * 
  * Usage:
  *   node run-with-agent.js --agent claude --repo /path/to/repo --task feature-x
@@ -165,7 +165,7 @@ function parseArgs() {
 
 function showHelp() {
   console.log(`
-${BRIGHT}Run AutoCommit with Agent Worktrees${RESET_COLOR}
+${BRIGHT}Run CS_DevOpsAgent with Agent Worktrees${RESET_COLOR}
 
 Usage:
   node run-with-agent.js --agent <name> --repo <path> [options]
@@ -332,14 +332,14 @@ async function main() {
   // Set branch prefix for agent
   env.AC_BRANCH_PREFIX = `agent_${agent}_`;
   
-  log(agent, `Starting AutoCommit worker`);
+  log(agent, `Starting CS_DevOpsAgent worker`);
   log(agent, `Repository: ${repoPath}`);
   log(agent, `Task: ${options.task}`);
   log(agent, `Worktrees: ${options.noWorktree ? 'disabled' : 'enabled'}`);
   log(agent, `Message file: ${env.AC_MSG_FILE}`);
   
-  // Launch auto-commit worker
-  const workerPath = path.join(__dirname, 'auto-commit-worker.js');
+  // Launch cs-devops-agent worker
+  const workerPath = path.join(__dirname, 'cs-devops-agent-worker.js');
   
   const worker = spawn('node', [workerPath], {
     cwd: repoPath,
@@ -349,13 +349,13 @@ async function main() {
   
   // Handle graceful shutdown
   process.on('SIGINT', () => {
-    log(agent, 'Stopping AutoCommit worker...');
+    log(agent, 'Stopping CS_DevOpsAgent worker...');
     worker.kill('SIGINT');
     setTimeout(() => process.exit(0), 1000);
   });
   
   process.on('SIGTERM', () => {
-    log(agent, 'Stopping AutoCommit worker...');
+    log(agent, 'Stopping CS_DevOpsAgent worker...');
     worker.kill('SIGTERM');
     setTimeout(() => process.exit(0), 1000);
   });

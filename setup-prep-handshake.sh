@@ -50,7 +50,7 @@ if [ ! -f "$SHARDS" ]; then
     cat > "$SHARDS" <<'JSON'
 {
   "worktree": ["worktree-manager.js", "worktree/**"],
-  "autocommit": ["auto-commit-worker.js", "autocommit/**"],
+  "cs-devops-agent": ["cs-devops-agent-worker.js", "cs-devops-agent/**"],
   "agent": ["run-with-agent.js", "agent/**"],
   "webapp": ["webapp/**", "app/**", "frontend/**"],
   "services": ["services/**", "src/services/**"],
@@ -63,7 +63,7 @@ if [ ! -f "$SHARDS" ]; then
   "default": ["**"]
 }
 JSON
-    echo "[ok] Created $SHARDS with AutoCommit-specific shards"
+    echo "[ok] Created $SHARDS with CS_DevOpsAgent-specific shards"
 else
     echo "[skip] $SHARDS already exists"
 fi
@@ -176,7 +176,7 @@ if [ ! -f "$TPL" ]; then
   "task": "short-slug-for-task",
   "branch": "dev_sdd_$(date +%Y-%m-%d)",
   "paths": ["src/**/*.js", "test/**/*.spec.js"],
-  "shards": ["autocommit", "tests"],
+  "shards": ["cs-devops-agent", "tests"],
   "reason": "Brief description of what and why",
   "priority": 5,
   "createdAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",

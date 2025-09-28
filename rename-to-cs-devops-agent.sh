@@ -66,6 +66,7 @@ rename_files() {
     fi
     
     # Rename run-auto-commit-*.sh files
+    setopt nullglob
     for file in run-auto-commit-*.sh; do
         if [[ -f "$file" ]]; then
             newname="${file/auto-commit/cs-devops-agent}"
@@ -73,6 +74,7 @@ rename_files() {
             log_success "Renamed $file to $newname"
         fi
     done
+    unsetopt nullglob
 }
 
 # Update package.json scripts
@@ -197,10 +199,11 @@ main() {
 # Ask for confirmation
 echo -e "${YELLOW}This will rename all references from AutoCommit to CS_DevOpsAgent${NC}"
 echo -e "${YELLOW}A backup will be created first.${NC}"
-read -p "Continue? (y/n): " -n 1 -r
+echo -n "Continue? (y/n): "
+read -r REPLY
 echo ""
 
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+if [[ "$REPLY" =~ ^[Yy]$ ]]; then
     main
 else
     log_info "Rename cancelled"
