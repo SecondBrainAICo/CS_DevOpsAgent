@@ -6,7 +6,8 @@ TRACE="${TRACE:-0}"
 
 # Map level to numeric
 _level_num() {
-  case "${1,,}" in
+  local level_lower=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+  case "$level_lower" in
     debug) echo 10 ;;
     info)  echo 20 ;;
     warn)  echo 30 ;;
@@ -26,7 +27,8 @@ ts() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
 _log() {
   local lvl="$1"; shift
   if should_log "$lvl"; then
-    printf "%s [%s] %s\n" "$(ts)" "${lvl^^}" "$*" 1>&2
+    local lvl_upper=$(echo "$lvl" | tr '[:lower:]' '[:upper:]')
+    printf "%s [%s] %s\n" "$(ts)" "$lvl_upper" "$*" 1>&2
   fi
 }
 

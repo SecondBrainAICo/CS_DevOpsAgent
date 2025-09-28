@@ -73,7 +73,10 @@ if [ "$SCOPE" = "all" ] || [ ${#test_dirs[@]} -eq 0 ]; then
     log_warn "No targeted test dirs inferred. Falling back to full suite."
   fi
   # collect all leaf test folders to avoid scanning entire repo
-  mapfile -t all_dirs < <(find test_cases -type d 2>/dev/null || true)
+  all_dirs=()
+  while IFS= read -r dir; do
+    [ -n "$dir" ] && all_dirs+=("$dir")
+  done < <(find test_cases -type d 2>/dev/null || true)
   if [ ${#all_dirs[@]} -eq 0 ]; then
     log_warn "No test_cases/ found. Exiting."
     exit 0
@@ -82,7 +85,11 @@ if [ "$SCOPE" = "all" ] || [ ${#test_dirs[@]} -eq 0 ]; then
 fi
 
 # De-dup and ensure dirs exist
-mapfile -t test_dirs < <(printf "%s\n" "${test_dirs[@]}" | sort -u)
+test_dirs_dedup=()
+while IFS= read -r dir; do
+  [ -n "$dir" ] && test_dirs_dedup+=("$dir")
+done < <(printf "%s\n" "${test_dirs[@]}" | sort -u)
+test_dirs=("${test_dirs_dedup[@]}")
 log_group_start "Planned test directories"
 printf "%s\n" "${test_dirs[@]}" | sed 's/^/- /'
 log_group_end
