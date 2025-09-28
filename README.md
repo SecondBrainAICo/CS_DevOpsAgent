@@ -3,11 +3,11 @@
 [![Node.js](https://img.shields.io/badge/Node.js-16%2B-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20|%20Linux%20|%20Windows-lightgrey)](README.md)
-[![GitHub](https://img.shields.io/badge/GitHub-SecondBrainAI-black)](https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent)
+[![GitHub](https://img.shields.io/badge/GitHub-SecondBrainAI-black)](https://github.com/SecondBrainAICo/CS_DevOpsAgent)
 [![Version](https://img.shields.io/badge/version-2.1.0-brightgreen)](Update%20Notes/2025-01-28-multi-agent-coordination.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](test_cases/)
 
-**Built by [Sachin Dev Duggal](https://github.com/sachindduggal) | [SecondBrain AI](https://github.com/secondbrainAI-limited)**
+**Built by [Sachin Dev Duggal](https://github.com/sachindduggal) | [SecondBrain AI](https://github.com/SecondBrainAICo)**
 
 A sophisticated multi-agent Git automation system that enables multiple AI coding assistants to work simultaneously on the same codebase without conflicts. Features automatic worktree management, infrastructure change tracking, intelligent commit detection, and comprehensive testing infrastructure.
 
@@ -73,7 +73,7 @@ A sophisticated multi-agent Git automation system that enables multiple AI codin
 
 ```bash
 # Clone the repository
-git clone https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent.git CS_DevOpsAgent
+git clone https://github.com/SecondBrainAICo/CS_DevOpsAgent.git CS_DevOpsAgent
 
 # Navigate to the directory
 cd CS_DevOpsAgent
@@ -86,7 +86,7 @@ cd CS_DevOpsAgent
 
 ```bash
 # Add as a git submodule to your project
-git submodule add https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent.git CS_DevOpsAgent
+git submodule add https://github.com/SecondBrainAICo/CS_DevOpsAgent.git CS_DevOpsAgent
 
 # Initialize and update the submodule
 git submodule init
@@ -712,7 +712,7 @@ Contributions are welcome! Please follow these steps:
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/ScriptCS_DevOpsAgent.git
+git clone https://github.com/SecondBrainAICo/CS_DevOpsAgent.git
 
 # Install dependencies
 npm install
@@ -744,9 +744,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Repository**: [GitHub - code_studio_cs-devops-agentAgent](https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent)
-- **Issues**: [GitHub Issues](https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent/issues)
-- **Organization**: [SecondBrainAI Limited](https://github.com/secondbrainAI-limited)
+- **Repository**: [GitHub - CS_DevOpsAgent](https://github.com/SecondBrainAICo/CS_DevOpsAgent)
+- **Issues**: [GitHub Issues](https://github.com/SecondBrainAICo/CS_DevOpsAgent/issues)
+- **Organization**: [SecondBrainAI Co](https://github.com/SecondBrainAICo)
 
 ---
 
