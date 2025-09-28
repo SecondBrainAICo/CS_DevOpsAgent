@@ -1,4 +1,4 @@
-# 🚀 CS_DevOpsAgent - Code Studio DevOps Automation
+# 🚀 CS_DevOpsAgent - DevOps Automation
 
 [![Node.js](https://img.shields.io/badge/Node.js-16%2B-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
