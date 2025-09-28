@@ -547,8 +547,8 @@ Recommended VS Code extensions:
 ## 📚 Update Notes
 
 For detailed information about recent updates and new features:
-- [v2.1.0 - Multi-Agent Coordination](Update%20Notes/2025-01-28-multi-agent-coordination.md) - January 28, 2025
-- [v2.0.0 - Multi-Agent Worktree Support](RELEASE_NOTES.md) - January 28, 2025
+- [v2.1.0 - Multi-Agent Coordination](Update%20Notes/2025-09-28-multi-agent-coordination.md) - September 28, 2025
+- [v2.0.0 - Multi-Agent Worktree Support](RELEASE_NOTES.md) - September 28, 2025
 
 ## 🐛 Troubleshooting
 
