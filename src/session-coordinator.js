@@ -19,7 +19,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync, spawn } from 'child_process';
+import { execSync, spawn, fork } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import crypto from 'crypto';
@@ -446,15 +446,13 @@ The DevOps agent is monitoring this worktree for changes.
     console.log(`${CONFIG.colors.dim}Monitoring: ${sessionData.worktreePath}${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.dim}Message file: .devops-commit-${sessionId}.msg${CONFIG.colors.reset}`);
     
-    // Use process.execPath to get the exact node binary being used
-    // This avoids PATH issues especially with NVM installations
-    const nodePath = process.execPath;
-    
-    const child = spawn(nodePath, [agentScript], {
+    // Use fork for better Node.js script handling
+    // Fork automatically uses the same node executable and handles paths better
+    const child = fork(agentScript, [], {
       cwd: sessionData.worktreePath,
       env,
       stdio: 'inherit',
-      shell: false
+      silent: false
     });
     
     child.on('exit', (code) => {
