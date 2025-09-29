@@ -57,11 +57,13 @@ DEPLOYMENT_OPTIONS.md
 test-standalone-workspace/
 test-e2e-workspace/
 
-# Binary builds
+# Binary builds and distribution
 dist/
 binary-wrapper.js
 binary-package.json
-ac-agent-*
+cs-devops-agent-*
+*.tar.gz
+checksums.txt
 
 # CLI build artifacts
 # src is now tracked (do not ignore)
