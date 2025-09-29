@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20|%20Linux%20|%20Windows-lightgrey)](README.md)
 [![GitHub](https://img.shields.io/badge/GitHub-SecondBrainAI-black)](https://github.com/SecondBrainAICo/CS_DevOpsAgent)
-[![Version](https://img.shields.io/badge/version-2.1.0-brightgreen)](Update%20Notes/2025-01-28-multi-agent-coordination.md)
+[![Version](https://img.shields.io/badge/version-2.2.0-brightgreen)](Update%20Notes/2025-09-29-worktree-support.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](test_cases/)
 
 **Built by [Sachin Dev Duggal](https://github.com/sachindduggal) | [SecondBrain AI](https://github.com/SecondBrainAICo)**
@@ -37,7 +37,14 @@ Born a little out of frustration that I couldn't get multiple agents to work on 
 - **🌲 Smart Branch Naming** - `agent/{name}/{task}` convention for clarity
 - **📁 Infrastructure Tracking** - Documents changes in `/Documentation/infrastructure.md`
 
-### 🤝 Multi-Agent Coordination System (v2.1.0 - NEW)
+### 🔧 Git Worktree Support (v2.2.0 - NEW)
+- **🌲 Full Worktree Compatibility** - Seamlessly works in both regular repos and git worktrees
+- **📁 Smart Git Directory Detection** - Automatically finds the correct .git directory location
+- **🔄 Session Management** - Interactive session coordinator for multi-agent workflows
+- **🧪 Improved Test Suite** - Enhanced test coverage with worktree-specific tests
+- **🐛 Bug Fixes** - Fixed ENOTDIR error when working in git worktrees
+
+### 🤝 Multi-Agent Coordination System (v2.1.0)
 - **📋 Prep TODO Handshake** - Agents request permission before editing files
 - **🎯 Shard-Based Reservations** - Path-based conflict prevention with 12 logical shards
 - **⚖️ Priority Queue System** - 10-level priority for task scheduling (1-10)
