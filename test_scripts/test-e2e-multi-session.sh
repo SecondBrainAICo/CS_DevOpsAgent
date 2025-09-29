@@ -225,9 +225,10 @@ test_session_persistence() {
     # Kill session 1 abruptly (simulate crash)
     kill -9 $SESSION_1_PID 2>/dev/null || true
     
-    # Start new session
+    # Start new session with proper env vars
     export SESSION_ID="session_2"
-    node cs-devops-agent-worker.js > "${LOG_DIR}/session_2.log" 2>&1 &
+    AC_PUSH=false AC_REQUIRE_MSG=true AC_MSG_MIN_BYTES=10 AC_CLEAR_MSG_WHEN=commit AC_TRIGGER_ON_MSG=true AC_MSG_DEBOUNCE_MS=800 AC_DEBOUNCE_MS=400 AC_DEBUG=true \
+    node src/cs-devops-agent-worker.js > "${LOG_DIR}/session_2.log" 2>&1 &
     local SESSION_2_PID=$!
     
     sleep 2
@@ -260,7 +261,7 @@ test_worktree_management() {
     
     # Create worktrees for different agents
     for agent in claude copilot cursor; do
-        node worktree-manager.js create --agent "$agent" --task "feature_${agent}" > "${LOG_DIR}/worktree_${agent}.log" 2>&1
+        node src/worktree-manager.js create --agent "$agent" --task "feature_${agent}" > "${LOG_DIR}/worktree_${agent}.log" 2>&1
         
         if git worktree list | grep -q "agent/${agent}"; then
             print_success "Worktree created for $agent"
@@ -373,8 +374,9 @@ test_performance() {
     
     cd "$TEST_REPO"
     
-    # Start worker
-    node cs-devops-agent-worker.js > "${LOG_DIR}/performance.log" 2>&1 &
+    # Start worker with test config
+    AC_PUSH=false AC_REQUIRE_MSG=true AC_MSG_MIN_BYTES=10 AC_CLEAR_MSG_WHEN=commit AC_TRIGGER_ON_MSG=true AC_MSG_DEBOUNCE_MS=400 AC_DEBOUNCE_MS=200 AC_DEBUG=true \
+    node src/cs-devops-agent-worker.js > "${LOG_DIR}/performance.log" 2>&1 &
     local WORKER_PID=$!
     
     sleep 2
