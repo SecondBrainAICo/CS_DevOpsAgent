@@ -294,7 +294,21 @@ async function pushBranch(branch) {
     return false;
   }
   
-  // First attempt to push
+  // First check if remote branch exists
+  const remoteExistsResult = await run("git", ["ls-remote", "--heads", remote, branch]);
+  const remoteExists = remoteExistsResult.ok && remoteExistsResult.stdout.trim().length > 0;
+  
+  if (!remoteExists) {
+    // Remote branch doesn't exist, create it with -u (set upstream)
+    log(`Creating new remote branch ${branch} on ${remote}...`);
+    const r = await run("git", ["push", "-u", remote, branch]);
+    if (!r.ok) {
+      log(`Failed to create remote branch: ${r.stderr}`);
+    }
+    return r.ok;
+  }
+  
+  // Remote branch exists, attempt normal push
   let r = await run("git", ["push", remote, branch]);
   
   // If push failed, check if it's because we're behind
@@ -308,7 +322,9 @@ async function pushBranch(branch) {
       // Retry push after successful pull
       r = await run("git", ["push", remote, branch]);
     } else {
-      // If pull also failed, try setting upstream
+      // If pull also failed, try force setting upstream
+      // This handles cases where local and remote have diverged
+      log("Pull failed, attempting to force set upstream...");
       r = await run("git", ["push", "-u", remote, branch]);
     }
   }
@@ -321,31 +337,74 @@ async function pushBranch(branch) {
 // ============================================================================
 
 /**
- * Find the commit message file (.claude-commit-msg)
+ * Find the commit message file (session-specific or default)
  * Searches in order:
- * 1. Environment variable AC_MSG_FILE path
- * 2. Repository root
- * 3. Common nested locations (MVPEmails/DistilledConceptExtractor/)
+ * 1. Environment variable AC_MSG_FILE path (if set)
+ * 2. Session-specific file: .devops-commit-*.msg (for multi-agent sessions)
+ * 3. Default: .claude-commit-msg in repository root
+ * 4. Common nested locations (MVPEmails/DistilledConceptExtractor/)
  * @param {string} repoRoot - Git repository root path
  * @returns {string} Path to message file (may not exist)
  */
 function resolveMsgPath(repoRoot) {
+  // Priority 1: Explicit environment variable
   if (MSG_FILE_ENV) {
     const p = path.resolve(repoRoot, MSG_FILE_ENV);
-    if (fs.existsSync(p)) return p;
+    if (fs.existsSync(p)) {
+      log(`Using message file from AC_MSG_FILE: ${MSG_FILE_ENV}`);
+      return p;
+    }
+    // If AC_MSG_FILE is set but doesn't exist yet, use it anyway
+    // (it will be created when the agent writes a commit message)
+    if (MSG_FILE_ENV.startsWith('.devops-commit-') && MSG_FILE_ENV.endsWith('.msg')) {
+      log(`Will watch for session message file: ${MSG_FILE_ENV}`);
+      return p;
+    }
     dlog("MSG_FILE_ENV set but not found at", p);
   }
+  
+  // Priority 2: Look for session-specific commit message files
+  // Pattern: .devops-commit-*.msg (used by multi-agent sessions)
+  try {
+    const files = fs.readdirSync(repoRoot);
+    const sessionMsgFiles = files.filter(f => 
+      f.startsWith('.devops-commit-') && f.endsWith('.msg')
+    );
+    
+    if (sessionMsgFiles.length > 0) {
+      // Use the most recently modified session message file
+      const mostRecent = sessionMsgFiles
+        .map(f => {
+          const fullPath = path.join(repoRoot, f);
+          const stats = fs.statSync(fullPath);
+          return { path: fullPath, mtime: stats.mtime, name: f };
+        })
+        .sort((a, b) => b.mtime - a.mtime)[0];
+      
+      log(`Found session message file: ${mostRecent.name}`);
+      return mostRecent.path;
+    }
+  } catch (err) {
+    dlog("Error scanning for session message files:", err.message);
+  }
+  
+  // Priority 3: Default .claude-commit-msg in root
   const rootDefault = path.join(repoRoot, ".claude-commit-msg");
   if (fs.existsSync(rootDefault)) return rootDefault;
 
-  // common nested candidates
+  // Priority 4: Common nested candidates
   const candidates = [
     path.join(repoRoot, "MVPemails/DistilledConceptExtractor/.claude-commit-msg"),
     path.join(repoRoot, "MVPEmails/DistilledConceptExtractor/.claude-commit-msg"),
   ];
   for (const c of candidates) if (fs.existsSync(c)) return c;
 
-  // fallback to root path even if absent (we'll treat as missing)
+  // Fallback: If AC_MSG_FILE was set but doesn't exist, return it anyway for watching
+  if (MSG_FILE_ENV) {
+    return path.resolve(repoRoot, MSG_FILE_ENV);
+  }
+  
+  // Final fallback: Default path even if absent
   return rootDefault;
 }
 function fileMtimeMs(p) { try { return fs.statSync(p).mtimeMs; } catch { return 0; } }
