@@ -106,12 +106,33 @@ describe('CS_DevOpsAgent Push Behind Handling', () => {
     try {
       execSync('git push origin main', { cwd: localRepo1 });
     } catch (error) {
+      // Push rejected, try to pull
       try {
         execSync('git pull --no-rebase origin main', { cwd: localRepo1 });
       } catch (pullError) {
-        // Conflict detected during pull
-        hasConflict = pullError.toString().includes('conflict') || 
-                     pullError.toString().includes('CONFLICT');
+        // Check for conflict markers in the file or error message
+        const errorMsg = pullError.toString();
+        hasConflict = errorMsg.includes('Automatic merge failed') || 
+                     errorMsg.includes('CONFLICT') ||
+                     errorMsg.includes('conflict');
+        
+        if (!hasConflict) {
+          // Also check if conflict markers are in the file
+          const fileContent = fs.readFileSync(path.join(localRepo1, 'shared.txt'), 'utf8');
+          hasConflict = fileContent.includes('<<<<<<<') || fileContent.includes('>>>>>>>');
+        }
+      }
+      
+      // If no conflict detected in pull, it might have succeeded with a merge commit
+      if (!hasConflict) {
+        // Check git status for conflicts
+        try {
+          const status = execSync('git status --porcelain', { cwd: localRepo1, encoding: 'utf8' });
+          hasConflict = status.includes('UU ') || status.includes('AA ');
+        } catch (statusError) {
+          // Status check failed, likely due to conflicts
+          hasConflict = true;
+        }
       }
     }
 

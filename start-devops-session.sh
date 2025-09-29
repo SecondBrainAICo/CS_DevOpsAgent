@@ -1,0 +1,237 @@
+#!/usr/bin/env zsh
+
+# ============================================================================
+# INTERACTIVE DEVOPS SESSION STARTER
+# ============================================================================
+# 
+# This script provides a user-friendly way to start DevOps agent sessions.
+# It handles the complete workflow:
+# 1. Ask if using existing session or creating new
+# 2. If new, creates session and generates instructions for Claude
+# 3. Starts the DevOps agent monitoring the appropriate worktree
+#
+# ============================================================================
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;36m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m' # No Color
+BG_BLUE='\033[44m'
+BG_GREEN='\033[42m'
+BG_YELLOW='\033[43m'
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SRC_DIR="$SCRIPT_DIR/src"
+
+# Function to display header
+show_header() {
+    echo
+    echo -e "${BG_BLUE}${BOLD}                                                              ${NC}"
+    echo -e "${BG_BLUE}${BOLD}           DevOps Agent Session Manager                      ${NC}"
+    echo -e "${BG_BLUE}${BOLD}                                                              ${NC}"
+    echo
+}
+
+# Function to display session instructions
+display_instructions() {
+    local session_id="$1"
+    local worktree_path="$2"
+    local branch_name="$3"
+    local task="$4"
+    
+    echo
+    echo -e "${BG_GREEN}${BOLD} Instructions for Claude/Cline ${NC}"
+    echo
+    echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}COPY AND PASTE THIS ENTIRE BLOCK INTO CLAUDE BEFORE YOUR PROMPT:${NC}"
+    echo -e "${YELLOW}──────────────────────────────────────────────────────────────${NC}"
+    echo
+    echo "I'm working in a DevOps-managed session with the following setup:"
+    echo "- Session ID: ${session_id}"
+    echo "- Working Directory: ${worktree_path}"
+    echo "- Task: ${task}"
+    echo ""
+    echo "Please switch to this directory before making any changes:"
+    echo "cd \"${worktree_path}\""
+    echo ""
+    echo "Write commit messages to: .devops-commit-${session_id}.msg"
+    echo "The DevOps agent will automatically commit and push changes."
+    echo
+    echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
+    echo
+    echo -e "${GREEN}✓ DevOps agent is now monitoring for changes${NC}"
+    echo -e "${DIM}Press Ctrl+C to stop the agent when you're done${NC}"
+    echo
+}
+
+# Function to list existing sessions
+list_sessions() {
+    local sessions_dir="local_deploy/session-locks"
+    
+    if [[ ! -d "$sessions_dir" ]] || [[ -z "$(ls -A $sessions_dir 2>/dev/null)" ]]; then
+        echo -e "${YELLOW}No existing sessions found.${NC}"
+        return 1
+    fi
+    
+    echo -e "${BOLD}Existing Sessions:${NC}"
+    echo
+    
+    local i=1
+    local session_files=()
+    
+    for lock_file in "$sessions_dir"/*.lock; do
+        [[ ! -f "$lock_file" ]] && continue
+        
+        local session_data=$(cat "$lock_file")
+        local session_id=$(echo "$session_data" | grep -o '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        local task=$(echo "$session_data" | grep -o '"task"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        local status=$(echo "$session_data" | grep -o '"status"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        local created=$(echo "$session_data" | grep -o '"created"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        
+        # Color code based on status
+        local status_color="${GREEN}"
+        [[ "$status" == "stopped" ]] && status_color="${YELLOW}"
+        [[ "$status" == "inactive" ]] && status_color="${RED}"
+        
+        echo -e "  ${BOLD}$i)${NC} Session: ${BLUE}${session_id}${NC}"
+        echo -e "     Task: ${task}"
+        echo -e "     Status: ${status_color}${status}${NC}"
+        echo -e "     Created: ${created}"
+        echo
+        
+        session_files+=("$lock_file")
+        ((i++))
+    done
+    
+    return 0
+}
+
+# Function to create a new session
+create_new_session() {
+    echo -e "${BOLD}Creating New Session${NC}"
+    echo
+    
+    # Ask for task name
+    echo -n "Enter task/feature name (e.g., 'authentication', 'api-endpoints'): "
+    read task_name
+    
+    if [[ -z "$task_name" ]]; then
+        task_name="development"
+    fi
+    
+    # Ask for agent type
+    echo -n "Agent type (claude/cline/copilot/cursor) [default: claude]: "
+    read agent_type
+    
+    if [[ -z "$agent_type" ]]; then
+        agent_type="claude"
+    fi
+    
+    echo
+    echo -e "${YELLOW}Creating session for: ${task_name}${NC}"
+    
+    # Run the session coordinator to create AND START the session
+    cd "$SCRIPT_DIR"
+    node "$SRC_DIR/session-coordinator.js" create-and-start --task "$task_name" --agent "$agent_type"
+}
+
+# Function to prompt for session selection
+select_session() {
+    echo -e "${BOLD}Select an Option:${NC}"
+    echo
+    echo "  ${BOLD}N)${NC} Create a ${GREEN}new${NC} session"
+    
+    # List existing sessions
+    local sessions_dir="local_deploy/session-locks"
+    local session_files=()
+    
+    if [[ -d "$sessions_dir" ]] && [[ -n "$(ls -A $sessions_dir 2>/dev/null)" ]]; then
+        echo
+        echo -e "${BOLD}Or select an existing session:${NC}"
+        echo
+        
+        local i=1
+        for lock_file in "$sessions_dir"/*.lock; do
+            [[ ! -f "$lock_file" ]] && continue
+            
+            local session_data=$(cat "$lock_file")
+            local session_id=$(echo "$session_data" | grep -o '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+            local task=$(echo "$session_data" | grep -o '"task"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+            
+            echo -e "  ${BOLD}$i)${NC} ${BLUE}${session_id}${NC} - ${task}"
+            session_files+=("$lock_file")
+            ((i++))
+        done
+    fi
+    
+    echo
+    echo -n "Your choice: "
+    read choice
+    
+    # Handle the choice
+    if [[ "$choice" =~ ^[Nn]$ ]]; then
+        # Create new session
+        create_new_session
+        return 0
+    elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le "${#session_files[@]}" ]]; then
+        # Use existing session
+        local selected_file="${session_files[$choice]}"
+        local session_data=$(cat "$selected_file")
+        local session_id=$(echo "$session_data" | grep -o '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        
+        echo
+        echo -e "${GREEN}Using existing session: ${session_id}${NC}"
+        
+        # Start the agent for this session
+        cd "$SCRIPT_DIR"
+        node "$SRC_DIR/session-coordinator.js" start "$session_id"
+        return 0
+    else
+        echo -e "${RED}Invalid choice. Please try again.${NC}"
+        return 1
+    fi
+}
+
+# Main function
+main() {
+    show_header
+    
+    # Check if we're in a git repository
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        echo -e "${RED}Error: Not in a git repository${NC}"
+        echo "Please run this from within a git repository."
+        exit 1
+    fi
+    
+    # Get repo root
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    cd "$REPO_ROOT"
+    
+    echo -e "${BOLD}Welcome to DevOps Agent Session Manager${NC}"
+    echo
+    echo "This tool will:"
+    echo "  1. Help you create or select a session"
+    echo "  2. Generate instructions for Claude/Cline"
+    echo "  3. Start the DevOps agent to monitor changes"
+    echo
+    
+    # Main selection loop
+    while true; do
+        if select_session; then
+            break
+        fi
+        echo
+    done
+}
+
+# Handle Ctrl+C gracefully
+trap 'echo -e "\n${YELLOW}Session terminated by user${NC}"; exit 0' INT
+
+# Run main function
+main "$@"

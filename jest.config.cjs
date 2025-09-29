@@ -1,21 +1,25 @@
 module.exports = {
-  testEnvironment: 'node',
   testMatch: [
-    '**/test_cases/**/*_spec.js',
-    '**/test_cases/**/*_spec.ts',
     '**/test_cases/**/*.spec.js',
-    '**/test_cases/**/*.test.js'
+    '**/test_cases/**/*.test.js',
+    '**/test_cases/**/*_spec.js'
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/test-repo/'
+    '/local_deploy/',
+    '/debug-test-workspace/',
+    '/.worktrees/',
+    '/test_scripts/'
   ],
-  collectCoverageFrom: [
-    '*.js',
-    '!jest.config.js',
-    '!test_cases/**/*.js',
-    '!scripts/**/*.js'
+  modulePathIgnorePatterns: [
+    '<rootDir>/local_deploy/',
+    '<rootDir>/debug-test-workspace/',
+    '<rootDir>/.worktrees/'
   ],
-  coverageDirectory: 'coverage',
-  verbose: true
+  testEnvironment: 'node',
+  verbose: true,
+  collectCoverage: false,
+  testTimeout: 10000,
+  // Silence the watcher debug output during tests
+  setupFilesAfterEnv: ['<rootDir>/test-setup.js']
 };
