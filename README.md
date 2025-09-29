@@ -108,20 +108,20 @@ cd CS_DevOpsAgent && ./quick-start.sh
 ## 🚀 Quick Start
 
 ```bash
-# 1. Clone or copy this folder to your project
-cp -r CS_DevOpsAgent /path/to/your/project/
+# 1. Clone the repository
+git clone https://github.com/SecondBrainAICo/CS_DevOpsAgent.git
+cd CS_DevOpsAgent
 
-# 2. Navigate to your project
-cd /path/to/your/project
+# 2. Start a new DevOps session (interactive)
+npm start
 
-# 3. Run the setup wizard
-node CS_DevOpsAgent/src/setup-cs-devops-agent.js
-
-# 4. Start the cs-devops-agent worker
-npm run cs-devops-agent
+# 3. Follow the prompts to:
+#    - Enter task/feature name
+#    - Select agent type (claude/copilot/cursor/warp)
+#    - Copy the provided instructions to your AI agent
 ```
 
-That's it! The system is now watching for changes and will cs-devops-agent when you create commit messages.
+**Important**: The DevOps agent ALWAYS runs in multi-agent session mode to ensure proper isolation and tracking. Each session creates an isolated git worktree with its own branch.
 
 ## 📦 Installation
 
@@ -193,17 +193,28 @@ If you prefer manual setup:
 
 ## 📖 Usage
 
-### Starting the Worker
+### Starting a DevOps Session
 
-There are multiple ways to start the cs-devops-agent worker:
+The DevOps agent uses session-based management to ensure proper isolation between different development tasks:
 
-#### Via NPM Scripts
+#### Interactive Session Start (Recommended)
 ```bash
-# Normal mode
-npm run cs-devops-agent
+# Start a new session - interactive prompts will guide you
+npm start
+# or
+npm run dev
+```
 
-# Debug mode (verbose logging)
-npm run cs-devops-agent:debug
+#### Session Management Commands
+```bash
+# List all active sessions
+npm run devops:list
+
+# Start monitoring a specific session
+npm run devops:start <session-id>
+
+# Clean up all sessions and worktrees
+npm run devops:cleanup
 ```
 
 #### Via Personal Shell Script
