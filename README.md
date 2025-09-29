@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20|%20Linux%20|%20Windows-lightgrey)](README.md)
 [![GitHub](https://img.shields.io/badge/GitHub-SecondBrainAI-black)](https://github.com/SecondBrainAICo/CS_DevOpsAgent)
-[![Version](https://img.shields.io/badge/version-2.2.0-brightgreen)](Update%20Notes/2025-09-29-worktree-support.md)
+[![Version](https://img.shields.io/badge/version-2.3.0-brightgreen)](Update%20Notes/2025-09-29-session-push-fix.md)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](test_cases/)
 
 **Built by [Sachin Dev Duggal](https://github.com/sachindduggal) | [SecondBrain AI](https://github.com/SecondBrainAICo)**
@@ -37,7 +37,14 @@ Born a little out of frustration that I couldn't get multiple agents to work on 
 - **🌲 Smart Branch Naming** - `agent/{name}/{task}` convention for clarity
 - **📁 Infrastructure Tracking** - Documents changes in `/Documentation/infrastructure.md`
 
-### 🔧 Git Worktree Support (v2.2.0 - NEW)
+### 🚀 Session Branch Push Support (v2.3.0 - NEW)
+- **🔄 Dynamic Message File Detection** - Auto-detects session-specific `.devops-commit-*.msg` files
+- **🌐 Remote Branch Creation** - Automatically creates and pushes session branches to remote
+- **📝 Session-Aware Commits** - Each session uses its own commit message file for isolation
+- **✅ Full Push Support** - Session branches are now properly synchronized with remote repository
+- **🧪 Verified Testing** - Comprehensive test suite confirms remote push functionality
+
+### 🔧 Git Worktree Support (v2.2.0)
 - **🌲 Full Worktree Compatibility** - Seamlessly works in both regular repos and git worktrees
 - **📁 Smart Git Directory Detection** - Automatically finds the correct .git directory location
 - **🔄 Session Management** - Interactive session coordinator for multi-agent workflows
@@ -203,6 +210,29 @@ The DevOps agent uses session-based management to ensure proper isolation betwee
 npm start
 # or
 npm run dev
+```
+
+#### How Session Branches Work (v2.3.0+)
+
+1. **Session Creation**: Each session creates a unique branch (e.g., `warp/abc-1234/feature-name`)
+2. **Message File**: A session-specific commit file is created: `.devops-commit-{sessionId}.msg`
+3. **Auto-Detection**: The agent automatically detects and uses the correct message file
+4. **Remote Push**: Session branches are automatically created and pushed to the remote repository
+5. **No Local-Only Branches**: All work is backed up to the remote, preventing data loss
+
+```bash
+# Example session workflow
+# 1. Start session (creates branch: claude/xyz-9876/auth-feature)
+npm start
+
+# 2. Agent creates and monitors: .devops-commit-xyz-9876.msg
+# 3. You make changes and write commit message:
+echo "feat(auth): implement OAuth flow" > .devops-commit-xyz-9876.msg
+
+# 4. Agent automatically:
+#    - Commits with your message
+#    - Creates remote branch if needed
+#    - Pushes changes to remote
 ```
 
 #### Session Management Commands
