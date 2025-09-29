@@ -436,8 +436,12 @@ The DevOps agent is monitoring this worktree for changes.
       AC_MSG_FILE: `.devops-commit-${sessionId}.msg`,
       AC_BRANCH_PREFIX: `${sessionData.agentType}_${sessionId}_`,
       AC_WORKING_DIR: sessionData.worktreePath,
-      AC_BRANCH: sessionData.branchName,
-      AC_PUSH: 'true'  // Enable auto-push for session branches
+      // Don't set AC_BRANCH - let the agent create daily branches within the worktree
+      // AC_BRANCH would force a static branch, preventing daily/weekly rollover
+      AC_PUSH: 'true',  // Enable auto-push for session branches
+      AC_DAILY_PREFIX: `${sessionData.agentType}_${sessionId}_`,  // Daily branches within worktree
+      AC_TZ: process.env.AC_TZ || 'Asia/Dubai',  // Preserve timezone for daily branches
+      AC_DATE_STYLE: process.env.AC_DATE_STYLE || 'dash'  // Preserve date style
     };
     
     const agentScript = path.join(__dirname, 'cs-devops-agent-worker.js');
