@@ -436,7 +436,8 @@ The DevOps agent is monitoring this worktree for changes.
       AC_MSG_FILE: `.devops-commit-${sessionId}.msg`,
       AC_BRANCH_PREFIX: `${sessionData.agentType}_${sessionId}_`,
       AC_WORKING_DIR: sessionData.worktreePath,
-      AC_BRANCH: sessionData.branchName
+      AC_BRANCH: sessionData.branchName,
+      AC_PUSH: 'true'  // Enable auto-push for session branches
     };
     
     const agentScript = path.join(__dirname, 'cs-devops-agent-worker.js');
@@ -445,10 +446,15 @@ The DevOps agent is monitoring this worktree for changes.
     console.log(`${CONFIG.colors.dim}Monitoring: ${sessionData.worktreePath}${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.dim}Message file: .devops-commit-${sessionId}.msg${CONFIG.colors.reset}`);
     
-    const child = spawn('node', [agentScript], {
+    // Use process.execPath to get the exact node binary being used
+    // This avoids PATH issues especially with NVM installations
+    const nodePath = process.execPath;
+    
+    const child = spawn(nodePath, [agentScript], {
       cwd: sessionData.worktreePath,
       env,
-      stdio: 'inherit'
+      stdio: 'inherit',
+      shell: false
     });
     
     child.on('exit', (code) => {
