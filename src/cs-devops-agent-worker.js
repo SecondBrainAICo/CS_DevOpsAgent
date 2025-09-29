@@ -112,6 +112,7 @@ import path from "path";
 import chokidar from "chokidar";
 import { execa } from "execa";
 import readline from "node:readline";
+import { stdin as input, stdout as output } from 'node:process';
 
 // ============================================================================
 // CONFIGURATION SECTION - All settings can be overridden via environment vars
@@ -142,7 +143,7 @@ const CONFIRM_ON_START     = (process.env.AC_CONFIRM_ON_START || "true").toLower
 const CS_DEVOPS_AGENT_ON_START  = (process.env.AC_CS_DEVOPS_AGENT_ON_START || "true").toLowerCase() === "true";
 
 const USE_POLLING   = (process.env.AC_USE_POLLING || "false").toLowerCase() === "true";
-const DEBUG         = (process.env.AC_DEBUG || "true").toLowerCase() !== "false";
+let DEBUG           = (process.env.AC_DEBUG || "true").toLowerCase() !== "false";  // Made mutable for runtime toggle
 
 // clear message when: "push" | "commit" | "never"
 const CLEAR_MSG_WHEN = (process.env.AC_CLEAR_MSG_WHEN || "push").toLowerCase();
@@ -1169,6 +1170,223 @@ async function detectAndSetupWorktree(repoRoot) {
     // ========== LEGACY QUIET MODE (if configured) ==========
     // Wait for quiet period before committing (no-op if AC_QUIET_MS=0)
     schedule(repoRoot, msgReal);
+  });
+
+  // ============================================================================
+  // INTERACTIVE COMMAND INTERFACE - Handle user commands during execution
+  // ============================================================================
+  
+  // Extract session ID from branch name or message file
+  const sessionId = (() => {
+    const branch = STATIC_BRANCH || BRANCH;
+    const match = branch.match(/([a-z0-9]{4}-[a-z0-9]{4})/i);
+    if (match) return match[1];
+    
+    // Try to get from message file name
+    const msgFileName = path.basename(msgPath);
+    const msgMatch = msgFileName.match(/\.devops-commit-([a-z0-9]{4}-[a-z0-9]{4})\.msg/);
+    if (msgMatch) return msgMatch[1];
+    
+    return null;
+  })();
+  
+  console.log("\n" + "=".repeat(60));
+  console.log("[cs-devops-agent] INTERACTIVE COMMANDS AVAILABLE:");
+  console.log("  help     - Show available commands");
+  console.log("  status   - Show current session status");
+  console.log("  verbose  - Toggle verbose/debug logging");
+  console.log("  commit   - Force commit now");
+  console.log("  push     - Push current branch");
+  console.log("  exit     - Cleanly close session and exit");
+  if (sessionId) {
+    console.log(`\nSession ID: ${sessionId}`);
+    console.log(`To close from another terminal: echo "CLOSE_SESSION" > .devops-command-${sessionId}`);
+  }
+  console.log("=".repeat(60) + "\n");
+  
+  // Create readline interface for interactive commands
+  const rl = readline.createInterface({
+    input: input,
+    output: output,
+    prompt: '[agent] > ',
+    terminal: true
+  });
+  
+  // Command handler
+  rl.on('line', async (line) => {
+    const cmd = line.trim().toLowerCase();
+    
+    switch (cmd) {
+      case 'help':
+      case 'h':
+      case '?':
+        console.log("\nAvailable commands:");
+        console.log("  help/h/?    - Show this help");
+        console.log("  status/s    - Show session status and uncommitted changes");
+        console.log("  verbose/v   - Toggle verbose/debug logging (currently: " + (DEBUG ? "ON" : "OFF") + ")");
+        console.log("  commit/c    - Force commit now (stages all changes)");
+        console.log("  push/p      - Push current branch to remote");
+        console.log("  exit/quit/q - Cleanly close session and exit");
+        console.log("  clear/cls   - Clear the screen");
+        break;
+        
+      case 'status':
+      case 's':
+        const currentBranchName = await currentBranch();
+        console.log(`\nSession Status:`);
+        console.log(`  Branch: ${currentBranchName}`);
+        console.log(`  Working directory: ${process.cwd()}`);
+        console.log(`  Message file: ${path.basename(msgPath)}`);
+        console.log(`  Auto-push: ${PUSH ? "enabled" : "disabled"}`);
+        console.log(`  Debug mode: ${DEBUG ? "ON" : "OFF"}`);
+        
+        const statusSummary = await summarizeStatus(10);
+        if (statusSummary.count > 0) {
+          console.log(`\n  Uncommitted changes: ${statusSummary.count} files`);
+          console.log(`    Added: ${statusSummary.added}, Modified: ${statusSummary.modified}, Deleted: ${statusSummary.deleted}, Untracked: ${statusSummary.untracked}`);
+          if (statusSummary.preview) {
+            console.log("\n  Preview:");
+            statusSummary.preview.split('\n').forEach(line => console.log(`    ${line}`));
+          }
+        } else {
+          console.log("\n  No uncommitted changes");
+        }
+        break;
+        
+      case 'verbose':
+      case 'v':
+        DEBUG = !DEBUG;
+        console.log(`\nVerbose/Debug logging: ${DEBUG ? "ENABLED" : "DISABLED"}`);
+        if (DEBUG) {
+          console.log("Debug output will now be shown for all operations.");
+        } else {
+          console.log("Debug output disabled. Only important messages will be shown.");
+        }
+        break;
+        
+      case 'commit':
+      case 'c':
+        console.log("\nForcing commit...");
+        const hasChanges = await hasUncommittedChanges();
+        if (hasChanges) {
+          // Check for message file
+          let commitMsg = readMsgFile(msgPath);
+          if (!commitMsg) {
+            console.log("No commit message found. Enter message (or 'cancel' to abort):");
+            rl.prompt();
+            const msgInput = await new Promise(resolve => {
+              rl.once('line', resolve);
+            });
+            if (msgInput.trim().toLowerCase() === 'cancel') {
+              console.log("Commit cancelled.");
+              break;
+            }
+            commitMsg = msgInput.trim() || "chore: manual commit from interactive mode";
+            fs.writeFileSync(msgPath, commitMsg);
+          }
+          await commitOnce(repoRoot, msgPath);
+        } else {
+          console.log("No changes to commit.");
+        }
+        break;
+        
+      case 'push':
+      case 'p':
+        const branchName = await currentBranch();
+        console.log(`\nPushing branch ${branchName}...`);
+        const pushResult = await pushBranch(branchName);
+        if (pushResult) {
+          console.log("Push successful!");
+        } else {
+          console.log("Push failed. Check the logs above for details.");
+        }
+        break;
+        
+      case 'exit':
+      case 'quit':
+      case 'q':
+        console.log("\nInitiating clean shutdown...");
+        
+        // Check for uncommitted changes
+        const uncommitted = await hasUncommittedChanges();
+        if (uncommitted) {
+          console.log("You have uncommitted changes. Commit them before exit? (y/n)");
+          rl.prompt();
+          const answer = await new Promise(resolve => {
+            rl.once('line', resolve);
+          });
+          
+          if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
+            console.log("Committing changes...");
+            const exitMsg = "chore: session cleanup - final commit before exit";
+            fs.writeFileSync(msgPath, exitMsg);
+            await commitOnce(repoRoot, msgPath);
+          }
+        }
+        
+        // Push any unpushed commits
+        if (PUSH) {
+          const branch = await currentBranch();
+          console.log("Pushing final changes...");
+          await pushBranch(branch);
+        }
+        
+        // Clean up message file
+        if (fs.existsSync(msgPath)) {
+          fs.unlinkSync(msgPath);
+        }
+        
+        // Create cleanup marker if in a session
+        if (sessionId) {
+          const cleanupMarker = path.join(process.cwd(), '.session-cleanup-requested');
+          fs.writeFileSync(cleanupMarker, JSON.stringify({
+            sessionId: sessionId,
+            timestamp: new Date().toISOString(),
+            branch: await currentBranch(),
+            worktree: process.cwd()
+          }, null, 2));
+          console.log("\n✓ Session cleanup complete.");
+          console.log("Run 'npm run devops:close' from the main repo to remove the worktree.");
+        }
+        
+        console.log("\nGoodbye!");
+        rl.close();
+        process.exit(0);
+        break;
+        
+      case 'clear':
+      case 'cls':
+        console.clear();
+        console.log("[cs-devops-agent] Interactive mode - Type 'help' for commands");
+        break;
+        
+      case '':
+        // Empty line, just show prompt again
+        break;
+        
+      default:
+        if (cmd) {
+          console.log(`Unknown command: '${cmd}'. Type 'help' for available commands.`);
+        }
+        break;
+    }
+    
+    rl.prompt();
+  });
+  
+  // Show initial prompt
+  rl.prompt();
+  
+  // Handle Ctrl+C gracefully
+  rl.on('SIGINT', () => {
+    console.log("\n\nReceived SIGINT. Type 'exit' for clean shutdown or Ctrl+C again to force quit.");
+    rl.prompt();
+    
+    // Allow force quit on second Ctrl+C
+    rl.once('SIGINT', () => {
+      console.log("\nForce quitting...");
+      process.exit(1);
+    });
   });
 
 })();
