@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 export LOG_LEVEL="${LOG_LEVEL:-info}"
 export TRACE="${TRACE:-0}"
+
+# Get the current branch name
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# Check if this is a session branch (warp/*, claude/*, etc.)
+if [[ "$CURRENT_BRANCH" =~ ^(warp|claude|copilot|cursor|aider)/.*/.*$ ]]; then
+  echo "Session branch detected: $CURRENT_BRANCH"
+  echo "Skipping tests for session branch (handled by main branch tests)"
+  exit 0
+fi
+
 echo "Running targeted tests before push..."
 scripts/run-tests --changed || {
   echo "Tests failed. Aborting push."

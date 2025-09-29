@@ -10,6 +10,7 @@
     "devops": "./start-devops-session.sh",
     "devops:list": "node src/session-coordinator.js list",
     "devops:start": "node src/session-coordinator.js start",
+    "devops:close": "node src/close-session.js",
     "devops:cleanup": "./cleanup-sessions.sh",
     "setup": "node src/setup-cs-devops-agent.js",
     "test": "jest test_cases/",
