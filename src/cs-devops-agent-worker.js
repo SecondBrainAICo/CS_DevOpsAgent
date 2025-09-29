@@ -668,7 +668,18 @@ async function commitOnce(repoRoot, msgPath) {
         await run("git", ["add", "Documentation/infrastructure.md"]);
       }
       
-      const tmp = path.join(repoRoot, ".git", ".ac-msg.txt");
+      // Handle worktrees: .git might be a file pointing to the actual git dir
+      let gitDir = path.join(repoRoot, ".git");
+      if (fs.existsSync(gitDir) && fs.statSync(gitDir).isFile()) {
+        // In a worktree, .git is a file containing the path to the actual git directory
+        const gitFileContent = fs.readFileSync(gitDir, 'utf8');
+        const match = gitFileContent.match(/gitdir: (.+)/);
+        if (match) {
+          gitDir = match[1].trim();
+        }
+      }
+      
+      const tmp = path.join(gitDir, ".ac-msg.txt");
       fs.writeFileSync(tmp, msg + "\n");
       committed = (await run("git", ["commit", "-F", tmp])).ok;
       try { fs.unlinkSync(tmp); } catch {}
