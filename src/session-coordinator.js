@@ -137,11 +137,13 @@ class SessionCoordinator {
         const versionInfo = await this.promptForStartingVersion();
         settings.versioningStrategy.prefix = versionInfo.prefix;
         settings.versioningStrategy.startMinor = versionInfo.startMinor;
+        settings.versioningStrategy.dailyIncrement = versionInfo.dailyIncrement || 1;
         settings.versioningStrategy.configured = true;
         
         // Set environment variables for the current session
         process.env.AC_VERSION_PREFIX = versionInfo.prefix;
         process.env.AC_VERSION_START_MINOR = versionInfo.startMinor.toString();
+        process.env.AC_VERSION_INCREMENT = versionInfo.dailyIncrement.toString();
       }
       
       settings.configured = true;
@@ -157,6 +159,7 @@ class SessionCoordinator {
       if (settings.versioningStrategy.configured) {
         process.env.AC_VERSION_PREFIX = settings.versioningStrategy.prefix;
         process.env.AC_VERSION_START_MINOR = settings.versioningStrategy.startMinor.toString();
+        process.env.AC_VERSION_INCREMENT = (settings.versioningStrategy.dailyIncrement || 1).toString();
       }
     }
   }
@@ -463,6 +466,7 @@ class SessionCoordinator {
     
     let prefix = 'v0.';
     let startMinor = 20; // Default v0.20
+    let dailyIncrement = 1; // Default 0.01 per day
     
     if (isInherited) {
       console.log(`\n${CONFIG.colors.bright}Current Version Examples:${CONFIG.colors.reset}`);
@@ -496,14 +500,52 @@ class SessionCoordinator {
     } else {
       // New project
       console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Starting new project at: ${CONFIG.colors.bright}v0.20${CONFIG.colors.reset}`);
-      console.log(`${CONFIG.colors.dim}(Daily increments: v0.20 → v0.21 → v0.22...)${CONFIG.colors.reset}`);
     }
+    
+    // Ask for daily increment preference
+    console.log(`\n${CONFIG.colors.yellow}Daily Version Increment${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}How much should the version increment each day?${CONFIG.colors.reset}`);
+    console.log('  1) 0.01 per day (v0.20 → v0.21 → v0.22) [default]');
+    console.log('  2) 0.1 per day  (v0.20 → v0.30 → v0.40)');
+    console.log('  3) 0.2 per day  (v0.20 → v0.40 → v0.60)');
+    console.log('  4) Custom increment');
+    
+    const incrementChoice = await new Promise((resolve) => {
+      rl.question('\nSelect increment (1-4) [1]: ', (answer) => {
+        const choice = parseInt(answer.trim()) || 1;
+        resolve(choice);
+      });
+    });
+    
+    switch (incrementChoice) {
+      case 2:
+        dailyIncrement = 10; // 0.1
+        break;
+      case 3:
+        dailyIncrement = 20; // 0.2
+        break;
+      case 4:
+        dailyIncrement = await new Promise((resolve) => {
+          rl.question('Enter increment value (e.g., 5 for 0.05, 25 for 0.25): ', (answer) => {
+            const value = parseInt(answer.trim());
+            resolve(isNaN(value) || value <= 0 ? 1 : value);
+          });
+        });
+        break;
+      default:
+        dailyIncrement = 1; // 0.01
+    }
+    
+    const incrementDisplay = (dailyIncrement / 100).toFixed(2);
+    console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Daily increment set to: ${CONFIG.colors.bright}${incrementDisplay}${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}(${prefix}${startMinor} → ${prefix}${startMinor + dailyIncrement} → ${prefix}${startMinor + dailyIncrement * 2}...)${CONFIG.colors.reset}`);
     
     rl.close();
     
     return {
       prefix,
-      startMinor
+      startMinor,
+      dailyIncrement
     };
   }
 
@@ -758,24 +800,51 @@ The DevOps agent is monitoring this worktree for changes.
     
     fs.writeFileSync(path.join(worktreePath, 'SESSION_README.md'), readme);
     
-    // Auto-commit session files to prevent rollover issues
-    // This prevents "uncommitted changes" blocking daily branch creation
-    try {
-      execSync('git add .devops-session.json SESSION_README.md .devops-commit-*.msg .vscode/settings.json', { 
-        cwd: worktreePath,
-        stdio: 'pipe' 
-      });
-      
-      execSync(`git commit -m "chore: initialize session ${sessionData.sessionId}\n\nAuto-commit session configuration files:\n- Session config (.devops-session.json)\n- Session README (SESSION_README.md)\n- Empty commit message file\n- VS Code settings\n\nTask: ${sessionData.task}\nAgent: ${sessionData.agentType}"`, {
-        cwd: worktreePath,
-        stdio: 'pipe'
-      });
-      
-      console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Session files committed to prevent rollover blocks`);
-    } catch (error) {
-      // If commit fails, it might be because files haven't changed
-      console.log(`${CONFIG.colors.dim}Session files not committed (may already exist)${CONFIG.colors.reset}`);
+    // Update .gitignore in the worktree to exclude session files
+    const gitignorePath = path.join(worktreePath, '.gitignore');
+    let gitignoreContent = '';
+    
+    // Read existing gitignore if it exists
+    if (fs.existsSync(gitignorePath)) {
+      gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
     }
+    
+    // Session file patterns to ignore
+    const sessionPatterns = [
+      '# DevOps session management files',
+      '.devops-commit-*.msg',
+      '.devops-session.json', 
+      'SESSION_README.md',
+      '.session-cleanup-requested',
+      '.worktree-session',
+      '.agent-config',
+      '.session-*',
+      '.devops-command-*'
+    ];
+    
+    // Check if we need to add patterns
+    let needsUpdate = false;
+    for (const pattern of sessionPatterns) {
+      if (!gitignoreContent.includes(pattern)) {
+        needsUpdate = true;
+        break;
+      }
+    }
+    
+    if (needsUpdate) {
+      // Add session patterns to gitignore
+      if (!gitignoreContent.endsWith('\n') && gitignoreContent.length > 0) {
+        gitignoreContent += '\n';
+      }
+      gitignoreContent += '\n' + sessionPatterns.join('\n') + '\n';
+      fs.writeFileSync(gitignorePath, gitignoreContent);
+      console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Updated .gitignore to exclude session files`);
+    }
+    
+    console.log(`${CONFIG.colors.dim}Session files created but not committed (they are gitignored)${CONFIG.colors.reset}`);
+    
+    // Note: We do NOT commit these files - they're for session management only
+    // This prevents the "uncommitted changes" issue when starting sessions
   }
 
   /**

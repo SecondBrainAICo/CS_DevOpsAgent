@@ -464,8 +464,9 @@ async function latestDaily(prefix = DAILY_PREFIX) {
   return line ? line.split(" ")[0] : null;
 }
 /**
- * Calculate the next version branch using 0.01 micro-revisions
+ * Calculate the next version branch using configurable increments
  * e.g., v0.20 -> v0.21 -> v0.22 (increments by 0.01 each day)
+ * or    v0.20 -> v0.30 -> v0.40 (increments by 0.1 each day)
  * @returns {Promise<string>} Next version branch name
  */
 async function nextVersionBranch() {
@@ -478,8 +479,10 @@ async function nextVersionBranch() {
       if (m) maxMinor = Math.max(maxMinor, parseInt(m[1], 10));
     }
   }
-  // Increment by 1 (which represents 0.01 in our version scheme)
-  const next = maxMinor >= 0 ? maxMinor + 1 : VERSION_START_MINOR;
+  // Get the daily increment from environment (default 1 = 0.01)
+  const dailyIncrement = parseInt(process.env.AC_VERSION_INCREMENT) || 1;
+  // Increment by configured amount
+  const next = maxMinor >= 0 ? maxMinor + dailyIncrement : VERSION_START_MINOR;
   return `${VERSION_PREFIX}${next}`;
 }
 

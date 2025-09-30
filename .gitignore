@@ -40,6 +40,15 @@ build/
 .claude-commit-msg
 CLAUDE_CHANGELOG.md
 
+# Session management files (should never be committed)
+.devops-commit-*.msg
+.devops-session.json
+.session-cleanup-requested
+.worktree-session
+.agent-config
+.session-*
+.devops-command-*
+
 # Personal run scripts (created per developer)
 run-auto-commit-*.sh
 test_cases/**/test-repo/
