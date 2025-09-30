@@ -117,9 +117,25 @@ class SessionCoordinator {
       
       const initials = await this.promptForInitials();
       config.developerInitials = initials.toLowerCase();
+      
+      // Also ask for starting version if not configured
+      if (!config.versionConfigured) {
+        const versionInfo = await this.promptForStartingVersion();
+        config.versionPrefix = versionInfo.prefix;
+        config.versionStartMinor = versionInfo.startMinor;
+        config.versionConfigured = true;
+        
+        // Set environment variables for the current session
+        process.env.AC_VERSION_PREFIX = versionInfo.prefix;
+        process.env.AC_VERSION_START_MINOR = versionInfo.startMinor.toString();
+      }
+      
       this.saveConfig(config);
       
       console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Developer initials saved: ${CONFIG.colors.bright}${initials}${CONFIG.colors.reset}`);
+      if (config.versionPrefix) {
+        console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Starting version: ${CONFIG.colors.bright}${config.versionPrefix}${config.versionStartMinor}${CONFIG.colors.reset}`);
+      }
     }
   }
   
@@ -293,6 +309,71 @@ class SessionCoordinator {
     console.log(`${CONFIG.colors.dim}  (Daily branches will be merged into ${targetBranch} at end of day)${CONFIG.colors.reset}`);
     
     return config;
+  }
+  
+  /**
+   * Prompt for starting version configuration
+   */
+  async promptForStartingVersion() {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    console.log(`\n${CONFIG.colors.yellow}Version Configuration${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}Set the starting version for this codebase${CONFIG.colors.reset}`);
+    
+    // Ask if inheriting existing codebase
+    const isInherited = await new Promise((resolve) => {
+      rl.question('\nIs this an existing/inherited codebase? (y/N): ', (answer) => {
+        resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+      });
+    });
+    
+    let prefix = 'v0.';
+    let startMinor = 20; // Default v0.20
+    
+    if (isInherited) {
+      console.log(`\n${CONFIG.colors.bright}Current Version Examples:${CONFIG.colors.reset}`);
+      console.log('  v1.5  → Enter: v1. and 50');
+      console.log('  v2.3  → Enter: v2. and 30');
+      console.log('  v0.8  → Enter: v0. and 80');
+      console.log('  v3.12 → Enter: v3. and 120');
+      
+      // Get version prefix
+      prefix = await new Promise((resolve) => {
+        rl.question('\nEnter version prefix (e.g., v1., v2., v0.) [v0.]: ', (answer) => {
+          const cleaned = answer.trim() || 'v0.';
+          // Ensure it ends with a dot
+          resolve(cleaned.endsWith('.') ? cleaned : cleaned + '.');
+        });
+      });
+      
+      // Get starting minor version
+      const currentVersion = await new Promise((resolve) => {
+        rl.question(`Current version number (e.g., for ${prefix}5 enter 50, for ${prefix}12 enter 120) [20]: `, (answer) => {
+          const num = parseInt(answer.trim());
+          resolve(isNaN(num) ? 20 : num);
+        });
+      });
+      
+      // Next version will be current + 1
+      startMinor = currentVersion + 1;
+      
+      console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Next version will be: ${CONFIG.colors.bright}${prefix}${startMinor}${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}(This represents ${prefix}${(startMinor/100).toFixed(2)} in semantic versioning)${CONFIG.colors.reset}`);
+    } else {
+      // New project
+      console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Starting new project at: ${CONFIG.colors.bright}v0.20${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}(Daily increments: v0.20 → v0.21 → v0.22...)${CONFIG.colors.reset}`);
+    }
+    
+    rl.close();
+    
+    return {
+      prefix,
+      startMinor
+    };
   }
 
   generateSessionId() {
@@ -650,6 +731,7 @@ The DevOps agent is monitoring this worktree for changes.
     
     // Get developer initials from config or environment
     const devInitials = this.getDeveloperInitials();
+    const config = this.loadConfig();
     
     // Start the agent
     const env = {
@@ -663,7 +745,10 @@ The DevOps agent is monitoring this worktree for changes.
       AC_PUSH: 'true',  // Enable auto-push for session branches
       AC_DAILY_PREFIX: `${sessionData.agentType}_${devInitials}_${sessionId}_`,  // Daily branches with dev initials
       AC_TZ: process.env.AC_TZ || 'Asia/Dubai',  // Preserve timezone for daily branches
-      AC_DATE_STYLE: process.env.AC_DATE_STYLE || 'dash'  // Preserve date style
+      AC_DATE_STYLE: process.env.AC_DATE_STYLE || 'dash',  // Preserve date style
+      // Apply version configuration if set
+      ...(config.versionPrefix && { AC_VERSION_PREFIX: config.versionPrefix }),
+      ...(config.versionStartMinor && { AC_VERSION_START_MINOR: config.versionStartMinor.toString() })
     };
     
     const agentScript = path.join(__dirname, 'cs-devops-agent-worker.js');

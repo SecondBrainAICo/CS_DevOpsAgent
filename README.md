@@ -83,6 +83,157 @@ Born a little out of frustration that I couldn't get multiple agents to work on 
 - **🧪 Targeted Testing** - Only runs tests for changed areas
 - **📊 Infrastructure Documentation** - Auto-generates infrastructure change logs
 
+## 🌳 Branching Strategy & Version Management
+
+### Daily Branch System
+
+The DevOps agent uses an intelligent branching system that automatically manages your code progression:
+
+#### How Daily Branches Work
+
+Every day, the agent creates:
+1. **Version Branch**: `v0.XX` (e.g., v0.20, v0.21, v0.22)
+2. **Daily Work Branch**: `{agent}_{developer}_{session}_{date}` (e.g., `warp_sdd_8a3s-45b1_2025-09-30`)
+
+All your commits happen on the daily branch, keeping your work organized by:
+- **Agent**: Which AI assistant you're using (warp, claude, cursor, etc.)
+- **Developer**: Your 3-letter initials (asked on first run)
+- **Session**: Unique session identifier
+- **Date**: The date of work
+
+#### Daily Rollover (Midnight Transition)
+
+When a new day starts (based on your configured timezone):
+
+```
+Day 1: Sept 29
+└── v0.20 (version branch)
+    └── warp_sdd_abc1-def2_2025-09-29 (your work)
+
+Day 2: Sept 30 (at first commit after midnight)
+├── main ← [merged from v0.20]
+└── v0.21 (new version, increment by 0.01)
+    └── warp_sdd_abc1-def2_2025-09-30 (continues your work)
+```
+
+The rollover process:
+1. ✅ Checks for uncommitted changes (won't rollover if dirty)
+2. 📥 Merges yesterday's daily branch into new version branch
+3. 🎯 Creates today's daily branch from the new version
+4. 🚀 Pushes everything to remote
+
+### Weekly Rollup System
+
+#### How Weekly Rollup Works
+
+On **Monday mornings** (first run of the week):
+
+```
+Week 1: v0.20-v0.26 (Mon-Sun)
+└── All daily branches
+
+Monday Morning:
+1. main ← merge v0.26 (last week's final version)
+2. Create v0.27 (new week starts)
+3. Continue with daily increments
+```
+
+This creates a natural weekly checkpoint where:
+- **Main branch** receives a week's worth of stable work
+- **Version numbers** continue incrementing
+- **History** is preserved in version branches
+
+### Version Numbering System
+
+#### Micro-Revision Strategy
+
+Versions use a **0.01 increment** system:
+- `v0.20` → `v0.21` → `v0.22` (daily increments)
+- Each day = +0.01 to version
+- After v0.99 → v1.00 (major version bump)
+
+#### Setting Starting Version (For Inherited Codebases)
+
+When inheriting an existing codebase, you can set the starting version:
+
+```bash
+# Set starting version to v2.50 (if inheriting v2.x codebase)
+export AC_VERSION_START_MINOR=250
+export AC_VERSION_PREFIX="v2."
+
+# Or for v1.x codebase starting at v1.30
+export AC_VERSION_START_MINOR=130
+export AC_VERSION_PREFIX="v1."
+```
+
+### Auto-Merge Configuration
+
+When creating a session, you can enable auto-merge:
+
+```
+┌─────────────────────────────────────┐
+│ Auto-merge Configuration            │
+├─────────────────────────────────────┤
+│ Enable auto-merge? (y/N)           │
+│ ↓                                   │
+│ Target branch: main ⭐              │
+│ Strategy: pull-request              │
+└─────────────────────────────────────┘
+```
+
+At end of day, your work automatically:
+- Creates PR to merge into target branch (main, develop, etc.)
+- Or directly merges (if configured)
+- Maintains clean history
+
+### Branch Lifecycle Example
+
+```
+Monday Sept 23:
+  main
+   └── v0.20
+       └── claude_sdd_xyz1-abc2_2025-09-23
+
+Tuesday Sept 24:
+  main
+   ├── v0.20 [merged]
+   └── v0.21
+       └── claude_sdd_xyz1-abc2_2025-09-24
+
+... (daily progression) ...
+
+Monday Sept 30 (new week):
+  main [contains last week's v0.26]
+   └── v0.27 (new week begins)
+       └── claude_sdd_xyz1-abc2_2025-09-30
+```
+
+### Timezone Configuration
+
+The rollover happens based on YOUR timezone:
+
+```bash
+# Set timezone (default: Asia/Dubai)
+export AC_TZ="America/New_York"  # Eastern Time
+export AC_TZ="Europe/London"      # GMT/BST
+export AC_TZ="Asia/Tokyo"         # Japan Time
+```
+
+This ensures:
+- Commits at 11:59 PM go to today's branch
+- Commits at 12:01 AM go to tomorrow's branch
+- No confusion about "which day's work is this?"
+
+### Benefits of This System
+
+1. **📅 Clear Daily Organization**: Know exactly when work was done
+2. **👥 Developer Attribution**: See who did what via initials
+3. **🔍 Easy History Tracking**: Version branches show progression
+4. **🔄 Automatic Consolidation**: Weekly merges to main keep it stable
+5. **🏷️ Semantic Versioning**: Natural progression from v0.20 → v0.99 → v1.00
+6. **🎯 Clean Main Branch**: Only tested, complete weeks merge to main
+7. **⚡ No Manual Merging**: Everything happens automatically
+
 ## 🌐 Installation from GitHub
 
 ### Clone the Repository
