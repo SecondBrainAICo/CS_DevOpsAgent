@@ -188,11 +188,18 @@ select_session() {
     fi
     
     echo
+    echo -e "  ${BOLD}Q)${NC} ${RED}Quit${NC} - Exit the session manager"
+    echo
     echo -n "Your choice: "
     read choice
     
     # Handle the choice
-    if [[ "$choice" =~ ^[Nn]$ ]]; then
+    if [[ "$choice" =~ ^[Qq]$ ]]; then
+        # Quit the session manager
+        echo
+        echo -e "${GREEN}Goodbye! Exiting DevOps Session Manager.${NC}"
+        exit 0
+    elif [[ "$choice" =~ ^[Nn]$ ]]; then
         # Create new session
         create_new_session
         return 0
@@ -260,9 +267,28 @@ main() {
     # Main selection loop
     while true; do
         if select_session; then
-            break
+            # After agent exits, ask if they want to continue or exit
+            echo
+            echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
+            echo -e "${BOLD}Agent has stopped.${NC}"
+            echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
+            echo
+            echo -e "Would you like to:"
+            echo -e "  ${BOLD}1)${NC} Select another session"
+            echo -e "  ${BOLD}2)${NC} Exit the session manager"
+            echo
+            echo -n "Your choice [1/2]: "
+            read continue_choice
+            
+            if [[ "$continue_choice" == "2" ]]; then
+                echo
+                echo -e "${GREEN}Goodbye! Thank you for using DevOps Session Manager.${NC}"
+                exit 0
+            fi
+            echo
+            echo -e "${BLUE}Returning to session selection...${NC}"
+            echo
         fi
-        echo
     done
 }
 
