@@ -63,10 +63,18 @@ class SessionCoordinator {
     this.locksPath = path.join(this.repoRoot, CONFIG.locksDir);
     this.worktreesPath = path.join(this.repoRoot, CONFIG.worktreesDir);
     this.instructionsPath = path.join(this.repoRoot, CONFIG.instructionsDir);
-    this.configPath = path.join(this.repoRoot, 'local_deploy', '.devops-config.json');
+    
+    // Store user settings in home directory for cross-project usage
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    this.globalSettingsDir = path.join(homeDir, '.devops-agent');
+    this.globalSettingsPath = path.join(this.globalSettingsDir, 'settings.json');
+    
+    // Store project-specific settings in local_deploy
+    this.projectSettingsPath = path.join(this.repoRoot, 'local_deploy', 'project-settings.json');
     
     this.ensureDirectories();
     this.cleanupStaleLocks();
+    this.ensureSettingsFile();
     // DO NOT call ensureDeveloperInitials here - it should only be called when creating new sessions
   }
 
@@ -80,11 +88,17 @@ class SessionCoordinator {
   }
 
   ensureDirectories() {
+    // Ensure local project directories
     [this.sessionsPath, this.locksPath, this.worktreesPath, this.instructionsPath].forEach(dir => {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
     });
+    
+    // Ensure global settings directory in home folder
+    if (!fs.existsSync(this.globalSettingsDir)) {
+      fs.mkdirSync(this.globalSettingsDir, { recursive: true });
+    }
   }
 
   cleanupStaleLocks() {
@@ -108,65 +122,181 @@ class SessionCoordinator {
    * Ensure developer initials are configured
    */
   async ensureDeveloperInitials() {
-    const config = this.loadConfig();
+    const settings = this.loadSettings();
     
-    if (!config.developerInitials) {
-      console.log(`\n${CONFIG.colors.yellow}First-time setup detected!${CONFIG.colors.reset}`);
+    if (!settings.developerInitials || !settings.configured) {
+      console.log(`\n${CONFIG.colors.yellow}First-time DevOps Agent setup!${CONFIG.colors.reset}`);
       console.log(`${CONFIG.colors.bright}Please enter your 3-letter developer initials${CONFIG.colors.reset}`);
-      console.log(`${CONFIG.colors.dim}(These will be used in branch names to identify your work)${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}(These will be used in branch names to identify your work across all projects)${CONFIG.colors.reset}`);
       
       const initials = await this.promptForInitials();
-      config.developerInitials = initials.toLowerCase();
+      settings.developerInitials = initials.toLowerCase();
       
       // Also ask for starting version if not configured
-      if (!config.versionConfigured) {
+      if (!settings.versioningStrategy.configured) {
         const versionInfo = await this.promptForStartingVersion();
-        config.versionPrefix = versionInfo.prefix;
-        config.versionStartMinor = versionInfo.startMinor;
-        config.versionConfigured = true;
+        settings.versioningStrategy.prefix = versionInfo.prefix;
+        settings.versioningStrategy.startMinor = versionInfo.startMinor;
+        settings.versioningStrategy.configured = true;
         
         // Set environment variables for the current session
         process.env.AC_VERSION_PREFIX = versionInfo.prefix;
         process.env.AC_VERSION_START_MINOR = versionInfo.startMinor.toString();
       }
       
-      this.saveConfig(config);
+      settings.configured = true;
+      this.saveSettings(settings);
       
       console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Developer initials saved: ${CONFIG.colors.bright}${initials}${CONFIG.colors.reset}`);
-      if (config.versionPrefix) {
-        console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Starting version: ${CONFIG.colors.bright}${config.versionPrefix}${config.versionStartMinor}${CONFIG.colors.reset}`);
+      if (settings.versioningStrategy.prefix) {
+        console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Starting version: ${CONFIG.colors.bright}${settings.versioningStrategy.prefix}${settings.versioningStrategy.startMinor}${CONFIG.colors.reset}`);
+      }
+      console.log(`${CONFIG.colors.dim}Your initials are saved globally and will be used across all projects${CONFIG.colors.reset}`);
+    } else {
+      // Settings already configured, set environment variables
+      if (settings.versioningStrategy.configured) {
+        process.env.AC_VERSION_PREFIX = settings.versioningStrategy.prefix;
+        process.env.AC_VERSION_START_MINOR = settings.versioningStrategy.startMinor.toString();
       }
     }
   }
   
   /**
-   * Get developer initials from config (no prompting)
+   * Get developer initials from settings (no prompting)
    */
   getDeveloperInitials() {
-    const config = this.loadConfig();
+    const settings = this.loadSettings();
     // Never prompt here, just return default if not configured
-    return config.developerInitials || 'dev';
+    return settings.developerInitials || 'dev';
   }
   
   /**
-   * Load configuration from file
+   * Ensure settings files exist
    */
-  loadConfig() {
-    if (fs.existsSync(this.configPath)) {
-      return JSON.parse(fs.readFileSync(this.configPath, 'utf8'));
+  ensureSettingsFile() {
+    // Create global settings if not exists
+    if (!fs.existsSync(this.globalSettingsPath)) {
+      const defaultGlobalSettings = {
+        developerInitials: "",
+        email: "",
+        preferences: {
+          defaultTargetBranch: "main",
+          pushOnCommit: true,
+          verboseLogging: false
+        },
+        configured: false
+      };
+      fs.writeFileSync(this.globalSettingsPath, JSON.stringify(defaultGlobalSettings, null, 2));
+      console.log(`${CONFIG.colors.dim}Created global settings at ~/.devops-agent/settings.json${CONFIG.colors.reset}`);
     }
-    return {};
+    
+    // Create project settings if not exists
+    if (!fs.existsSync(this.projectSettingsPath)) {
+      const defaultProjectSettings = {
+        versioningStrategy: {
+          prefix: "v0.",
+          startMinor: 20,
+          configured: false
+        },
+        autoMergeConfig: {
+          enabled: false,
+          targetBranch: "main",
+          strategy: "pull-request"
+        }
+      };
+      const projectDir = path.dirname(this.projectSettingsPath);
+      if (!fs.existsSync(projectDir)) {
+        fs.mkdirSync(projectDir, { recursive: true });
+      }
+      fs.writeFileSync(this.projectSettingsPath, JSON.stringify(defaultProjectSettings, null, 2));
+    }
   }
   
   /**
-   * Save configuration to file
+   * Load global settings (user-specific)
    */
-  saveConfig(config) {
-    const configDir = path.dirname(this.configPath);
-    if (!fs.existsSync(configDir)) {
-      fs.mkdirSync(configDir, { recursive: true });
+  loadGlobalSettings() {
+    if (fs.existsSync(this.globalSettingsPath)) {
+      return JSON.parse(fs.readFileSync(this.globalSettingsPath, 'utf8'));
     }
-    fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2));
+    return {
+      developerInitials: "",
+      email: "",
+      preferences: {},
+      configured: false
+    };
+  }
+  
+  /**
+   * Load project settings
+   */
+  loadProjectSettings() {
+    if (fs.existsSync(this.projectSettingsPath)) {
+      return JSON.parse(fs.readFileSync(this.projectSettingsPath, 'utf8'));
+    }
+    return {
+      versioningStrategy: {
+        prefix: "v0.",
+        startMinor: 20,
+        configured: false
+      },
+      autoMergeConfig: {}
+    };
+  }
+  
+  /**
+   * Combined settings loader for compatibility
+   */
+  loadSettings() {
+    const global = this.loadGlobalSettings();
+    const project = this.loadProjectSettings();
+    return {
+      ...global,
+      ...project,
+      developerInitials: global.developerInitials,
+      configured: global.configured
+    };
+  }
+  
+  /**
+   * Save global settings
+   */
+  saveGlobalSettings(settings) {
+    fs.writeFileSync(this.globalSettingsPath, JSON.stringify(settings, null, 2));
+    console.log(`${CONFIG.colors.dim}Global settings saved to ~/.devops-agent/settings.json${CONFIG.colors.reset}`);
+  }
+  
+  /**
+   * Save project settings
+   */
+  saveProjectSettings(settings) {
+    const projectDir = path.dirname(this.projectSettingsPath);
+    if (!fs.existsSync(projectDir)) {
+      fs.mkdirSync(projectDir, { recursive: true });
+    }
+    fs.writeFileSync(this.projectSettingsPath, JSON.stringify(settings, null, 2));
+    console.log(`${CONFIG.colors.dim}Project settings saved to local_deploy/project-settings.json${CONFIG.colors.reset}`);
+  }
+  
+  /**
+   * Save settings (splits between global and project)
+   */
+  saveSettings(settings) {
+    // Split settings into global and project
+    const globalSettings = {
+      developerInitials: settings.developerInitials,
+      email: settings.email || "",
+      preferences: settings.preferences || {},
+      configured: settings.configured
+    };
+    
+    const projectSettings = {
+      versioningStrategy: settings.versioningStrategy,
+      autoMergeConfig: settings.autoMergeConfig || {}
+    };
+    
+    this.saveGlobalSettings(globalSettings);
+    this.saveProjectSettings(projectSettings);
   }
   
   /**
