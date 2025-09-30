@@ -1059,6 +1059,18 @@ async function detectAndSetupWorktree(repoRoot) {
  * 8. Loop forever...
  */
 (async () => {
+  // Display copyright and license information
+  console.log("\n" + "=".repeat(70));
+  console.log("  CS_DevOpsAgent - Intelligent Git Automation System");
+  console.log("  Version 2.4.0");
+  console.log("  \n  Copyright (c) 2024 SecondBrain Labs");
+  console.log("  Author: Sachin Dev Duggal");
+  console.log("  \n  Licensed under the MIT License");
+  console.log("  This software is provided 'as-is' without any warranty.");
+  console.log("  See LICENSE file for full license text.");
+  console.log("=".repeat(70));
+  console.log();
+  
   const { stdout: toplevel } = await run("git", ["rev-parse", "--show-toplevel"]);
   const repoRoot = toplevel.trim() || process.cwd();
   
