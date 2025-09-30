@@ -119,48 +119,64 @@ class SessionCoordinator {
   }
   
   /**
-   * Ensure developer initials are configured
+   * Ensure developer initials are configured globally
    */
-  async ensureDeveloperInitials() {
-    const settings = this.loadSettings();
+  async ensureGlobalSetup() {
+    const globalSettings = this.loadGlobalSettings();
     
-    if (!settings.developerInitials || !settings.configured) {
+    // Check if global setup is needed (developer initials)
+    if (!globalSettings.developerInitials || !globalSettings.configured) {
       console.log(`\n${CONFIG.colors.yellow}First-time DevOps Agent setup!${CONFIG.colors.reset}`);
       console.log(`${CONFIG.colors.bright}Please enter your 3-letter developer initials${CONFIG.colors.reset}`);
-      console.log(`${CONFIG.colors.dim}(These will be used in branch names to identify your work across all projects)${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}(These will be used in branch names across ALL projects)${CONFIG.colors.reset}`);
       
       const initials = await this.promptForInitials();
-      settings.developerInitials = initials.toLowerCase();
+      globalSettings.developerInitials = initials.toLowerCase();
+      globalSettings.configured = true;
       
-      // Also ask for starting version if not configured
-      if (!settings.versioningStrategy.configured) {
-        const versionInfo = await this.promptForStartingVersion();
-        settings.versioningStrategy.prefix = versionInfo.prefix;
-        settings.versioningStrategy.startMinor = versionInfo.startMinor;
-        settings.versioningStrategy.dailyIncrement = versionInfo.dailyIncrement || 1;
-        settings.versioningStrategy.configured = true;
-        
-        // Set environment variables for the current session
-        process.env.AC_VERSION_PREFIX = versionInfo.prefix;
-        process.env.AC_VERSION_START_MINOR = versionInfo.startMinor.toString();
-        process.env.AC_VERSION_INCREMENT = versionInfo.dailyIncrement.toString();
-      }
+      this.saveGlobalSettings(globalSettings);
       
-      settings.configured = true;
-      this.saveSettings(settings);
+      console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Developer initials saved globally: ${CONFIG.colors.bright}${initials}${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}Your initials are saved in ~/.devops-agent/settings.json${CONFIG.colors.reset}`);
+    }
+  }
+  
+  /**
+   * Ensure project-specific version settings are configured
+   */
+  async ensureProjectSetup() {
+    const projectSettings = this.loadProjectSettings();
+    
+    // Check if project setup is needed (version strategy)
+    if (!projectSettings.versioningStrategy || !projectSettings.versioningStrategy.configured) {
+      console.log(`\n${CONFIG.colors.yellow}First-time project setup for this repository!${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}Let's configure the versioning strategy for this project${CONFIG.colors.reset}`);
       
-      console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Developer initials saved: ${CONFIG.colors.bright}${initials}${CONFIG.colors.reset}`);
-      if (settings.versioningStrategy.prefix) {
-        console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Starting version: ${CONFIG.colors.bright}${settings.versioningStrategy.prefix}${settings.versioningStrategy.startMinor}${CONFIG.colors.reset}`);
-      }
-      console.log(`${CONFIG.colors.dim}Your initials are saved globally and will be used across all projects${CONFIG.colors.reset}`);
+      const versionInfo = await this.promptForStartingVersion();
+      projectSettings.versioningStrategy = {
+        prefix: versionInfo.prefix,
+        startMinor: versionInfo.startMinor,
+        dailyIncrement: versionInfo.dailyIncrement || 1,
+        configured: true
+      };
+      
+      this.saveProjectSettings(projectSettings);
+      
+      // Set environment variables for the current session
+      process.env.AC_VERSION_PREFIX = versionInfo.prefix;
+      process.env.AC_VERSION_START_MINOR = versionInfo.startMinor.toString();
+      process.env.AC_VERSION_INCREMENT = versionInfo.dailyIncrement.toString();
+      
+      const incrementDisplay = (versionInfo.dailyIncrement / 100).toFixed(2);
+      console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Project versioning configured:`);
+      console.log(`  Starting: ${CONFIG.colors.bright}${versionInfo.prefix}${versionInfo.startMinor}${CONFIG.colors.reset}`);
+      console.log(`  Daily increment: ${CONFIG.colors.bright}${incrementDisplay}${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}Settings saved in local_deploy/project-settings.json${CONFIG.colors.reset}`);
     } else {
-      // Settings already configured, set environment variables
-      if (settings.versioningStrategy.configured) {
-        process.env.AC_VERSION_PREFIX = settings.versioningStrategy.prefix;
-        process.env.AC_VERSION_START_MINOR = settings.versioningStrategy.startMinor.toString();
-        process.env.AC_VERSION_INCREMENT = (settings.versioningStrategy.dailyIncrement || 1).toString();
-      }
+      // Project already configured, set environment variables
+      process.env.AC_VERSION_PREFIX = projectSettings.versioningStrategy.prefix;
+      process.env.AC_VERSION_START_MINOR = projectSettings.versioningStrategy.startMinor.toString();
+      process.env.AC_VERSION_INCREMENT = (projectSettings.versioningStrategy.dailyIncrement || 1).toString();
     }
   }
   
@@ -559,8 +575,9 @@ class SessionCoordinator {
    * Create a new session and generate Claude instructions
    */
   async createSession(options = {}) {
-    // Ensure developer initials are configured before creating a session
-    await this.ensureDeveloperInitials();
+    // Ensure both global and project setup are complete
+    await this.ensureGlobalSetup();     // Developer initials (once per user)
+    await this.ensureProjectSetup();    // Version strategy (once per project)
     
     const sessionId = this.generateSessionId();
     const task = options.task || 'development';
