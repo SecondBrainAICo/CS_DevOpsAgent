@@ -21,7 +21,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { execSync, spawn } from 'child_process';
+import { execSync, spawn, fork } from 'child_process';
 import crypto from 'crypto';
 import readline from 'readline';
 import { hasDockerConfiguration } from './docker-utils.js';
@@ -1185,6 +1185,215 @@ The DevOps agent is monitoring this worktree for changes.
     
     return session;
   }
+  
+  /**
+   * Close a specific session
+   */
+  async closeSession(sessionId) {
+    const lockFile = path.join(this.locksPath, `${sessionId}.lock`);
+    
+    if (!fs.existsSync(lockFile)) {
+      console.error(`${CONFIG.colors.red}Session not found: ${sessionId}${CONFIG.colors.reset}`);
+      return false;
+    }
+    
+    const session = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
+    console.log(`\n${CONFIG.colors.yellow}Closing session: ${sessionId}${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}Task: ${session.task}${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}Branch: ${session.branchName}${CONFIG.colors.reset}`);
+    
+    // Kill agent if running
+    if (session.agentPid) {
+      try {
+        process.kill(session.agentPid, 'SIGTERM');
+        console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Agent process stopped`);
+      } catch (err) {
+        // Process might already be dead
+      }
+    }
+    
+    // Check for uncommitted changes
+    if (fs.existsSync(session.worktreePath)) {
+      try {
+        const status = execSync(`git -C "${session.worktreePath}" status --porcelain`, { encoding: 'utf8' });
+        if (status.trim()) {
+          console.log(`\n${CONFIG.colors.yellow}Warning: Uncommitted changes found${CONFIG.colors.reset}`);
+          console.log(status);
+          
+          const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+          });
+          
+          const answer = await new Promise(resolve => {
+            rl.question('Commit these changes before closing? (y/N): ', resolve);
+          });
+          rl.close();
+          
+          if (answer.toLowerCase() === 'y') {
+            execSync(`git -C "${session.worktreePath}" add -A`, { stdio: 'pipe' });
+            execSync(`git -C "${session.worktreePath}" commit -m "chore: final session cleanup for ${sessionId}"`, { stdio: 'pipe' });
+            execSync(`git -C "${session.worktreePath}" push origin ${session.branchName}`, { stdio: 'pipe' });
+            console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Changes committed and pushed`);
+          }
+        }
+      } catch (err) {
+        console.log(`${CONFIG.colors.dim}Could not check git status${CONFIG.colors.reset}`);
+      }
+      
+      // Ask about removing worktree
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+      
+      const removeWorktree = await new Promise(resolve => {
+        rl.question(`\nRemove worktree at ${session.worktreePath}? (Y/n): `, resolve);
+      });
+      rl.close();
+      
+      if (removeWorktree.toLowerCase() !== 'n') {
+        try {
+          // Remove worktree
+          execSync(`git worktree remove "${session.worktreePath}" --force`, { stdio: 'pipe' });
+          console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Worktree removed`);
+          
+          // Prune worktree list
+          execSync('git worktree prune', { stdio: 'pipe' });
+        } catch (err) {
+          console.error(`${CONFIG.colors.red}Failed to remove worktree: ${err.message}${CONFIG.colors.reset}`);
+        }
+      }
+    }
+    
+    // Remove lock file
+    fs.unlinkSync(lockFile);
+    console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Session closed successfully`);
+    
+    return true;
+  }
+  
+  /**
+   * Interactive session selection and close
+   */
+  async selectAndCloseSession() {
+    if (!fs.existsSync(this.locksPath)) {
+      console.log(`${CONFIG.colors.yellow}No active sessions${CONFIG.colors.reset}`);
+      return;
+    }
+    
+    const locks = fs.readdirSync(this.locksPath);
+    if (locks.length === 0) {
+      console.log(`${CONFIG.colors.yellow}No active sessions${CONFIG.colors.reset}`);
+      return;
+    }
+    
+    const sessions = [];
+    locks.forEach(lockFile => {
+      const lockPath = path.join(this.locksPath, lockFile);
+      const session = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+      sessions.push(session);
+    });
+    
+    console.log(`\n${CONFIG.colors.bright}Select session to close:${CONFIG.colors.reset}\n`);
+    
+    sessions.forEach((session, index) => {
+      const status = session.status === 'active' ? 
+        `${CONFIG.colors.green}●${CONFIG.colors.reset}` : 
+        `${CONFIG.colors.yellow}○${CONFIG.colors.reset}`;
+      
+      console.log(`${status} ${CONFIG.colors.bright}${index + 1})${CONFIG.colors.reset} ${session.sessionId}`);
+      console.log(`   Task: ${session.task}`);
+      console.log(`   Branch: ${session.branchName}`);
+      console.log(`   Created: ${session.created}`);
+      console.log();
+    });
+    
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    const answer = await new Promise(resolve => {
+      rl.question(`Select session (1-${sessions.length}) or 'q' to quit: `, resolve);
+    });
+    rl.close();
+    
+    if (answer.toLowerCase() === 'q') {
+      return;
+    }
+    
+    const index = parseInt(answer) - 1;
+    if (index >= 0 && index < sessions.length) {
+      await this.closeSession(sessions[index].sessionId);
+    } else {
+      console.log(`${CONFIG.colors.red}Invalid selection${CONFIG.colors.reset}`);
+    }
+  }
+  
+  /**
+   * Clean up all stale sessions and worktrees
+   */
+  async cleanupAll() {
+    console.log(`\n${CONFIG.colors.yellow}Cleaning up stale sessions and worktrees...${CONFIG.colors.reset}`);
+    
+    // Clean up old lock files (older than 24 hours)
+    const oneDayAgo = Date.now() - 86400000;
+    let cleanedLocks = 0;
+    
+    if (fs.existsSync(this.locksPath)) {
+      const locks = fs.readdirSync(this.locksPath);
+      locks.forEach(lockFile => {
+        const lockPath = path.join(this.locksPath, lockFile);
+        const stats = fs.statSync(lockPath);
+        if (stats.mtimeMs < oneDayAgo) {
+          fs.unlinkSync(lockPath);
+          cleanedLocks++;
+        }
+      });
+    }
+    
+    if (cleanedLocks > 0) {
+      console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Removed ${cleanedLocks} stale lock files`);
+    }
+    
+    // Prune git worktrees
+    try {
+      execSync('git worktree prune', { stdio: 'pipe' });
+      console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Pruned git worktrees`);
+    } catch (err) {
+      console.log(`${CONFIG.colors.dim}Could not prune worktrees${CONFIG.colors.reset}`);
+    }
+    
+    // Clean up orphaned worktree directories
+    if (fs.existsSync(this.worktreesPath)) {
+      const worktrees = fs.readdirSync(this.worktreesPath);
+      let cleanedWorktrees = 0;
+      
+      for (const dir of worktrees) {
+        const worktreePath = path.join(this.worktreesPath, dir);
+        
+        // Check if this worktree is still valid
+        try {
+          execSync(`git worktree list | grep "${worktreePath}"`, { stdio: 'pipe' });
+        } catch (err) {
+          // Worktree not in git list, it's orphaned
+          try {
+            fs.rmSync(worktreePath, { recursive: true, force: true });
+            cleanedWorktrees++;
+          } catch (err) {
+            console.log(`${CONFIG.colors.dim}Could not remove ${dir}${CONFIG.colors.reset}`);
+          }
+        }
+      }
+      
+      if (cleanedWorktrees > 0) {
+        console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Removed ${cleanedWorktrees} orphaned worktree directories`);
+      }
+    }
+    
+    console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Cleanup complete`);
+  }
 }
 
 // ============================================================================
@@ -1260,13 +1469,31 @@ async function main() {
       break;
     }
     
-    case 'list': {
-      coordinator.listSessions();
-      break;
+  case 'list': {
+    coordinator.listSessions();
+    break;
+  }
+  
+  case 'close': {
+    // Close a session and clean up
+    const sessionId = args[1];
+    if (sessionId) {
+      await coordinator.closeSession(sessionId);
+    } else {
+      // Interactive selection
+      await coordinator.selectAndCloseSession();
     }
-    
-    case 'help':
-    default: {
+    break;
+  }
+  
+  case 'cleanup': {
+    // Clean up stale sessions and worktrees
+    await coordinator.cleanupAll();
+    break;
+  }
+  
+  case 'help':
+  default: {
       console.log(`
 ${CONFIG.colors.bright}DevOps Session Coordinator${CONFIG.colors.reset}
 
@@ -1279,6 +1506,8 @@ ${CONFIG.colors.blue}Commands:${CONFIG.colors.reset}
   ${CONFIG.colors.green}create-and-start${CONFIG.colors.reset}    Create session and start agent (all-in-one)
   ${CONFIG.colors.green}request [agent]${CONFIG.colors.reset}     Request a session (for Claude to call)
   ${CONFIG.colors.green}list${CONFIG.colors.reset}                List all active sessions
+  ${CONFIG.colors.green}close [id]${CONFIG.colors.reset}          Close session and clean up worktree
+  ${CONFIG.colors.green}cleanup${CONFIG.colors.reset}             Clean up all stale sessions
   ${CONFIG.colors.green}help${CONFIG.colors.reset}                Show this help
 
 ${CONFIG.colors.blue}Options:${CONFIG.colors.reset}

@@ -113,6 +113,7 @@ import chokidar from "chokidar";
 import { execa } from "execa";
 import readline from "node:readline";
 import { stdin as input, stdout as output } from 'node:process';
+import { execSync } from 'child_process';
 import { restartDockerContainers } from './docker-utils.js';
 
 // ============================================================================
@@ -1656,17 +1657,71 @@ console.log();
           fs.unlinkSync(msgPath);
         }
         
-        // Create cleanup marker if in a session
+        // Handle worktree cleanup if in a session
         if (sessionId) {
-          const cleanupMarker = path.join(process.cwd(), '.session-cleanup-requested');
-          fs.writeFileSync(cleanupMarker, JSON.stringify({
-            sessionId: sessionId,
-            timestamp: new Date().toISOString(),
-            branch: await currentBranch(),
-            worktree: process.cwd()
-          }, null, 2));
-          console.log("\n✓ Session cleanup complete.");
-          console.log("Run 'npm run devops:close' from the main repo to remove the worktree.");
+          const currentDir = process.cwd();
+          const isWorktree = currentDir.includes('local_deploy/worktrees');
+          
+          if (isWorktree) {
+            console.log("\n" + "=".repeat(60));
+            console.log("WORKTREE CLEANUP");
+            console.log("=".repeat(60));
+            console.log("\nThis session is running in a worktree:");
+            console.log(`  ${currentDir}`);
+            console.log("\nWould you like to remove this worktree now?");
+            console.log("  y/yes - Remove worktree and close session");
+            console.log("  n/no  - Keep worktree for later use");
+            console.log("  (You can remove it later with: node src/session-coordinator.js close " + sessionId + ")");
+            
+            rl.prompt();
+            const cleanupAnswer = await new Promise(resolve => {
+              rl.once('line', resolve);
+            });
+            
+            if (cleanupAnswer.toLowerCase() === 'y' || cleanupAnswer.toLowerCase() === 'yes') {
+              console.log("\nRemoving worktree...");
+              
+              // Get the main repo root (parent of worktree)
+              const repoRoot = path.resolve(currentDir, '../../../');
+              
+              try {
+                // Switch to main repo directory first
+                process.chdir(repoRoot);
+                
+                // Remove the worktree
+                execSync(`git worktree remove "${currentDir}" --force`, { stdio: 'inherit' });
+                console.log("✓ Worktree removed successfully");
+                
+                // Remove session lock file
+                const lockFile = path.join(repoRoot, 'local_deploy', 'session-locks', `${sessionId}.lock`);
+                if (fs.existsSync(lockFile)) {
+                  fs.unlinkSync(lockFile);
+                  console.log("✓ Session closed");
+                }
+              } catch (err) {
+                console.error("\nCould not remove worktree automatically.");
+                console.error("Error: " + err.message);
+                console.log("\nTo remove it manually, run from the main repo:");
+                console.log(`  git worktree remove "${currentDir}" --force`);
+                console.log("  OR");
+                console.log(`  node src/session-coordinator.js close ${sessionId}`);
+              }
+            } else {
+              // Create cleanup marker for later
+              const cleanupMarker = path.join(currentDir, '.session-cleanup-requested');
+              fs.writeFileSync(cleanupMarker, JSON.stringify({
+                sessionId: sessionId,
+                timestamp: new Date().toISOString(),
+                branch: await currentBranch(),
+                worktree: currentDir
+              }, null, 2));
+              console.log("\n✓ Session marked for later cleanup.");
+              console.log("To remove the worktree later, run from the main repo:");
+              console.log(`  node src/session-coordinator.js close ${sessionId}`);
+            }
+          } else {
+            console.log("\n✓ Session cleanup complete.");
+          }
         }
         
         console.log("\nGoodbye!");
