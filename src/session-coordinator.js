@@ -784,6 +784,28 @@ INSTRUCTIONS:
 - **Worktree Path:** \`${worktreePath}\`
 - **Branch:** \`${branchName}\`
 
+## 🚨 CRITICAL: File Coordination Protocol
+
+**BEFORE editing any files, you MUST:**
+
+1. **Declare your intent** by creating:
+   \`\`\`json
+   // File: .file-coordination/active-edits/<agent>-${sessionId}.json
+   {
+     "agent": "<your-name>",
+     "session": "${sessionId}",
+     "files": ["list", "files", "to", "edit"],
+     "operation": "edit",
+     "reason": "${task}",
+     "declaredAt": "<ISO-8601-timestamp>",
+     "estimatedDuration": 300
+   }
+   \`\`\`
+
+2. **Check for conflicts** - read all files in \`.file-coordination/active-edits/\`
+3. **Only proceed if no conflicts** - wait or choose different files if blocked
+4. **Release files when done** - delete your declaration after edits
+
 ## Instructions for Claude/Cline
 
 ### Step 1: Navigate to Your Worktree
@@ -797,18 +819,25 @@ git branch --show-current
 # Should output: ${branchName}
 \`\`\`
 
-### Step 3: Work on Your Task
+### Step 3: Declare Files Before Editing
+Create your declaration in \`.file-coordination/active-edits/\`
+
+### Step 4: Work on Your Task
 Make changes for: **${task}**
 
-### Step 4: Commit Your Changes
+### Step 5: Commit Your Changes
 Write your commit message to the session-specific file:
 \`\`\`bash
 echo "feat: your commit message here" > .devops-commit-${sessionId}.msg
 \`\`\`
 
-### Step 5: Automatic Processing
+### Step 6: Release Your File Locks
+Delete your declaration from \`.file-coordination/active-edits/\`
+
+### Step 7: Automatic Processing
 The DevOps agent will automatically:
 - Detect your changes
+- Check for coordination conflicts
 - Read your commit message
 - Commit and push to the remote repository
 - Clear the message file
@@ -855,6 +884,14 @@ The DevOps agent will automatically:
     console.log(``);
     console.log(`Please switch to this directory before making any changes:`);
     console.log(`cd "${instructions.worktreePath}"`);
+    console.log(``);
+    console.log(`IMPORTANT: File Coordination Protocol`);
+    console.log(`Before editing ANY files, you MUST:`);
+    console.log(`1. Declare your intent by creating .file-coordination/active-edits/<agent>-${sessionId}.json`);
+    console.log(`2. List all files you plan to edit in that JSON file`);
+    console.log(`3. Check for conflicts with other agents' declarations`);
+    console.log(`4. Only proceed if no conflicts exist`);
+    console.log(`5. Release the files when done`);
     console.log(``);
     console.log(`Write commit messages to: .devops-commit-${sessionId}.msg`);
     console.log(`The DevOps agent will automatically commit and push changes.`);

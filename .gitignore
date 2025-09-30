@@ -96,3 +96,4 @@ SESSION_README.md
 .agent-config
 .session-*
 .devops-command-*
+.file-coordination

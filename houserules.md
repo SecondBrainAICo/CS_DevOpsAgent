@@ -1,5 +1,57 @@
 # House Rules for DevOps Agent
 
+## 🚨 CRITICAL: File Coordination Protocol (MUST FOLLOW)
+
+**To prevent conflicts with other agents editing the same files, you MUST follow this protocol:**
+
+### Before Editing ANY Files:
+
+1. **DECLARE YOUR INTENT FIRST**
+   Create a file at `.file-coordination/active-edits/<your-name>-<session>.json` with:
+   ```json
+   {
+     "agent": "<your-name>",
+     "session": "<session-id>",
+     "files": ["list", "of", "files", "you", "will", "edit"],
+     "operation": "edit",
+     "reason": "Brief description of what you're doing",
+     "declaredAt": "<current-ISO-8601-timestamp>",
+     "estimatedDuration": 300
+   }
+   ```
+
+2. **CHECK FOR CONFLICTS**
+   - Read ALL files in `.file-coordination/active-edits/`
+   - If ANY other agent has declared the same files, you must:
+     - WAIT for them to finish, OR
+     - Choose different files to edit
+
+3. **ONLY EDIT DECLARED FILES**
+   - Never edit files you haven't declared
+   - Stay within your declared scope
+
+4. **RELEASE WHEN DONE**
+   - Delete your declaration file after completing edits
+   - Or move it to `.file-coordination/completed-edits/`
+
+### If You Detect a Conflict:
+- DO NOT proceed with edits
+- Report the conflict to the user
+- Wait or choose alternative files
+
+### Example Workflow:
+```bash
+# 1. Check if files are available (no other agent editing them)
+# 2. Create your declaration in .file-coordination/active-edits/
+# 3. Make your edits
+# 4. Write commit message to the session-specific file
+# 5. Remove your declaration
+```
+
+**This coordination prevents wasted work and merge conflicts!**
+
+---
+
 ## Project Structure
 **Current Directory Layout:**
 ```
