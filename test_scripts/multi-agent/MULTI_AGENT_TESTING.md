@@ -6,7 +6,27 @@ This directory contains tools for testing multiple DevOps agents working concurr
 
 ## Test Scripts
 
-### 1. `run-multi-agent-test.sh`
+### 1. `test-conflicts.sh` 🆕
+**Purpose:** Demonstrates and tests conflict scenarios between agents.
+
+**Usage:**
+```bash
+./test-conflicts.sh
+```
+
+**What it tests:**
+1. No conflict - Different files
+2. No conflict - Same file, different sections
+3. Conflict - Same file, same lines
+4. Conflict resolution strategies
+
+**Key Features:**
+- Visual demonstration of conflicts
+- Shows conflict markers
+- Demonstrates resolution strategies
+- Explains best practices
+
+### 2. `run-multi-agent-test.sh`
 **Purpose:** Automated test that creates sessions, starts agents, and simulates concurrent editing.
 
 **Usage:**
@@ -41,6 +61,18 @@ node src/session-coordinator.js create --task "test-2"  # Note session ID
 3. Concurrent edits to the same lines (conflict scenario)
 
 ## Test Scenarios
+
+### Conflict Scenarios
+
+#### No Conflict Scenarios:
+1. **Different Files** - Agents work on completely separate files
+2. **Different Branches** - Each agent has their own branch
+3. **Different Sections** - Same file but non-overlapping changes
+
+#### Conflict Scenarios:
+1. **Same Line Edits** - Both agents modify the same line
+2. **Overlapping Changes** - Changes that affect nearby lines
+3. **Structural Changes** - One agent restructures while another edits
 
 ### Scenario 1: Sequential Edits
 - Agent 1 edits and pushes

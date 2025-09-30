@@ -81,6 +81,16 @@ else
     ((FAILED++))
 fi
 
+# Test 7: Conflict test script exists
+echo -n "7. Conflict testing available: "
+if [ -f "test/multi-agent/test-conflicts.sh" ] && [ -x "test/multi-agent/test-conflicts.sh" ]; then
+    echo -e "${GREEN}✓${NC}"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC}"
+    ((FAILED++))
+fi
+
 echo
 echo "==============================="
 TOTAL=$((PASSED + FAILED))
@@ -95,6 +105,7 @@ if [ $FAILED -eq 0 ]; then
     echo "  • Manage sessions (list, close, cleanup)"
     echo "  • Use git worktrees for isolation"
     echo "  • Clean up properly on exit"
+    echo "  • Handle conflicts between agents"
     echo
     exit 0
 else
