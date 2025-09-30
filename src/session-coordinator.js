@@ -19,12 +19,12 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { execSync, spawn } from 'child_process';
 import crypto from 'crypto';
 import readline from 'readline';
 import { hasDockerConfiguration } from './docker-utils.js';
-import crypto from 'crypto';
-import readline from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
