@@ -1,0 +1,73 @@
+# Local deployment and session data
+local_deploy/
+local_deploy/**
+
+# Test files and directories
+test_cases/
+test_scripts/
+deploy_test/
+*.test.js
+*.spec.js
+jest.config.cjs
+debug-failing-tests.sh
+
+# Build and distribution files
+dist/
+build/
+*.tar.gz
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git files
+.git/
+.gitignore
+.githooks/
+
+# CI/CD
+.github/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package manager files
+yarn.lock
+pnpm-lock.yaml
+
+# Documentation sources
+docs/development/
+docs/testing/
+docs/internal/
+
+# Build scripts
+build-binary.sh
+
+# Session management files
+.devops-session.json
+.devops-commit-*.msg
+.session-cleanup-requested
+SESSION_README.md
+
+# Temporary files
+*.tmp
+*.backup
+
+# Coverage
+coverage/
+.nyc_output/

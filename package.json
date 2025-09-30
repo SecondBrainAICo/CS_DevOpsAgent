@@ -1,9 +1,21 @@
 {
   "name": "cs-devops-agent",
   "version": "1.0.0",
-  "description": "Code Studio CS_DevOpsAgent Agent - DevOps automation system with intelligent branching and VS Code integration",
+  "description": "CS_DevOpsAgent - Intelligent Git Automation System with multi-agent support and session management",
   "type": "module",
   "main": "src/cs-devops-agent-worker.js",
+  "bin": {
+    "cs-devops-agent": "./bin/cs-devops-agent"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "docs/",
+    "start-devops-session.sh",
+    "cleanup-sessions.sh",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "start": "./start-devops-session.sh",
     "dev": "./start-devops-session.sh",
@@ -42,12 +54,15 @@
   "engines": {
     "node": ">=16.0.0"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent.git"
+    "url": "git+https://github.com/SecondBrainAICo/CS_DevOpsAgent.git"
   },
   "bugs": {
-    "url": "https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent/issues"
+    "url": "https://github.com/SecondBrainAICo/CS_DevOpsAgent/issues"
   },
-  "homepage": "https://github.com/secondbrainAI-limited/code_studio_cs-devops-agentAgent#readme"
+  "homepage": "https://github.com/SecondBrainAICo/CS_DevOpsAgent#readme"
 }

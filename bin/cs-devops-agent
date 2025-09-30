@@ -1,0 +1,151 @@
+#!/usr/bin/env node
+
+/**
+ * CS_DevOpsAgent CLI Entry Point
+ * This is the main executable when installed via npm
+ */
+
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { spawn } from 'child_process';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const rootDir = join(__dirname, '..');
+
+// Parse command line arguments
+const args = process.argv.slice(2);
+const command = args[0] || 'help';
+
+// Helper function to run a script
+function runScript(scriptPath, scriptArgs = []) {
+  const child = spawn('node', [scriptPath, ...scriptArgs], {
+    stdio: 'inherit',
+    cwd: process.cwd()
+  });
+  
+  child.on('exit', (code) => {
+    process.exit(code);
+  });
+}
+
+// Helper function to run a shell script
+function runShellScript(scriptPath, scriptArgs = []) {
+  const child = spawn('bash', [scriptPath, ...scriptArgs], {
+    stdio: 'inherit',
+    cwd: process.cwd()
+  });
+  
+  child.on('exit', (code) => {
+    process.exit(code);
+  });
+}
+
+// Command handlers
+switch(command) {
+  case 'start':
+  case 'session':
+    // Start interactive session manager
+    const sessionScript = join(rootDir, 'start-devops-session.sh');
+    if (fs.existsSync(sessionScript)) {
+      runShellScript(sessionScript, args.slice(1));
+    } else {
+      console.error('Session script not found. Please ensure the package is properly installed.');
+      process.exit(1);
+    }
+    break;
+    
+  case 'worker':
+    // Run the worker directly
+    runScript(join(rootDir, 'src', 'cs-devops-agent-worker.js'), args.slice(1));
+    break;
+    
+  case 'setup':
+    // Run setup wizard
+    runScript(join(rootDir, 'src', 'setup-cs-devops-agent.js'), args.slice(1));
+    break;
+    
+  case 'worktree':
+    // Manage worktrees
+    runScript(join(rootDir, 'src', 'worktree-manager.js'), args.slice(1));
+    break;
+    
+  case 'coordinator':
+    // Run session coordinator
+    runScript(join(rootDir, 'src', 'session-coordinator.js'), args.slice(1));
+    break;
+    
+  case 'list':
+    // List sessions
+    runScript(join(rootDir, 'src', 'session-coordinator.js'), ['list']);
+    break;
+    
+  case 'create':
+    // Create new session
+    runScript(join(rootDir, 'src', 'session-coordinator.js'), ['create', ...args.slice(1)]);
+    break;
+    
+  case 'close':
+    // Close session
+    runScript(join(rootDir, 'src', 'close-session.js'), args.slice(1));
+    break;
+    
+  case 'cleanup':
+    // Cleanup sessions
+    const cleanupScript = join(rootDir, 'cleanup-sessions.sh');
+    if (fs.existsSync(cleanupScript)) {
+      runShellScript(cleanupScript, args.slice(1));
+    } else {
+      console.error('Cleanup script not found.');
+      process.exit(1);
+    }
+    break;
+    
+  case 'version':
+  case '--version':
+  case '-v':
+    const packageJson = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf8'));
+    console.log(`CS_DevOpsAgent v${packageJson.version}`);
+    break;
+    
+  case 'help':
+  case '--help':
+  case '-h':
+  default:
+    console.log(`
+CS_DevOpsAgent - Intelligent Git Automation System
+Version: ${JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf8')).version}
+
+Usage: cs-devops-agent [command] [options]
+
+Commands:
+  start, session     Start interactive DevOps session manager
+  worker            Run the DevOps agent worker directly  
+  setup             Run interactive setup wizard
+  worktree          Manage git worktrees for agents
+  coordinator       Session coordinator operations
+  list              List all active sessions
+  create            Create a new session
+  close             Close an active session
+  cleanup           Clean up stale sessions
+  version           Show version information
+  help              Show this help message
+
+Examples:
+  cs-devops-agent start              # Start interactive session manager
+  cs-devops-agent setup              # Run first-time setup
+  cs-devops-agent list               # List active sessions
+  cs-devops-agent create --task api  # Create new session for API work
+  cs-devops-agent worker             # Run worker directly
+
+Environment Variables:
+  AC_BRANCH_PREFIX     Branch prefix for daily branches
+  AC_PUSH             Enable auto-push (true/false)  
+  AC_DEBUG            Enable debug logging (true/false)
+  AC_TZ               Timezone for daily rollover
+
+For more information, visit: https://github.com/SecondBrainAICo/CS_DevOpsAgent
+    `);
+    break;
+}
