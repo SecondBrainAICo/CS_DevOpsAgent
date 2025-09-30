@@ -1,11 +1,11 @@
 {
-  "name": "cs-devops-agent",
+  "name": "s9n-devops-agent",
   "version": "1.0.0",
   "description": "CS_DevOpsAgent - Intelligent Git Automation System with multi-agent support and session management",
   "type": "module",
   "main": "src/cs-devops-agent-worker.js",
   "bin": {
-    "cs-devops-agent": "./bin/cs-devops-agent"
+    "s9n-devops-agent": "./bin/cs-devops-agent"
   },
   "files": [
     "bin/",

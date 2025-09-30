@@ -1,9 +1,17 @@
 # CS_DevOpsAgent 🚀
 
-[![npm version](https://badge.fury.io/js/cs-devops-agent.svg)](https://badge.fury.io/js/cs-devops-agent)
+[![npm version](https://badge.fury.io/js/s9n-devops-agent.svg)](https://badge.fury.io/js/s9n-devops-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-blue)](https://github.com/SecondBrainAICo/CS_DevOpsAgent)
 
 An intelligent Git automation system with multi-agent support, session management, and seamless integration with AI coding assistants like Claude, GitHub Copilot, and Cursor.
+
+## 🔗 Quick Links
+
+- **GitHub Repository**: [https://github.com/SecondBrainAICo/CS_DevOpsAgent](https://github.com/SecondBrainAICo/CS_DevOpsAgent)
+- **NPM Package**: [https://www.npmjs.com/package/s9n-devops-agent](https://www.npmjs.com/package/s9n-devops-agent)
+- **Issues & Support**: [GitHub Issues](https://github.com/SecondBrainAICo/CS_DevOpsAgent/issues)
+- **Documentation**: [GitHub Wiki](https://github.com/SecondBrainAICo/CS_DevOpsAgent/wiki)
 
 ## Features ✨
 
@@ -18,16 +26,50 @@ An intelligent Git automation system with multi-agent support, session managemen
 
 ## Installation 📦
 
-### Global Installation (Recommended)
+### Option 1: NPM Package (Recommended for Users)
 
+#### Global Installation
 ```bash
-npm install -g cs-devops-agent
+npm install -g s9n-devops-agent
 ```
 
-### Local Installation
-
+#### Local Installation
 ```bash
-npm install cs-devops-agent --save-dev
+npm install s9n-devops-agent --save-dev
+```
+
+### Option 2: From Source (For Contributors)
+
+#### Clone the Repository
+```bash
+# Clone the repository
+git clone https://github.com/SecondBrainAICo/CS_DevOpsAgent.git
+cd CS_DevOpsAgent
+
+# Install dependencies
+npm install
+
+# Link globally for development
+npm link
+
+# Now you can use s9n-devops-agent command globally
+s9n-devops-agent --help
+```
+
+#### Development Setup
+```bash
+# Clone and setup for development
+git clone https://github.com/SecondBrainAICo/CS_DevOpsAgent.git
+cd CS_DevOpsAgent
+
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Start development session
+npm run dev
 ```
 
 ## Quick Start 🚀
@@ -36,7 +78,7 @@ npm install cs-devops-agent --save-dev
 
 ```bash
 # Run the interactive setup wizard
-cs-devops-agent setup
+s9n-devops-agent setup
 
 # This will configure:
 # - Your developer initials (used in branch names)
@@ -48,10 +90,10 @@ cs-devops-agent setup
 
 ```bash
 # Start the interactive session manager
-cs-devops-agent start
+s9n-devops-agent start
 
 # Or create a new session directly
-cs-devops-agent create --task "implement-api"
+s9n-devops-agent create --task "implement-api"
 ```
 
 ### Working with AI Assistants
@@ -77,33 +119,33 @@ The DevOps agent will automatically commit and push changes.
 
 ```bash
 # Start interactive session manager
-cs-devops-agent start
+s9n-devops-agent start
 
 # List all active sessions
-cs-devops-agent list
+s9n-devops-agent list
 
 # Create a new session
-cs-devops-agent create --task "feature-name" --agent claude
+s9n-devops-agent create --task "feature-name" --agent claude
 
 # Close an active session
-cs-devops-agent close <session-id>
+s9n-devops-agent close <session-id>
 
 # Clean up stale sessions
-cs-devops-agent cleanup
+s9n-devops-agent cleanup
 ```
 
 ### Direct Operations
 
 ```bash
 # Run the worker directly (for CI/CD)
-cs-devops-agent worker
+s9n-devops-agent worker
 
 # Manage worktrees
-cs-devops-agent worktree create
-cs-devops-agent worktree list
+s9n-devops-agent worktree create
+s9n-devops-agent worktree list
 
 # Run setup wizard
-cs-devops-agent setup
+s9n-devops-agent setup
 ```
 
 ## Configuration 🔧
@@ -139,7 +181,7 @@ Configuration is stored in:
 
 1. **Start a Session**:
    ```bash
-   cs-devops-agent start
+   s9n-devops-agent start
    # Select: N) Create a new session
    # Enter task: implement-authentication
    ```
@@ -159,7 +201,7 @@ Configuration is stored in:
 
 5. **Close Session**:
    ```bash
-   cs-devops-agent close
+   s9n-devops-agent close
    ```
 
 ## VS Code Integration 🔌
@@ -173,7 +215,7 @@ Add to `.vscode/tasks.json`:
     {
       "label": "Start DevOps Agent",
       "type": "shell",
-      "command": "cs-devops-agent",
+      "command": "s9n-devops-agent",
       "args": ["start"],
       "problemMatcher": [],
       "isBackground": true
@@ -190,10 +232,10 @@ Multiple AI assistants can work on different features simultaneously:
 
 ```bash
 # Terminal 1: Claude working on API
-cs-devops-agent create --task "api-endpoints" --agent claude
+s9n-devops-agent create --task "api-endpoints" --agent claude
 
 # Terminal 2: Copilot working on frontend
-cs-devops-agent create --task "ui-components" --agent copilot
+s9n-devops-agent create --task "ui-components" --agent copilot
 
 # Each gets their own worktree and branch
 ```
@@ -228,13 +270,13 @@ At midnight (configurable timezone):
 ```bash
 # Files are automatically gitignored
 # If issue persists, run:
-cs-devops-agent cleanup
+s9n-devops-agent cleanup
 ```
 
 **Permission denied errors**:
 ```bash
 # Ensure scripts are executable
-chmod +x $(npm root -g)/cs-devops-agent/bin/cs-devops-agent
+chmod +x $(npm root -g)/s9n-devops-agent/bin/s9n-devops-agent
 ```
 
 **Agent not detecting changes**:
