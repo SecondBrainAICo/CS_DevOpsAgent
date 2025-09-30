@@ -63,9 +63,11 @@ class SessionCoordinator {
     this.locksPath = path.join(this.repoRoot, CONFIG.locksDir);
     this.worktreesPath = path.join(this.repoRoot, CONFIG.worktreesDir);
     this.instructionsPath = path.join(this.repoRoot, CONFIG.instructionsDir);
+    this.configPath = path.join(this.repoRoot, 'local_deploy', '.devops-config.json');
     
     this.ensureDirectories();
     this.cleanupStaleLocks();
+    this.ensureDeveloperInitials();
   }
 
   getRepoRoot() {
@@ -101,6 +103,197 @@ class SessionCoordinator {
       });
     }
   }
+  
+  /**
+   * Ensure developer initials are configured
+   */
+  async ensureDeveloperInitials() {
+    const config = this.loadConfig();
+    
+    if (!config.developerInitials) {
+      console.log(`\n${CONFIG.colors.yellow}First-time setup detected!${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.bright}Please enter your 3-letter developer initials${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}(These will be used in branch names to identify your work)${CONFIG.colors.reset}`);
+      
+      const initials = await this.promptForInitials();
+      config.developerInitials = initials.toLowerCase();
+      this.saveConfig(config);
+      
+      console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Developer initials saved: ${CONFIG.colors.bright}${initials}${CONFIG.colors.reset}`);
+    }
+  }
+  
+  /**
+   * Get developer initials from config
+   */
+  getDeveloperInitials() {
+    const config = this.loadConfig();
+    return config.developerInitials || 'dev';
+  }
+  
+  /**
+   * Load configuration from file
+   */
+  loadConfig() {
+    if (fs.existsSync(this.configPath)) {
+      return JSON.parse(fs.readFileSync(this.configPath, 'utf8'));
+    }
+    return {};
+  }
+  
+  /**
+   * Save configuration to file
+   */
+  saveConfig(config) {
+    const configDir = path.dirname(this.configPath);
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2));
+  }
+  
+  /**
+   * Prompt for developer initials
+   */
+  promptForInitials() {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    return new Promise((resolve) => {
+      const askInitials = () => {
+        rl.question('Developer initials (3 letters): ', (answer) => {
+          const initials = answer.trim();
+          if (initials.length !== 3) {
+            console.log(`${CONFIG.colors.red}Please enter exactly 3 letters${CONFIG.colors.reset}`);
+            askInitials();
+          } else if (!/^[a-zA-Z]+$/.test(initials)) {
+            console.log(`${CONFIG.colors.red}Please use only letters${CONFIG.colors.reset}`);
+            askInitials();
+          } else {
+            rl.close();
+            resolve(initials);
+          }
+        });
+      };
+      askInitials();
+    });
+  }
+  
+  /**
+   * Get list of available branches
+   */
+  getAvailableBranches() {
+    try {
+      const result = execSync('git branch -a --format="%(refname:short)"', { 
+        cwd: this.repoRoot,
+        encoding: 'utf8' 
+      });
+      
+      return result.split('\n')
+        .filter(branch => branch.trim())
+        .filter(branch => !branch.includes('HEAD'))
+        .map(branch => branch.replace('origin/', ''));
+    } catch (error) {
+      return ['main', 'develop', 'master'];
+    }
+  }
+  
+  /**
+   * Prompt for merge configuration
+   */
+  async promptForMergeConfig() {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    console.log(`\n${CONFIG.colors.yellow}═══ Auto-merge Configuration ═══${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}(Automatically merge today's work into a target branch)${CONFIG.colors.reset}`);
+    
+    // Ask if they want auto-merge
+    const autoMerge = await new Promise((resolve) => {
+      rl.question('\nEnable auto-merge at end of day? (y/N): ', (answer) => {
+        resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+      });
+    });
+    
+    if (!autoMerge) {
+      rl.close();
+      console.log(`${CONFIG.colors.dim}Auto-merge disabled. You'll need to manually merge your work.${CONFIG.colors.reset}`);
+      return { autoMerge: false };
+    }
+    
+    // Get available branches
+    const branches = this.getAvailableBranches();
+    const uniqueBranches = [...new Set(branches)].slice(0, 10); // Show max 10 branches
+    
+    console.log(`\n${CONFIG.colors.bright}Which branch should today's work be merged INTO?${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}(e.g., main, develop, v2.0, feature/xyz)${CONFIG.colors.reset}\n`);
+    
+    console.log(`${CONFIG.colors.bright}Available branches:${CONFIG.colors.reset}`);
+    uniqueBranches.forEach((branch, index) => {
+      const isDefault = branch === 'main' || branch === 'master' || branch === 'develop';
+      const marker = isDefault ? ` ${CONFIG.colors.green}⭐ (recommended)${CONFIG.colors.reset}` : '';
+      console.log(`  ${index + 1}) ${branch}${marker}`);
+    });
+    console.log(`  0) Enter a different branch name`);
+    
+    // Ask for target branch
+    const targetBranch = await new Promise((resolve) => {
+      rl.question(`\nSelect target branch to merge INTO (1-${uniqueBranches.length}, or 0): `, async (answer) => {
+        const choice = parseInt(answer);
+        if (choice === 0) {
+          rl.question('Enter custom branch name: ', (customBranch) => {
+            resolve(customBranch.trim());
+          });
+        } else if (choice >= 1 && choice <= uniqueBranches.length) {
+          resolve(uniqueBranches[choice - 1]);
+        } else {
+          resolve('main'); // Default to main if invalid choice
+        }
+      });
+    });
+    
+    // Ask for merge strategy
+    console.log(`\n${CONFIG.colors.bright}Merge strategy:${CONFIG.colors.reset}`);
+    console.log(`  1) Create pull request (recommended)`);
+    console.log(`  2) Direct merge (when tests pass)`);
+    console.log(`  3) Squash and merge`);
+    
+    const strategy = await new Promise((resolve) => {
+      rl.question('Select merge strategy (1-3) [1]: ', (answer) => {
+        const choice = parseInt(answer) || 1;
+        switch(choice) {
+          case 2:
+            resolve('direct');
+            break;
+          case 3:
+            resolve('squash');
+            break;
+          default:
+            resolve('pull-request');
+        }
+      });
+    });
+    
+    rl.close();
+    
+    const config = {
+      autoMerge: true,
+      targetBranch,
+      strategy,
+      requireTests: strategy !== 'pull-request'
+    };
+    
+    console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Auto-merge configuration saved:`);
+    console.log(`  ${CONFIG.colors.bright}Today's work${CONFIG.colors.reset} → ${CONFIG.colors.bright}${targetBranch}${CONFIG.colors.reset}`);
+    console.log(`  Strategy: ${CONFIG.colors.bright}${strategy}${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}  (Daily branches will be merged into ${targetBranch} at end of day)${CONFIG.colors.reset}`);
+    
+    return config;
+  }
 
   generateSessionId() {
     const timestamp = Date.now().toString(36).slice(-4);
@@ -115,16 +308,21 @@ class SessionCoordinator {
     const sessionId = this.generateSessionId();
     const task = options.task || 'development';
     const agentType = options.agent || 'claude';
+    const devInitials = this.getDeveloperInitials();
     
     console.log(`\n${CONFIG.colors.bgBlue}${CONFIG.colors.bright} Creating New Session ${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.blue}Session ID:${CONFIG.colors.reset} ${CONFIG.colors.bright}${sessionId}${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.blue}Task:${CONFIG.colors.reset} ${task}`);
     console.log(`${CONFIG.colors.blue}Agent:${CONFIG.colors.reset} ${agentType}`);
+    console.log(`${CONFIG.colors.blue}Developer:${CONFIG.colors.reset} ${devInitials}`);
     
-    // Create worktree
-    const worktreeName = `${agentType}-${sessionId}-${task.replace(/\s+/g, '-')}`;
+    // Ask for auto-merge configuration
+    const mergeConfig = await this.promptForMergeConfig();
+    
+    // Create worktree with developer initials in the name
+    const worktreeName = `${agentType}-${devInitials}-${sessionId}-${task.replace(/\s+/g, '-')}`;
     const worktreePath = path.join(this.worktreesPath, worktreeName);
-    const branchName = `${agentType}/${sessionId}/${task.replace(/\s+/g, '-')}`;
+    const branchName = `${agentType}/${devInitials}/${sessionId}/${task.replace(/\s+/g, '-')}`;
     
     try {
       // Create worktree
@@ -141,7 +339,9 @@ class SessionCoordinator {
         branchName,
         created: new Date().toISOString(),
         status: 'active',
-        pid: process.pid
+        pid: process.pid,
+        developerInitials: devInitials,
+        mergeConfig: mergeConfig
       };
       
       const lockFile = path.join(this.locksPath, `${sessionId}.lock`);
@@ -342,6 +542,25 @@ The DevOps agent is monitoring this worktree for changes.
 `;
     
     fs.writeFileSync(path.join(worktreePath, 'SESSION_README.md'), readme);
+    
+    // Auto-commit session files to prevent rollover issues
+    // This prevents "uncommitted changes" blocking daily branch creation
+    try {
+      execSync('git add .devops-session.json SESSION_README.md .devops-commit-*.msg .vscode/settings.json', { 
+        cwd: worktreePath,
+        stdio: 'pipe' 
+      });
+      
+      execSync(`git commit -m "chore: initialize session ${sessionData.sessionId}\n\nAuto-commit session configuration files:\n- Session config (.devops-session.json)\n- Session README (SESSION_README.md)\n- Empty commit message file\n- VS Code settings\n\nTask: ${sessionData.task}\nAgent: ${sessionData.agentType}"`, {
+        cwd: worktreePath,
+        stdio: 'pipe'
+      });
+      
+      console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Session files committed to prevent rollover blocks`);
+    } catch (error) {
+      // If commit fails, it might be because files haven't changed
+      console.log(`${CONFIG.colors.dim}Session files not committed (may already exist)${CONFIG.colors.reset}`);
+    }
   }
 
   /**
@@ -429,17 +648,20 @@ The DevOps agent is monitoring this worktree for changes.
     sessionData.agentPid = process.pid;
     fs.writeFileSync(lockFile, JSON.stringify(sessionData, null, 2));
     
+    // Get developer initials from config or environment
+    const devInitials = this.getDeveloperInitials();
+    
     // Start the agent
     const env = {
       ...process.env,
       DEVOPS_SESSION_ID: sessionId,
       AC_MSG_FILE: `.devops-commit-${sessionId}.msg`,
-      AC_BRANCH_PREFIX: `${sessionData.agentType}_${sessionId}_`,
+      AC_BRANCH_PREFIX: `${sessionData.agentType}_${devInitials}_${sessionId}_`,
       AC_WORKING_DIR: sessionData.worktreePath,
       // Don't set AC_BRANCH - let the agent create daily branches within the worktree
       // AC_BRANCH would force a static branch, preventing daily/weekly rollover
       AC_PUSH: 'true',  // Enable auto-push for session branches
-      AC_DAILY_PREFIX: `${sessionData.agentType}_${sessionId}_`,  // Daily branches within worktree
+      AC_DAILY_PREFIX: `${sessionData.agentType}_${devInitials}_${sessionId}_`,  // Daily branches with dev initials
       AC_TZ: process.env.AC_TZ || 'Asia/Dubai',  // Preserve timezone for daily branches
       AC_DATE_STYLE: process.env.AC_DATE_STYLE || 'dash'  // Preserve date style
     };
