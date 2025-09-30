@@ -863,9 +863,10 @@ The DevOps agent is monitoring this worktree for changes.
     sessionData.agentPid = process.pid;
     fs.writeFileSync(lockFile, JSON.stringify(sessionData, null, 2));
     
-    // Get developer initials from session data or config (NO PROMPTING HERE)
+    // Get developer initials from session data or settings (NO PROMPTING HERE)
     const devInitials = sessionData.developerInitials || this.getDeveloperInitials() || 'dev';
-    const config = this.loadConfig();
+    const settings = this.loadSettings();
+    const projectSettings = this.loadProjectSettings();
     
     // Start the agent
     const env = {
@@ -881,8 +882,8 @@ The DevOps agent is monitoring this worktree for changes.
       AC_TZ: process.env.AC_TZ || 'Asia/Dubai',  // Preserve timezone for daily branches
       AC_DATE_STYLE: process.env.AC_DATE_STYLE || 'dash',  // Preserve date style
       // Apply version configuration if set
-      ...(config.versionPrefix && { AC_VERSION_PREFIX: config.versionPrefix }),
-      ...(config.versionStartMinor && { AC_VERSION_START_MINOR: config.versionStartMinor.toString() })
+      ...(projectSettings.versioningStrategy?.prefix && { AC_VERSION_PREFIX: projectSettings.versioningStrategy.prefix }),
+      ...(projectSettings.versioningStrategy?.startMinor && { AC_VERSION_START_MINOR: projectSettings.versioningStrategy.startMinor.toString() })
     };
     
     const agentScript = path.join(__dirname, 'cs-devops-agent-worker.js');
