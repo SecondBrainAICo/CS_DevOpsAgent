@@ -96,9 +96,9 @@ s9n-devops-agent start
 s9n-devops-agent create --task "implement-api"
 ```
 
-### Working with AI Assistants
+### Working with AI Development Agents
 
-When you start a session, you'll receive instructions to paste into your AI assistant:
+When you start a session, you'll receive instructions to paste into your AI development agent (Claude, Cursor, Cline, GitHub Copilot, etc.):
 
 ```
 I'm working in a DevOps-managed session with the following setup:
@@ -186,9 +186,9 @@ Configuration is stored in:
    # Enter task: implement-authentication
    ```
 
-2. **Copy Instructions to AI Assistant**:
-   - The tool provides instructions to paste into Claude/Copilot
-   - The AI works in the isolated worktree
+2. **Copy Instructions to AI Development Agent**:
+   - The tool provides instructions to paste into your AI agent (Claude, Cursor, Cline, etc.)
+   - The AI agent works in the isolated worktree
 
 3. **AI Makes Changes**:
    - AI writes code in the worktree directory

@@ -7,7 +7,7 @@
 # This script provides a user-friendly way to start DevOps agent sessions.
 # It handles the complete workflow:
 # 1. Ask if using existing session or creating new
-# 2. If new, creates session and generates instructions for Claude
+# 2. If new, creates session and generates instructions for the AI development agent
 # 3. Starts the DevOps agent monitoring the appropriate worktree
 #
 # ============================================================================
@@ -62,12 +62,13 @@ display_instructions() {
     local worktree_path="$2"
     local branch_name="$3"
     local task="$4"
+    local agent_type="${5:-AI Development Agent}"
     
     echo
-    echo -e "${BG_GREEN}${BOLD} Instructions for Claude/Cline ${NC}"
+    echo -e "${BG_GREEN}${BOLD} Instructions for ${agent_type} ${NC}"
     echo
     echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BOLD}COPY AND PASTE THIS ENTIRE BLOCK INTO CLAUDE BEFORE YOUR PROMPT:${NC}"
+    echo -e "${BOLD}COPY AND PASTE THIS ENTIRE BLOCK INTO YOUR AI AGENT BEFORE YOUR PROMPT:${NC}"
     echo -e "${YELLOW}──────────────────────────────────────────────────────────────${NC}"
     echo
     echo "I'm working in a DevOps-managed session with the following setup:"
@@ -215,8 +216,12 @@ select_session() {
         echo
         echo -e "${GREEN}Using existing session: ${session_id}${NC}"
         
-        # Display instructions for Claude/Cline IMMEDIATELY after selection
-        display_instructions "$session_id" "$worktree_path" "$branch_name" "$task"
+        # Extract agent type from session data
+        local agent_type=$(echo "$session_data" | grep -o '"agentType"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        [[ -z "$agent_type" ]] && agent_type="AI Agent"
+        
+        # Display instructions for the AI agent IMMEDIATELY after selection
+        display_instructions "$session_id" "$worktree_path" "$branch_name" "$task" "$agent_type"
         
         # Add a pause and visual separator before starting the agent
         echo -e "${DIM}Press Enter to start the DevOps agent monitoring...${NC}"
@@ -260,7 +265,7 @@ main() {
     echo
     echo "This tool will:"
     echo "  1. Help you create or select a session"
-    echo "  2. Generate instructions for Claude/Cline"
+    echo "  2. Generate instructions for your AI development agent"
     echo "  3. Start the DevOps agent to monitor changes"
     echo
     

@@ -629,7 +629,7 @@ class SessionCoordinator {
       fs.writeFileSync(instructionsFile, instructions.markdown);
       
       // Display instructions
-      this.displayInstructions(instructions, sessionId, task);
+      this.displayInstructions(instructions, sessionId, task, agentType);
       
       // Create session config in worktree
       this.createWorktreeConfig(worktreePath, lockData);
@@ -650,7 +650,7 @@ class SessionCoordinator {
   }
 
   /**
-   * Generate instructions for Claude/Cline
+   * Generate instructions for the specified AI development agent
    */
   generateClaudeInstructions(sessionData) {
     const { sessionId, worktreePath, branchName, task } = sessionData;
@@ -677,7 +677,7 @@ INSTRUCTIONS:
 - **Worktree Path:** \`${worktreePath}\`
 - **Branch:** \`${branchName}\`
 
-## Instructions for Claude/Cline
+## Instructions for ${sessionData.agentType.charAt(0).toUpperCase() + sessionData.agentType.slice(1)}
 
 ### Step 1: Navigate to Your Worktree
 \`\`\`bash
@@ -731,12 +731,13 @@ The DevOps agent will automatically:
   /**
    * Display instructions in a user-friendly format
    */
-  displayInstructions(instructions, sessionId, task) {
-    console.log(`\n${CONFIG.colors.bgGreen}${CONFIG.colors.bright} Instructions for Claude/Cline ${CONFIG.colors.reset}\n`);
+  displayInstructions(instructions, sessionId, task, agentType = 'your AI agent') {
+    const agentName = agentType.charAt(0).toUpperCase() + agentType.slice(1);
+    console.log(`\n${CONFIG.colors.bgGreen}${CONFIG.colors.bright} Instructions for ${agentName} ${CONFIG.colors.reset}\n`);
     
     // Clean separator
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);
-    console.log(`${CONFIG.colors.bright}COPY AND PASTE THIS ENTIRE BLOCK INTO CLAUDE BEFORE YOUR PROMPT:${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.bright}COPY AND PASTE THIS ENTIRE BLOCK INTO ${agentName.toUpperCase()} BEFORE YOUR PROMPT:${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.yellow}──────────────────────────────────────────────────────────────${CONFIG.colors.reset}`);
     console.log();
     
@@ -1192,9 +1193,9 @@ ${CONFIG.colors.blue}Examples:${CONFIG.colors.reset}
 
 ${CONFIG.colors.yellow}Typical Workflow:${CONFIG.colors.reset}
 1. Run: ${CONFIG.colors.green}node session-coordinator.js create-and-start${CONFIG.colors.reset}
-2. Copy the displayed instructions to Claude/Cline
-3. Claude navigates to the worktree and starts working
-4. Agent automatically commits and pushes changes
+2. Copy the displayed instructions to your AI development agent (Claude, Cursor, Cline, etc.)
+3. The AI agent navigates to the worktree and starts working
+4. DevOps agent automatically commits and pushes changes
 `);
     }
   }
