@@ -1047,6 +1047,252 @@ async function detectAndSetupWorktree(repoRoot) {
 }
 
 // ============================================================================
+// SETTINGS MANAGEMENT - Interactive settings editor
+// ============================================================================
+
+/**
+ * Load and manage settings interactively
+ */
+async function handleSettingsCommand() {
+  const homeDir = process.env.HOME || process.env.USERPROFILE;
+  const globalSettingsPath = path.join(homeDir, '.devops-agent', 'settings.json');
+  const projectSettingsPath = path.join(process.cwd(), 'local_deploy', 'project-settings.json');
+  
+  // Load current settings
+  let globalSettings = {};
+  let projectSettings = {};
+  
+  try {
+    if (fs.existsSync(globalSettingsPath)) {
+      globalSettings = JSON.parse(fs.readFileSync(globalSettingsPath, 'utf8'));
+    }
+  } catch (err) {
+    log("Could not load global settings: " + err.message);
+  }
+  
+  try {
+    if (fs.existsSync(projectSettingsPath)) {
+      projectSettings = JSON.parse(fs.readFileSync(projectSettingsPath, 'utf8'));
+    }
+  } catch (err) {
+    log("Could not load project settings: " + err.message);
+  }
+  
+  console.log("\n" + "=".repeat(60));
+  console.log("CONFIGURATION SETTINGS");
+  console.log("=".repeat(60));
+  
+  console.log("\nGLOBAL SETTINGS (applies to all projects):");
+  console.log("  1) Developer initials: " + (globalSettings.developerInitials || "[not set]"));
+  console.log("  2) Email: " + (globalSettings.email || "[not set]"));
+  
+  console.log("\nPROJECT SETTINGS (this repository only):");
+  const vs = projectSettings.versioningStrategy || {};
+  console.log("  3) Version prefix: " + (vs.prefix || "v0."));
+  console.log("  4) Starting version: " + (vs.startMinor || "20"));
+  const increment = vs.dailyIncrement || 1;
+  const incrementDisplay = (increment / 100).toFixed(2);
+  console.log("  5) Daily increment: " + incrementDisplay + " (" + increment + ")");
+  
+  console.log("\nOptions:");
+  console.log("  Enter number (1-5) to edit a setting");
+  console.log("  Enter 'v' to view all settings in detail");
+  console.log("  Enter 'r' to reset project settings");
+  console.log("  Enter 'q' or press Enter to return");
+  
+  const rl = readline.createInterface({
+    input: input,
+    output: output
+  });
+  
+  const choice = await new Promise(resolve => {
+    rl.question("\nYour choice: ", resolve);
+  });
+  
+  rl.close();
+  
+  switch (choice.trim().toLowerCase()) {
+    case '1':
+      await editDeveloperInitials(globalSettings, globalSettingsPath);
+      break;
+    case '2':
+      await editEmail(globalSettings, globalSettingsPath);
+      break;
+    case '3':
+      await editVersionPrefix(projectSettings, projectSettingsPath);
+      break;
+    case '4':
+      await editStartingVersion(projectSettings, projectSettingsPath);
+      break;
+    case '5':
+      await editDailyIncrement(projectSettings, projectSettingsPath);
+      break;
+    case 'v':
+      console.log("\nFull Settings:");
+      console.log("\nGlobal (~/.devops-agent/settings.json):");
+      console.log(JSON.stringify(globalSettings, null, 2));
+      console.log("\nProject (local_deploy/project-settings.json):");
+      console.log(JSON.stringify(projectSettings, null, 2));
+      break;
+    case 'r':
+      const confirmRl = readline.createInterface({ input, output });
+      const confirm = await new Promise(resolve => {
+        confirmRl.question("Reset project settings to defaults? (y/N): ", resolve);
+      });
+      confirmRl.close();
+      if (confirm.toLowerCase() === 'y') {
+        projectSettings = {
+          versioningStrategy: {
+            prefix: "v0.",
+            startMinor: 20,
+            dailyIncrement: 1,
+            configured: false
+          }
+        };
+        saveProjectSettings(projectSettings, projectSettingsPath);
+        console.log("Project settings reset to defaults.");
+      }
+      break;
+    case 'q':
+    case '':
+      // Return to main prompt
+      break;
+    default:
+      console.log("Invalid choice.");
+  }
+}
+
+async function editDeveloperInitials(settings, settingsPath) {
+  const rl = readline.createInterface({ input, output });
+  const initials = await new Promise(resolve => {
+    rl.question("Enter 3-letter developer initials: ", resolve);
+  });
+  rl.close();
+  
+  if (initials.length === 3 && /^[a-zA-Z]+$/.test(initials)) {
+    settings.developerInitials = initials.toLowerCase();
+    settings.configured = true;
+    saveGlobalSettings(settings, settingsPath);
+    console.log("Developer initials updated to: " + initials.toLowerCase());
+  } else {
+    console.log("Invalid initials. Must be exactly 3 letters.");
+  }
+}
+
+async function editEmail(settings, settingsPath) {
+  const rl = readline.createInterface({ input, output });
+  const email = await new Promise(resolve => {
+    rl.question("Enter email address: ", resolve);
+  });
+  rl.close();
+  
+  settings.email = email.trim();
+  saveGlobalSettings(settings, settingsPath);
+  console.log("Email updated to: " + email.trim());
+}
+
+async function editVersionPrefix(settings, settingsPath) {
+  const rl = readline.createInterface({ input, output });
+  const prefix = await new Promise(resolve => {
+    rl.question("Enter version prefix (e.g., v0., v1., v2.): ", resolve);
+  });
+  rl.close();
+  
+  const cleaned = prefix.trim();
+  if (cleaned) {
+    if (!settings.versioningStrategy) settings.versioningStrategy = {};
+    settings.versioningStrategy.prefix = cleaned.endsWith('.') ? cleaned : cleaned + '.';
+    saveProjectSettings(settings, settingsPath);
+    console.log("Version prefix updated to: " + settings.versioningStrategy.prefix);
+    process.env.AC_VERSION_PREFIX = settings.versioningStrategy.prefix;
+  }
+}
+
+async function editStartingVersion(settings, settingsPath) {
+  const rl = readline.createInterface({ input, output });
+  const version = await new Promise(resolve => {
+    rl.question("Enter starting version number (e.g., 20 for v0.20): ", resolve);
+  });
+  rl.close();
+  
+  const num = parseInt(version.trim());
+  if (!isNaN(num) && num >= 0) {
+    if (!settings.versioningStrategy) settings.versioningStrategy = {};
+    settings.versioningStrategy.startMinor = num;
+    saveProjectSettings(settings, settingsPath);
+    console.log("Starting version updated to: " + num);
+    process.env.AC_VERSION_START_MINOR = num.toString();
+  } else {
+    console.log("Invalid version number.");
+  }
+}
+
+async function editDailyIncrement(settings, settingsPath) {
+  const rl = readline.createInterface({ input, output });
+  console.log("\nDaily increment options:");
+  console.log("  1) 0.01 per day (v0.20 → v0.21 → v0.22)");
+  console.log("  2) 0.1 per day  (v0.20 → v0.30 → v0.40)");
+  console.log("  3) 0.2 per day  (v0.20 → v0.40 → v0.60)");
+  console.log("  4) Custom value");
+  
+  const choice = await new Promise(resolve => {
+    rl.question("Select option (1-4): ", resolve);
+  });
+  
+  let increment = 1;
+  switch (choice.trim()) {
+    case '1':
+      increment = 1;
+      break;
+    case '2':
+      increment = 10;
+      break;
+    case '3':
+      increment = 20;
+      break;
+    case '4':
+      const custom = await new Promise(resolve => {
+        rl.question("Enter increment value (e.g., 5 for 0.05): ", resolve);
+      });
+      const customNum = parseInt(custom.trim());
+      if (!isNaN(customNum) && customNum > 0) {
+        increment = customNum;
+      } else {
+        console.log("Invalid value, using default (0.01).");
+      }
+      break;
+    default:
+      console.log("Invalid choice, using default (0.01).");
+  }
+  
+  rl.close();
+  
+  if (!settings.versioningStrategy) settings.versioningStrategy = {};
+  settings.versioningStrategy.dailyIncrement = increment;
+  saveProjectSettings(settings, settingsPath);
+  const display = (increment / 100).toFixed(2);
+  console.log("Daily increment updated to: " + display);
+  process.env.AC_VERSION_INCREMENT = increment.toString();
+}
+
+function saveGlobalSettings(settings, settingsPath) {
+  const dir = path.dirname(settingsPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+}
+
+function saveProjectSettings(settings, settingsPath) {
+  const dir = path.dirname(settingsPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  settings.versioningStrategy.configured = true;
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+}
+
+// ============================================================================
 // MAIN ENTRY POINT - Initialize and start the cs-devops-agent worker
 // ============================================================================
 
@@ -1209,6 +1455,7 @@ console.log();
   console.log("[cs-devops-agent] INTERACTIVE COMMANDS AVAILABLE:");
   console.log("  help     - Show available commands");
   console.log("  status   - Show current session status");
+  console.log("  settings - View and edit configuration settings");
   console.log("  verbose  - Toggle verbose/debug logging");
   console.log("  commit   - Force commit now");
   console.log("  push     - Push current branch");
@@ -1236,13 +1483,14 @@ console.log();
       case 'h':
       case '?':
         console.log("\nAvailable commands:");
-        console.log("  help/h/?    - Show this help");
-        console.log("  status/s    - Show session status and uncommitted changes");
-        console.log("  verbose/v   - Toggle verbose/debug logging (currently: " + (DEBUG ? "ON" : "OFF") + ")");
-        console.log("  commit/c    - Force commit now (stages all changes)");
-        console.log("  push/p      - Push current branch to remote");
-        console.log("  exit/quit/q - Cleanly close session and exit");
-        console.log("  clear/cls   - Clear the screen");
+        console.log("  help/h/?        - Show this help");
+        console.log("  status/s        - Show session status and uncommitted changes");
+        console.log("  settings/config - View and edit configuration settings");
+        console.log("  verbose/v       - Toggle verbose/debug logging (currently: " + (DEBUG ? "ON" : "OFF") + ")");
+        console.log("  commit/c        - Force commit now (stages all changes)");
+        console.log("  push/p          - Push current branch to remote");
+        console.log("  exit/quit/q     - Cleanly close session and exit");
+        console.log("  clear/cls       - Clear the screen");
         break;
         
       case 'status':
@@ -1266,6 +1514,11 @@ console.log();
         } else {
           console.log("\n  No uncommitted changes");
         }
+        break;
+        
+      case 'settings':
+      case 'config':
+        await handleSettingsCommand();
         break;
         
       case 'verbose':
