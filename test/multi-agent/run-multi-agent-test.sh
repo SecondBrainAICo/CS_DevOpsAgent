@@ -63,12 +63,14 @@ print_color "${YELLOW}" "Creating two test sessions..."
 
 # Create first session
 print_color "${CYAN}" "Creating session 1..."
-SESSION1_OUTPUT=$(node src/session-coordinator.js create --task "multi-agent-test-1" --agent "test1" 2>&1)
+# Echo 'n' to skip auto-merge configuration
+SESSION1_OUTPUT=$(echo "n" | node src/session-coordinator.js create --task "multi-agent-test-1" --agent "test1" 2>&1)
 SESSION1=$(echo "$SESSION1_OUTPUT" | grep -oE 'Session ID: [a-z0-9-]+' | cut -d' ' -f3)
 
 if [ -z "$SESSION1" ]; then
     print_color "${RED}" "Failed to create session 1"
-    echo "$SESSION1_OUTPUT"
+    print_color "${YELLOW}" "Debug output:"
+    echo "$SESSION1_OUTPUT" | tail -20
     exit 1
 fi
 
@@ -76,12 +78,14 @@ print_color "${GREEN}" "✓ Created session 1: $SESSION1"
 
 # Create second session
 print_color "${CYAN}" "Creating session 2..."
-SESSION2_OUTPUT=$(node src/session-coordinator.js create --task "multi-agent-test-2" --agent "test2" 2>&1)
+# Echo 'n' to skip auto-merge configuration
+SESSION2_OUTPUT=$(echo "n" | node src/session-coordinator.js create --task "multi-agent-test-2" --agent "test2" 2>&1)
 SESSION2=$(echo "$SESSION2_OUTPUT" | grep -oE 'Session ID: [a-z0-9-]+' | cut -d' ' -f3)
 
 if [ -z "$SESSION2" ]; then
     print_color "${RED}" "Failed to create session 2"
-    echo "$SESSION2_OUTPUT"
+    print_color "${YELLOW}" "Debug output:"
+    echo "$SESSION2_OUTPUT" | tail -20
     exit 1
 fi
 
