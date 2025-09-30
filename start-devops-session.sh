@@ -202,9 +202,16 @@ select_session() {
         local selected_file="${session_files[$choice]}"
         local session_data=$(cat "$selected_file")
         local session_id=$(echo "$session_data" | grep -o '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        local worktree_path=$(echo "$session_data" | grep -o '"worktreePath"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        local task=$(echo "$session_data" | grep -o '"task"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        local branch_name=$(echo "$session_data" | grep -o '"branchName"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
         
         echo
         echo -e "${GREEN}Using existing session: ${session_id}${NC}"
+        echo
+        
+        # Display instructions for Claude/Cline
+        display_instructions "$session_id" "$worktree_path" "$branch_name" "$task"
         
         # Start the agent for this session
         cd "$SCRIPT_DIR"
