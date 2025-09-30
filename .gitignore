@@ -86,3 +86,13 @@ local-config/
 
 # Local deployment folder (contains deployment scripts and runtime files)
 local_deploy/
+
+# DevOps session management files
+.devops-commit-*.msg
+.devops-session.json
+SESSION_README.md
+.session-cleanup-requested
+.worktree-session
+.agent-config
+.session-*
+.devops-command-*

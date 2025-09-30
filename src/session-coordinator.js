@@ -19,9 +19,10 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync, spawn, fork } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { execSync, spawn } from 'child_process';
+import crypto from 'crypto';
+import readline from 'readline';
+import { hasDockerConfiguration } from './docker-utils.js';
 import crypto from 'crypto';
 import readline from 'readline';
 
@@ -367,7 +368,91 @@ class SessionCoordinator {
   }
   
   /**
-   * Prompt for merge configuration
+   * Prompt for Docker restart configuration
+   */
+  async promptForDockerConfig() {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    // Ask if they want automatic Docker restarts
+    const autoRestart = await new Promise((resolve) => {
+      rl.question('\nAuto-restart Docker containers after push? (y/N): ', (answer) => {
+        resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+      });
+    });
+    
+    if (!autoRestart) {
+      rl.close();
+      return { enabled: false };
+    }
+    
+    // Ask which compose file to use if multiple
+    const dockerInfo = hasDockerConfiguration(process.cwd());
+    let selectedComposeFile = null;
+    
+    if (dockerInfo.composeFiles.length > 1) {
+      console.log(`\n${CONFIG.colors.bright}Select docker-compose file:${CONFIG.colors.reset}`);
+      dockerInfo.composeFiles.forEach((file, index) => {
+        console.log(`  ${index + 1}) ${file.name}`);
+      });
+      
+      const fileChoice = await new Promise((resolve) => {
+        rl.question(`Choose file (1-${dockerInfo.composeFiles.length}) [1]: `, (answer) => {
+          const choice = parseInt(answer) || 1;
+          if (choice >= 1 && choice <= dockerInfo.composeFiles.length) {
+            resolve(dockerInfo.composeFiles[choice - 1]);
+          } else {
+            resolve(dockerInfo.composeFiles[0]);
+          }
+        });
+      });
+      
+      selectedComposeFile = fileChoice.path;
+    } else if (dockerInfo.composeFiles.length === 1) {
+      selectedComposeFile = dockerInfo.composeFiles[0].path;
+    }
+    
+    // Ask about rebuild preference
+    const rebuild = await new Promise((resolve) => {
+      rl.question('\nRebuild containers on restart? (y/N): ', (answer) => {
+        resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+      });
+    });
+    
+    // Ask about specific service
+    const specificService = await new Promise((resolve) => {
+      rl.question('\nSpecific service to restart (leave empty for all): ', (answer) => {
+        resolve(answer.trim() || null);
+      });
+    });
+    
+    rl.close();
+    
+    const config = {
+      enabled: true,
+      composeFile: selectedComposeFile,
+      rebuild: rebuild,
+      service: specificService,
+      forceRecreate: false
+    };
+    
+    console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Docker restart configuration:`);
+    console.log(`  ${CONFIG.colors.bright}Auto-restart:${CONFIG.colors.reset} Enabled`);
+    if (selectedComposeFile) {
+      console.log(`  ${CONFIG.colors.bright}Compose file:${CONFIG.colors.reset} ${path.basename(selectedComposeFile)}`);
+    }
+    console.log(`  ${CONFIG.colors.bright}Rebuild:${CONFIG.colors.reset} ${rebuild ? 'Yes' : 'No'}`);
+    if (specificService) {
+      console.log(`  ${CONFIG.colors.bright}Service:${CONFIG.colors.reset} ${specificService}`);
+    }
+    
+    return config;
+  }
+
+  /**
+   * Prompt for auto-merge configuration
    */
   async promptForMergeConfig() {
     const rl = readline.createInterface({
@@ -593,6 +678,27 @@ class SessionCoordinator {
     // Ask for auto-merge configuration
     const mergeConfig = await this.promptForMergeConfig();
     
+    // Check for Docker configuration and ask about restart preference
+    let dockerConfig = null;
+    const dockerInfo = hasDockerConfiguration(process.cwd());
+    
+    if (dockerInfo.hasCompose || dockerInfo.hasDockerfile) {
+      console.log(`\n${CONFIG.colors.yellow}Docker Configuration Detected${CONFIG.colors.reset}`);
+      
+      if (dockerInfo.hasCompose) {
+        console.log(`${CONFIG.colors.dim}Found docker-compose files:${CONFIG.colors.reset}`);
+        dockerInfo.composeFiles.forEach(file => {
+          console.log(`  • ${file.name}`);
+        });
+      }
+      
+      if (dockerInfo.hasDockerfile) {
+        console.log(`${CONFIG.colors.dim}Found Dockerfile${CONFIG.colors.reset}`);
+      }
+      
+      dockerConfig = await this.promptForDockerConfig();
+    }
+    
     // Create worktree with developer initials in the name
     const worktreeName = `${agentType}-${devInitials}-${sessionId}-${task.replace(/\s+/g, '-')}`;
     const worktreePath = path.join(this.worktreesPath, worktreeName);
@@ -615,7 +721,8 @@ class SessionCoordinator {
         status: 'active',
         pid: process.pid,
         developerInitials: devInitials,
-        mergeConfig: mergeConfig
+        mergeConfig: mergeConfig,
+        dockerConfig: dockerConfig
       };
       
       const lockFile = path.join(this.locksPath, `${sessionId}.lock`);

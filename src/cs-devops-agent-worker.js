@@ -113,6 +113,7 @@ import chokidar from "chokidar";
 import { execa } from "execa";
 import readline from "node:readline";
 import { stdin as input, stdout as output } from 'node:process';
+import { restartDockerContainers } from './docker-utils.js';
 
 // ============================================================================
 // CONFIGURATION SECTION - All settings can be overridden via environment vars
@@ -762,7 +763,12 @@ async function commitOnce(repoRoot, msgPath) {
     if (PUSH) {
       const ok = await pushBranch(BRANCH);
       log(`push ${ok ? "ok" : "failed"}`);
-      if (ok && CLEAR_MSG_WHEN === "push") clearMsgFile(msgPath);
+      if (ok) {
+        if (CLEAR_MSG_WHEN === "push") clearMsgFile(msgPath);
+        
+        // Handle Docker restart if configured
+        await handleDockerRestart();
+      }
     }
   } finally {
     busy = false;
@@ -780,6 +786,52 @@ function schedule(repoRoot, msgPath) {
     }
     await commitOnce(repoRoot, msgPath);
   }, QUIET_MS);
+}
+
+// ============================================================================
+// DOCKER CONTAINER MANAGEMENT
+// ============================================================================
+
+/**
+ * Handle Docker container restart if configured in session
+ */
+async function handleDockerRestart() {
+  // Check if we're in a session with Docker configuration
+  const sessionConfigPath = path.join(process.cwd(), '.devops-session.json');
+  if (!fs.existsSync(sessionConfigPath)) {
+    return; // Not in a managed session
+  }
+  
+  try {
+    const sessionConfig = JSON.parse(fs.readFileSync(sessionConfigPath, 'utf8'));
+    
+    // Check if Docker restart is enabled
+    if (!sessionConfig.dockerConfig || !sessionConfig.dockerConfig.enabled) {
+      return;
+    }
+    
+    log('🐋 Docker restart configured - initiating container restart...');
+    
+    const dockerOptions = {
+      projectPath: process.cwd(),
+      composeFile: sessionConfig.dockerConfig.composeFile,
+      serviceName: sessionConfig.dockerConfig.service,
+      rebuild: sessionConfig.dockerConfig.rebuild,
+      forceRecreate: sessionConfig.dockerConfig.forceRecreate || false,
+      detach: true
+    };
+    
+    const result = await restartDockerContainers(dockerOptions);
+    
+    if (result.success) {
+      log('✅ Docker containers restarted successfully');
+    } else {
+      log(`⚠️ Docker restart failed: ${result.error}`);
+    }
+  } catch (error) {
+    // Don't fail the commit/push if Docker restart fails
+    dlog('Docker restart error:', error.message);
+  }
 }
 
 // ============================================================================
