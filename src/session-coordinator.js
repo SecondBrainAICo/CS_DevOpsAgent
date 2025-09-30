@@ -1085,6 +1085,22 @@ The DevOps agent is monitoring this worktree for changes.
 // ============================================================================
 
 async function main() {
+  // Display copyright and license information immediately
+  console.log();
+  console.log("=".repeat(70));
+  console.log();
+  console.log("  CS_DevOpsAgent - Intelligent Git Automation System");
+  console.log("  Version 2.4.0 | Build 20240930.1");
+  console.log("  ");
+  console.log("  Copyright (c) 2024 SecondBrain Labs");
+  console.log("  Author: Sachin Dev Duggal");
+  console.log("  ");
+  console.log("  Licensed under the MIT License");
+  console.log("  This software is provided 'as-is' without any warranty.");
+  console.log("  See LICENSE file for full license text.");
+  console.log("=".repeat(70));
+  console.log();
+  
   const args = process.argv.slice(2);
   const command = args[0] || 'help';
   
