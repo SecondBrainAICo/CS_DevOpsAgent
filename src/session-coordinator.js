@@ -67,7 +67,7 @@ class SessionCoordinator {
     
     this.ensureDirectories();
     this.cleanupStaleLocks();
-    this.ensureDeveloperInitials();
+    // DO NOT call ensureDeveloperInitials here - it should only be called when creating new sessions
   }
 
   getRepoRoot() {
@@ -140,10 +140,11 @@ class SessionCoordinator {
   }
   
   /**
-   * Get developer initials from config
+   * Get developer initials from config (no prompting)
    */
   getDeveloperInitials() {
     const config = this.loadConfig();
+    // Never prompt here, just return default if not configured
     return config.developerInitials || 'dev';
   }
   
@@ -386,6 +387,9 @@ class SessionCoordinator {
    * Create a new session and generate Claude instructions
    */
   async createSession(options = {}) {
+    // Ensure developer initials are configured before creating a session
+    await this.ensureDeveloperInitials();
+    
     const sessionId = this.generateSessionId();
     const task = options.task || 'development';
     const agentType = options.agent || 'claude';
@@ -729,8 +733,8 @@ The DevOps agent is monitoring this worktree for changes.
     sessionData.agentPid = process.pid;
     fs.writeFileSync(lockFile, JSON.stringify(sessionData, null, 2));
     
-    // Get developer initials from config or environment
-    const devInitials = this.getDeveloperInitials();
+    // Get developer initials from session data or config (NO PROMPTING HERE)
+    const devInitials = sessionData.developerInitials || this.getDeveloperInitials() || 'dev';
     const config = this.loadConfig();
     
     // Start the agent
