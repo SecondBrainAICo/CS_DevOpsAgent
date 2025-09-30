@@ -23,6 +23,7 @@ An intelligent Git automation system with multi-agent support, session managemen
 - **⚙️ VS Code Integration**: Seamlessly integrates with VS Code tasks
 - **🔐 Safe Concurrent Development**: Multiple agents can work simultaneously without conflicts
 - **🏷️ Smart Branching**: Automatic branch creation with configurable naming patterns
+- **🐋 Docker Auto-Restart**: Automatically restart Docker containers after code push (v1.2.0)
 
 ## Installation 📦
 
@@ -225,6 +226,30 @@ Add to `.vscode/tasks.json`:
 ```
 
 ## Advanced Features 🔬
+
+### Docker Container Auto-Restart (v1.2.0+)
+
+Automatically restart Docker containers after pushing code changes:
+
+```bash
+# During session creation, if docker-compose is detected:
+s9n-devops-agent start
+# -> Auto-restart Docker containers after push? (y/N): y
+# -> Rebuild containers on restart? (y/N): n
+# -> Specific service to restart (leave empty for all): app
+```
+
+**Features:**
+- Detects docker-compose files automatically
+- Optional container rebuild on restart
+- Target specific services or restart all
+- Non-blocking: Docker failures don't affect git workflow
+- Works with Docker Compose v1 and v2
+
+**Supported docker-compose files:**
+- docker-compose.yml / docker-compose.yaml
+- compose.yml / compose.yaml
+- docker-compose.dev.yml / docker-compose.local.yml
 
 ### Multi-Agent Collaboration
 
