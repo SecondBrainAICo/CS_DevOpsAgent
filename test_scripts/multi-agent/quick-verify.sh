@@ -83,7 +83,7 @@ fi
 
 # Test 7: Conflict test script exists
 echo -n "7. Conflict testing available: "
-if [ -f "test/multi-agent/test-conflicts.sh" ] && [ -x "test/multi-agent/test-conflicts.sh" ]; then
+if [ -f "test_scripts/multi-agent/test-conflicts.sh" ] && [ -x "test_scripts/multi-agent/test-conflicts.sh" ]; then
     echo -e "${GREEN}✓${NC}"
     ((PASSED++))
 else
@@ -114,7 +114,7 @@ else
     echo
     echo "Some components are not working properly."
     echo "Run the full verification for details:"
-    echo "  ./test/multi-agent/verify-multi-agent.sh"
+    echo "  ./test_scripts/multi-agent/verify-multi-agent.sh"
     echo
     exit 1
 fi
