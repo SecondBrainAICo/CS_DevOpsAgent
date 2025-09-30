@@ -83,8 +83,7 @@ display_instructions() {
     echo
     echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
     echo
-    echo -e "${GREEN}✓ DevOps agent is now monitoring for changes${NC}"
-    echo -e "${DIM}Press Ctrl+C to stop the agent when you're done${NC}"
+    echo -e "${GREEN}✓ DevOps agent will monitor for changes${NC}"
     echo
 }
 
@@ -208,10 +207,18 @@ select_session() {
         
         echo
         echo -e "${GREEN}Using existing session: ${session_id}${NC}"
-        echo
         
-        # Display instructions for Claude/Cline
+        # Display instructions for Claude/Cline IMMEDIATELY after selection
         display_instructions "$session_id" "$worktree_path" "$branch_name" "$task"
+        
+        # Add a pause and visual separator before starting the agent
+        echo -e "${DIM}Press Enter to start the DevOps agent monitoring...${NC}"
+        read -r
+        
+        echo
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
+        echo -e "${BOLD}Starting DevOps Agent${NC}"
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
         
         # Start the agent for this session
         cd "$SCRIPT_DIR"
