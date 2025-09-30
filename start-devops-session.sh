@@ -29,6 +29,24 @@ BG_YELLOW='\033[43m'
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SRC_DIR="$SCRIPT_DIR/src"
 
+# Function to display copyright
+show_copyright() {
+    echo
+    echo "======================================================================"
+    echo
+    echo "  CS_DevOpsAgent - Intelligent Git Automation System"
+    echo "  Version 2.4.0 | Build 20240930.1"
+    echo "  "
+    echo "  Copyright (c) 2024 SecondBrain Labs"
+    echo "  Author: Sachin Dev Duggal"
+    echo "  "
+    echo "  Licensed under the MIT License"
+    echo "  This software is provided 'as-is' without any warranty."
+    echo "  See LICENSE file for full license text."
+    echo "======================================================================"
+    echo
+}
+
 # Function to display header
 show_header() {
     echo
@@ -200,6 +218,10 @@ select_session() {
 
 # Main function
 main() {
+    # Show copyright first
+    show_copyright
+    
+    # Then show the header
     show_header
     
     # Check if we're in a git repository
