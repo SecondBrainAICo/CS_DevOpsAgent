@@ -20,7 +20,5 @@ module.exports = {
   verbose: true,
   collectCoverage: false,
   testTimeout: 10000,
-  passWithNoTests: true,  // Pass when no tests match the pattern
-  // Silence the watcher debug output during tests
-  setupFilesAfterEnv: ['<rootDir>/test-setup.js']
+  passWithNoTests: true  // Pass when no tests match the pattern
 };
