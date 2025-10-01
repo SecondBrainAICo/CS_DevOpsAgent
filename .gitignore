@@ -97,3 +97,6 @@ SESSION_README.md
 .session-*
 .devops-command-*
 .file-coordination
+
+# Coordination alert files
+.coordination-alert-*.md
