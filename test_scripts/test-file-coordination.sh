@@ -70,7 +70,7 @@ test_basic_declaration() {
     test_header 1 "Basic Declaration and Release"
     
     # Declare a file
-    if ./declare-file-edits.sh test-agent test-session-1 src/test.js 2>/dev/null; then
+    if ./scripts/coordination/declare-file-edits.sh test-agent test-session-1 src/test.js 2>/dev/null; then
         test_pass "File declaration successful"
     else
         test_fail "File declaration failed"
@@ -86,7 +86,7 @@ test_basic_declaration() {
     fi
     
     # Release the file
-    if ./release-file-edits.sh test-agent test-session-1 2>/dev/null; then
+    if ./scripts/coordination/release-file-edits.sh test-agent test-session-1 2>/dev/null; then
         test_pass "File release successful"
     else
         test_fail "File release failed"
@@ -109,11 +109,11 @@ test_conflict_detection() {
     test_header 2 "Conflict Detection"
     
     # Agent 1 declares a file
-    ./declare-file-edits.sh agent1 session1 src/main.js > /dev/null 2>&1
+    ./scripts/coordination/declare-file-edits.sh agent1 session1 src/main.js > /dev/null 2>&1
     test_pass "Agent 1 declared src/main.js"
     
     # Agent 2 tries to declare same file
-    if ./declare-file-edits.sh agent2 session2 src/main.js 2>/dev/null; then
+    if ./scripts/coordination/declare-file-edits.sh agent2 session2 src/main.js 2>/dev/null; then
         test_fail "Agent 2 should not be able to declare same file"
         return 1
     else
@@ -121,7 +121,7 @@ test_conflict_detection() {
     fi
     
     # Check availability should show blocked
-    if ./check-file-availability.sh src/main.js 2>&1 | grep -q "BLOCKED"; then
+    if ./scripts/coordination/check-file-availability.sh src/main.js 2>&1 | grep -q "BLOCKED"; then
         test_pass "File correctly shown as blocked"
     else
         test_fail "File not shown as blocked"
@@ -129,10 +129,10 @@ test_conflict_detection() {
     fi
     
     # Release by agent 1
-    ./release-file-edits.sh agent1 session1 > /dev/null 2>&1
+    ./scripts/coordination/release-file-edits.sh agent1 session1 > /dev/null 2>&1
     
     # Now agent 2 should be able to declare
-    if ./declare-file-edits.sh agent2 session2 src/main.js 2>/dev/null; then
+    if ./scripts/coordination/declare-file-edits.sh agent2 session2 src/main.js 2>/dev/null; then
         test_pass "Agent 2 can declare after release"
     else
         test_fail "Agent 2 still cannot declare after release"
@@ -140,7 +140,7 @@ test_conflict_detection() {
     fi
     
     # Cleanup
-    ./release-file-edits.sh agent2 session2 > /dev/null 2>&1
+    ./scripts/coordination/release-file-edits.sh agent2 session2 > /dev/null 2>&1
 }
 
 # ============================================================================
@@ -150,7 +150,7 @@ test_multiple_files() {
     test_header 3 "Multiple Files Declaration"
     
     # Declare multiple files
-    if ./declare-file-edits.sh agent3 session3 src/file1.js src/file2.js src/file3.js 2>/dev/null; then
+    if ./scripts/coordination/declare-file-edits.sh agent3 session3 src/file1.js src/file2.js src/file3.js 2>/dev/null; then
         test_pass "Multiple files declared"
     else
         test_fail "Multiple files declaration failed"
@@ -160,7 +160,7 @@ test_multiple_files() {
     # Check if all files are blocked
     local all_blocked=true
     for file in src/file1.js src/file2.js src/file3.js; do
-        if ! ./check-file-availability.sh "$file" 2>&1 | grep -q "BLOCKED"; then
+        if ! ./scripts/coordination/check-file-availability.sh "$file" 2>&1 | grep -q "BLOCKED"; then
             all_blocked=false
             break
         fi
@@ -174,7 +174,7 @@ test_multiple_files() {
     fi
     
     # Release
-    ./release-file-edits.sh agent3 session3 > /dev/null 2>&1
+    ./scripts/coordination/release-file-edits.sh agent3 session3 > /dev/null 2>&1
     test_pass "Multiple files released"
 }
 
@@ -185,11 +185,11 @@ test_partial_overlap() {
     test_header 4 "Partial Overlap Detection"
     
     # Agent 1 declares files A and B
-    ./declare-file-edits.sh agent1 session1 src/fileA.js src/fileB.js > /dev/null 2>&1
+    ./scripts/coordination/declare-file-edits.sh agent1 session1 src/fileA.js src/fileB.js > /dev/null 2>&1
     test_pass "Agent 1 declared fileA and fileB"
     
     # Agent 2 tries to declare files B and C (partial overlap)
-    if ./declare-file-edits.sh agent2 session2 src/fileB.js src/fileC.js 2>/dev/null; then
+    if ./scripts/coordination/declare-file-edits.sh agent2 session2 src/fileB.js src/fileC.js 2>/dev/null; then
         test_fail "Agent 2 should be blocked due to fileB overlap"
         return 1
     else
@@ -197,7 +197,7 @@ test_partial_overlap() {
     fi
     
     # Agent 2 should be able to declare just fileC
-    if ./declare-file-edits.sh agent2 session2 src/fileC.js 2>/dev/null; then
+    if ./scripts/coordination/declare-file-edits.sh agent2 session2 src/fileC.js 2>/dev/null; then
         test_pass "Agent 2 can declare non-overlapping file"
     else
         test_fail "Agent 2 cannot declare non-overlapping file"
@@ -205,8 +205,8 @@ test_partial_overlap() {
     fi
     
     # Cleanup
-    ./release-file-edits.sh agent1 session1 > /dev/null 2>&1
-    ./release-file-edits.sh agent2 session2 > /dev/null 2>&1
+    ./scripts/coordination/release-file-edits.sh agent1 session1 > /dev/null 2>&1
+    ./scripts/coordination/release-file-edits.sh agent2 session2 > /dev/null 2>&1
 }
 
 # ============================================================================
@@ -272,9 +272,9 @@ EOF
     
     # The stale file should be moved or ignored
     # Try to declare the same file - should work if stale was handled
-    if ./declare-file-edits.sh new-agent new-session src/stale.js 2>/dev/null; then
+    if ./scripts/coordination/declare-file-edits.sh new-agent new-session src/stale.js 2>/dev/null; then
         test_pass "Can declare previously stale file"
-        ./release-file-edits.sh new-agent new-session > /dev/null 2>&1
+        ./scripts/coordination/release-file-edits.sh new-agent new-session > /dev/null 2>&1
     else
         test_fail "Cannot declare previously stale file"
     fi
@@ -287,9 +287,9 @@ test_concurrent_agents() {
     test_header 7 "Concurrent Agents (Race Condition)"
     
     # Try to declare same file from two agents simultaneously
-    (./declare-file-edits.sh race1 session1 src/race.js > /dev/null 2>&1) &
+    (./scripts/coordination/declare-file-edits.sh race1 session1 src/race.js > /dev/null 2>&1) &
     PID1=$!
-    (./declare-file-edits.sh race2 session2 src/race.js > /dev/null 2>&1) &
+    (./scripts/coordination/declare-file-edits.sh race2 session2 src/race.js > /dev/null 2>&1) &
     PID2=$!
     
     wait $PID1
@@ -300,10 +300,10 @@ test_concurrent_agents() {
     # Exactly one should succeed
     if [ $RESULT1 -eq 0 ] && [ $RESULT2 -ne 0 ]; then
         test_pass "Agent 1 won the race"
-        ./release-file-edits.sh race1 session1 > /dev/null 2>&1
+        ./scripts/coordination/release-file-edits.sh race1 session1 > /dev/null 2>&1
     elif [ $RESULT1 -ne 0 ] && [ $RESULT2 -eq 0 ]; then
         test_pass "Agent 2 won the race"
-        ./release-file-edits.sh race2 session2 > /dev/null 2>&1
+        ./scripts/coordination/release-file-edits.sh race2 session2 > /dev/null 2>&1
     else
         test_fail "Race condition not properly handled"
     fi
@@ -316,7 +316,7 @@ test_session_recovery() {
     test_header 8 "Session Recovery"
     
     # Create a declaration
-    ./declare-file-edits.sh recovery-agent recovery-session src/recovery.js > /dev/null 2>&1
+    ./scripts/coordination/declare-file-edits.sh recovery-agent recovery-session src/recovery.js > /dev/null 2>&1
     test_pass "Created declaration for recovery test"
     
     # Simulate crash (declaration remains)
@@ -329,7 +329,7 @@ test_session_recovery() {
     fi
     
     # Should be able to release with same session info
-    if ./release-file-edits.sh recovery-agent recovery-session 2>/dev/null; then
+    if ./scripts/coordination/release-file-edits.sh recovery-agent recovery-session 2>/dev/null; then
         test_pass "Successfully recovered and released session"
     else
         test_fail "Could not recover session"

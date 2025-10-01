@@ -236,7 +236,7 @@ class FileCoordinator {
       report += `\n### ⚠️ ADVISORY WARNING\n\n`;
       report += `These files were modified without following the coordination protocol.\n\n`;
       report += `**To fix this:**\n`;
-      report += `1. Run: \`./declare-file-edits.sh ${this.sessionId.split('-')[0]} ${this.sessionId} ${conflictData.undeclaredEdits.join(' ')}\`\n`;
+      report += `1. Run: \`./scripts/coordination/declare-file-edits.sh ${this.sessionId.split('-')[0]} ${this.sessionId} ${conflictData.undeclaredEdits.join(' ')}\`\n`;
       report += `2. Or revert these changes if they were unintentional\n\n`;
     }
     
@@ -247,11 +247,11 @@ class FileCoordinator {
     report += `   \`\`\`\n\n`;
     report += `2. **Declare your intended edits:**\n`;
     report += `   \`\`\`bash\n`;
-    report += `   ./declare-file-edits.sh <agent-name> ${this.sessionId} <files...>\n`;
+    report += `   ./scripts/coordination/declare-file-edits.sh <agent-name> ${this.sessionId} <files...>\n`;
     report += `   \`\`\`\n\n`;
     report += `3. **Release files when done:**\n`;
     report += `   \`\`\`bash\n`;
-    report += `   ./release-file-edits.sh <agent-name> ${this.sessionId}\n`;
+    report += `   ./scripts/coordination/release-file-edits.sh <agent-name> ${this.sessionId}\n`;
     report += `   \`\`\`\n\n`;
     
     report += `---\n`;

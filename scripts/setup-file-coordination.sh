@@ -310,9 +310,9 @@ To prevent conflicts with other agents editing the same files, you MUST follow t
 - Wait or choose alternative files
 
 ### Helper Scripts Available:
-- `./check-file-availability.sh <files>` - Check if files are available
-- `./declare-file-edits.sh <agent> <session> <files>` - Declare your intent
-- `./release-file-edits.sh <agent> <session>` - Release files after editing
+- `./scripts/coordination/check-file-availability.sh <files>` - Check if files are available
+- `./scripts/coordination/declare-file-edits.sh <agent> <session> <files>` - Declare your intent
+- `./scripts/coordination/release-file-edits.sh <agent> <session>` - Release files after editing
 
 **This coordination prevents wasted work and merge conflicts!**
 
@@ -367,9 +367,9 @@ To prevent conflicts with other agents editing the same files, you MUST follow t
 - Wait or choose alternative files
 
 ### Helper Scripts Available:
-- `./check-file-availability.sh <files>` - Check if files are available
-- `./declare-file-edits.sh <agent> <session> <files>` - Declare your intent
-- `./release-file-edits.sh <agent> <session>` - Release files after editing
+- `./scripts/coordination/check-file-availability.sh <files>` - Check if files are available
+- `./scripts/coordination/declare-file-edits.sh <agent> <session> <files>` - Declare your intent
+- `./scripts/coordination/release-file-edits.sh <agent> <session>` - Release files after editing
 
 **This coordination prevents wasted work and merge conflicts!**
 
@@ -397,6 +397,6 @@ fi
 echo "[SUCCESS] File coordination system created!"
 echo ""
 echo "Usage:"
-echo "  1. Check availability:  ./check-file-availability.sh file1 file2"
-echo "  2. Declare edits:       ./declare-file-edits.sh agent-name session-id file1 file2"
-echo "  3. Release files:       ./release-file-edits.sh agent-name session-id"
+echo "  1. Check availability:  ./scripts/coordination/check-file-availability.sh file1 file2"
+echo "  2. Declare edits:       ./scripts/coordination/declare-file-edits.sh agent-name session-id file1 file2"
+echo "  3. Release files:       ./scripts/coordination/release-file-edits.sh agent-name session-id"
