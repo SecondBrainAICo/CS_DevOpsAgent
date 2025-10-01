@@ -27,23 +27,30 @@ An intelligent Git automation system with multi-agent support, session managemen
 
 ## Installation 📦
 
-### Option 1: NPM Package (Recommended for Users)
+> **📖 Detailed Guide**: See [INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md) for complete setup instructions
 
-#### Global Installation
+### Quick Install (NPM Package)
+
 ```bash
+# Install globally (recommended)
 npm install -g s9n-devops-agent
+
+# Verify installation
+s9n-devops-agent --help
 ```
 
-#### Local Installation
-```bash
-npm install s9n-devops-agent --save-dev
-```
+### What Gets Installed
 
-### Option 2: From Source (For Contributors)
+The NPM package installs:
+- ✅ **CLI Binary**: `s9n-devops-agent` command available globally
+- ✅ **Core Files**: Worker, session manager, and utilities in npm's global node_modules
+- ✅ **Dependencies**: `chokidar` for file watching, `execa` for git operations
+- ❌ **No Project Modifications**: Your project stays clean until you run setup
 
-#### Clone the Repository
+### From Source (For Contributors)
+
 ```bash
-# Clone the repository
+# Clone and setup for development
 git clone https://github.com/SecondBrainAICo/CS_DevOpsAgent.git
 cd CS_DevOpsAgent
 
@@ -53,39 +60,33 @@ npm install
 # Link globally for development
 npm link
 
-# Now you can use s9n-devops-agent command globally
-s9n-devops-agent --help
-```
-
-#### Development Setup
-```bash
-# Clone and setup for development
-git clone https://github.com/SecondBrainAICo/CS_DevOpsAgent.git
-cd CS_DevOpsAgent
-
-# Install dependencies
-npm install
-
 # Run tests
 npm test
-
-# Start development session
-npm run dev
 ```
 
 ## Quick Start 🚀
 
-### First-Time Setup
+### First-Time Setup (Required After Installation)
 
 ```bash
+# Navigate to your project
+cd /path/to/your/project
+
 # Run the interactive setup wizard
 s9n-devops-agent setup
-
-# This will configure:
-# - Your developer initials (used in branch names)
-# - Version numbering strategy
-# - Default timezone for daily rollover
 ```
+
+**The setup wizard will:**
+1. 📝 Ask for your 3-letter developer initials (for branch naming)
+2. 🔢 Configure version numbering strategy
+3. 🕐 Set timezone for daily rollover
+4. 📁 Create `local_deploy/` directory structure
+5. ⚙️ Generate configuration files
+6. 📋 Update `.gitignore` with agent files
+
+**Important Files to Create:**
+- `docs/houserules.md` - Instructions for AI assistants ([template here](docs/INSTALLATION_GUIDE.md#house-rules-setup))
+- `local_deploy/project-settings.json` - Created automatically by setup
 
 ### Start a DevOps Session
 
@@ -151,6 +152,8 @@ s9n-devops-agent setup
 
 ## Configuration 🔧
 
+> **📖 Complete Configuration Guide**: See [INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md#configuration-files)
+
 ### Environment Variables
 
 ```bash
@@ -174,9 +177,23 @@ export AC_VERSION_INCREMENT="1"  # 1 = 0.01, 10 = 0.1
 
 ### Configuration Files
 
-Configuration is stored in:
-- **Global settings**: `~/.devops-agent/settings.json` (developer initials, email)
-- **Project settings**: `local_deploy/project-settings.json` (version strategy, auto-merge)
+**Global Configuration** (`~/.devops-agent/settings.json`):
+- Developer initials and email
+- Default timezone settings
+- Created on first setup
+
+**Project Configuration** (`local_deploy/project-settings.json`):
+- Version numbering strategy
+- Auto-merge settings
+- Docker restart configuration
+- Created per project
+
+**House Rules** (`docs/houserules.md`):
+- Instructions for AI assistants
+- Testing requirements
+- Commit message format
+- Multi-agent coordination rules
+- **Must be created manually** ([see template](docs/INSTALLATION_GUIDE.md#house-rules-setup))
 
 ## Workflow Example 💡
 
@@ -289,27 +306,40 @@ At midnight (configurable timezone):
 
 ## Troubleshooting 🔍
 
+> **📖 Detailed Troubleshooting**: See [INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md#troubleshooting)
+
 ### Common Issues
 
-**Session files showing as uncommitted**:
+**After npm install - command not found**:
 ```bash
-# Files are automatically gitignored
-# If issue persists, run:
-s9n-devops-agent cleanup
+# Check npm global bin directory
+npm bin -g
+# Add to PATH if needed
+export PATH="$PATH:$(npm bin -g)"
 ```
 
-**Permission denied errors**:
+**Setup wizard issues**:
 ```bash
-# Ensure scripts are executable
-chmod +x $(npm root -g)/s9n-devops-agent/bin/s9n-devops-agent
+# Ensure you're in a git repository
+git init
+# Run setup in project directory
+cd /your/project && s9n-devops-agent setup
 ```
 
 **Agent not detecting changes**:
 ```bash
-# Check if running in correct directory
-pwd
-# Ensure message file exists
+# Enable debug mode
+AC_DEBUG=true s9n-devops-agent start
+# Check message file exists and has content
 ls -la .devops-commit-*.msg
+```
+
+**Multi-agent conflicts**:
+```bash
+# Check coordination files
+ls -la .ac-prep/ .ac/ack/
+# Clear if stuck
+rm -rf .ac-prep .ac
 ```
 
 ## Contributing 🤝
