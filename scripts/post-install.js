@@ -57,7 +57,28 @@ async function main() {
 
     if (!status.exists) {
       console.log(`${colors.yellow}No house rules found in your project.${colors.reset}`);
-      console.log(`Run ${colors.green}npm start${colors.reset} to set up house rules.\n`);
+      
+      // Check if running in CI or if user wants auto-setup
+      const isCI = process.env.CI || process.env.CONTINUOUS_INTEGRATION || 
+                   process.env.GITHUB_ACTIONS || process.env.GITLAB_CI ||
+                   process.env.JENKINS_URL || process.env.TRAVIS;
+      
+      const autoSetup = isCI || process.env.DEVOPS_AUTO_SETUP === 'true';
+      
+      if (autoSetup) {
+        console.log(`${colors.blue}Creating house rules automatically...${colors.reset}`);
+        const result = await manager.updateHouseRules({ createIfMissing: true });
+        if (result.created) {
+          console.log(`${colors.green}✓ Created house rules at: ${path.relative(projectRoot, result.path)}${colors.reset}`);
+          console.log(`${colors.dim}AI agents will now follow project conventions and coordination protocols.${colors.reset}\n`);
+        }
+      } else {
+        console.log(`${colors.bright}House rules help AI agents understand your project.${colors.reset}`);
+        console.log(`\nTo set up house rules, you can:`);
+        console.log(`  1. Run ${colors.green}npm start${colors.reset} (recommended - interactive setup)`);
+        console.log(`  2. Set ${colors.blue}DEVOPS_AUTO_SETUP=true${colors.reset} before npm install`);
+        console.log(`  3. Run ${colors.green}npm run house-rules:update${colors.reset} manually\n`);
+      }
       return;
     }
 

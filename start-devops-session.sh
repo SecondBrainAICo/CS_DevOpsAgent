@@ -245,10 +245,24 @@ setup_house_rules() {
     # Check if we need to update existing house rules (even if coordination is set up)
     if [[ -f "$SCRIPT_DIR/src/house-rules-manager.js" ]]; then
         # Check status of house rules
-        local STATUS=$(node "$SCRIPT_DIR/src/house-rules-manager.js" status 2>/dev/null || echo '{"needsUpdate": false}')
+        local STATUS=$(node "$SCRIPT_DIR/src/house-rules-manager.js" status 2>/dev/null || echo '{"needsUpdate": false, "exists": true}')
         local NEEDS_UPDATE=$(echo "$STATUS" | grep -o '"needsUpdate"[[:space:]]*:[[:space:]]*true' || echo "")
+        local EXISTS=$(echo "$STATUS" | grep -o '"exists"[[:space:]]*:[[:space:]]*true' || echo "")
         
-        if [[ -n "$NEEDS_UPDATE" ]]; then
+        # Check if house rules were deleted (coordination exists but house rules don't)
+        if [[ -d "$COORD_DIR" ]] && [[ -z "$EXISTS" ]]; then
+            echo -e "${YELLOW}⚠ House rules file appears to be missing!${NC}"
+            echo "The file coordination system is set up, but house rules are gone."
+            echo
+            echo -n "Recreate house rules? (Y/n): "
+            read RECREATE
+            if [[ "${RECREATE}" != "n" ]] && [[ "${RECREATE}" != "N" ]]; then
+                echo -e "${BLUE}Recreating house rules...${NC}"
+                node "$SCRIPT_DIR/src/house-rules-manager.js" update 2>/dev/null
+                echo -e "${GREEN}✓ House rules recreated!${NC}"
+                echo
+            fi
+        elif [[ -n "$NEEDS_UPDATE" ]]; then
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo -e "${BOLD}House Rules Update Available${NC}"
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
