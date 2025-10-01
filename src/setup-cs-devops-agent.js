@@ -735,7 +735,8 @@ export AC_MSG_MIN_BYTES="20"
 export AC_DEBOUNCE_MS="1500"
 export AC_MSG_DEBOUNCE_MS="3000"
 export AC_CLEAR_MSG_WHEN="push"
-export AC_ROLLOVER_PROMPT="true"
+# Daily rollover is automatic - no prompting needed
+export AC_ROLLOVER_PROMPT="false"
 export AC_DEBUG="false"
 
 # Check for debug flag
@@ -784,7 +785,8 @@ AC_MSG_DEBOUNCE_MS=3000
 
 # Behavior
 AC_CLEAR_MSG_WHEN=push
-AC_ROLLOVER_PROMPT=true
+# Daily rollover is automatic
+AC_ROLLOVER_PROMPT=false
 AC_DEBUG=false
 `;
   
@@ -826,7 +828,7 @@ function printInstructions(initials) {
   log.title('🎯 Daily Workflow:');
   console.log('');
   console.log(`• Your daily branches will be: ${colors.bright}dev_${initials}_YYYY-MM-DD${colors.reset}`);
-  console.log('• The worker handles day rollover automatically');
+  console.log('• The worker automatically creates new daily branches at midnight');
   console.log('• Commits require valid conventional format (feat/fix/docs/etc)');
   console.log('• Message file is cleared after successful push');
   console.log('');

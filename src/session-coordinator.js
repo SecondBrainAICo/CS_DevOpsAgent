@@ -461,7 +461,13 @@ class SessionCoordinator {
     });
     
     console.log(`\n${CONFIG.colors.yellow}═══ Auto-merge Configuration ═══${CONFIG.colors.reset}`);
-    console.log(`${CONFIG.colors.dim}(Automatically merge today's work into a target branch)${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}Automatically merge your daily work branches into a target branch.${CONFIG.colors.reset}`);
+    console.log();
+    console.log(`${CONFIG.colors.bright}How it works:${CONFIG.colors.reset}`);
+    console.log(`  • The agent creates dated branches (e.g., ${CONFIG.colors.blue}agent_dev_2025-10-01${CONFIG.colors.reset})`);
+    console.log(`  • At the end of each day, your work is automatically merged`);
+    console.log(`  • This keeps your target branch (main/develop) up to date`);
+    console.log(`  • Prevents accumulation of stale feature branches`);
     
     // Ask if they want auto-merge
     const autoMerge = await new Promise((resolve) => {
