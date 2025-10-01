@@ -242,6 +242,32 @@ setup_house_rules() {
     local ROOT="$1"
     local COORD_DIR="$ROOT/.file-coordination"
     
+    # Check if we need to update existing house rules (even if coordination is set up)
+    if [[ -f "$SCRIPT_DIR/src/house-rules-manager.js" ]]; then
+        # Check status of house rules
+        local STATUS=$(node "$SCRIPT_DIR/src/house-rules-manager.js" status 2>/dev/null || echo '{"needsUpdate": false}')
+        local NEEDS_UPDATE=$(echo "$STATUS" | grep -o '"needsUpdate"[[:space:]]*:[[:space:]]*true' || echo "")
+        
+        if [[ -n "$NEEDS_UPDATE" ]]; then
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${BOLD}House Rules Update Available${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo
+            echo "The DevOps Agent has updated house rules sections."
+            echo "Your custom rules will be preserved."
+            echo
+            echo -n "Update house rules now? (Y/n): "
+            read UPDATE_CHOICE
+            
+            if [[ "${UPDATE_CHOICE}" != "n" ]] && [[ "${UPDATE_CHOICE}" != "N" ]]; then
+                echo -e "${BLUE}Updating house rules...${NC}"
+                node "$SCRIPT_DIR/src/house-rules-manager.js" update
+                echo -e "${GREEN}✓ House rules updated!${NC}"
+                echo
+            fi
+        fi
+    fi
+    
     # Check if coordination system is already set up
     if [[ -d "$COORD_DIR" ]] && [[ -f "$ROOT/check-file-availability.sh" ]]; then
         return 0  # Already set up
