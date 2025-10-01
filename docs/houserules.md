@@ -1,5 +1,56 @@
 # Claude House Rules for CS_DevOpsAgent
 
+## 🚨 CRITICAL: File Coordination Protocol (MUST FOLLOW)
+
+**IMPORTANT: Always check the house rules at the beginning of each session!**
+
+To prevent conflicts with other agents editing the same files, you MUST follow this protocol:
+
+### Before Editing ANY Files:
+
+1. **DECLARE YOUR INTENT FIRST**
+   Create a file at `.file-coordination/active-edits/<your-name>-<session>.json` with:
+   ```json
+   {
+     "agent": "<your-name>",
+     "session": "<session-id>",
+     "files": ["list", "of", "files", "you", "will", "edit"],
+     "operation": "edit",
+     "reason": "Brief description of what you're doing",
+     "declaredAt": "<current-ISO-8601-timestamp>",
+     "estimatedDuration": 300
+   }
+   ```
+
+2. **CHECK FOR CONFLICTS**
+   - Read ALL files in `.file-coordination/active-edits/`
+   - If ANY other agent has declared the same files, you must:
+     - WAIT for them to finish, OR
+     - Choose different files to edit
+
+3. **ONLY EDIT DECLARED FILES**
+   - Never edit files you haven't declared
+   - Stay within your declared scope
+
+4. **RELEASE WHEN DONE**
+   - Delete your declaration file after completing edits
+   - Or move it to `.file-coordination/completed-edits/`
+
+### If You Detect a Conflict:
+- DO NOT proceed with edits
+- Report the conflict to the user
+- Wait or choose alternative files
+
+### Helper Scripts Available:
+- `./check-file-availability.sh <files>` - Check if files are available
+- `./declare-file-edits.sh <agent> <session> <files>` - Declare your intent
+- `./release-file-edits.sh <agent> <session>` - Release files after editing
+
+**This coordination prevents wasted work and merge conflicts!**
+
+---
+
+
 ## Testing Policy (Required)
 
 Goal: Every bug fix and feature ships with an executable test.

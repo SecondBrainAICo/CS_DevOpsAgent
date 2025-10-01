@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const FileCoordinator = require('./file-coordinator.cjs');
+const display = require('./display-utils.cjs');
 
 class EnhancedFileMonitor {
   constructor(sessionId, workingDir = process.cwd()) {
@@ -76,7 +77,7 @@ class EnhancedFileMonitor {
    * Handle a newly detected file change
    */
   async handleFileChange(file) {
-    console.log(`\n📝 File change detected: ${file}`);
+    console.log(`📝 File change detected: ${file}`);
     
     // Update our declared files list
     await this.updateOurDeclaredFiles();
@@ -137,19 +138,22 @@ class EnhancedFileMonitor {
     
     this.lastAlertTime[file] = Date.now();
     
-    console.log('\n' + '⚠️'.repeat(30));
-    console.log('⚠️  UNDECLARED FILE EDIT DETECTED!');
-    console.log('⚠️'.repeat(30));
+    // Orange box for warning
+    console.log('\n' + '🟧'.repeat(30));
+    console.log('🟧  UNDECLARED FILE EDIT DETECTED!');
+    console.log('🟧'.repeat(30));
     
     console.log(`\n❌ File "${file}" was modified WITHOUT declaration!`);
     console.log('\n📋 COPY THIS INSTRUCTION TO YOUR CODING AGENT:');
     console.log('─'.repeat(60));
     
-    // Generate instruction for the agent
     const instruction = `
 STOP! You are editing files without declaring them first.
 
-You MUST follow the file coordination protocol:
+⚠️ YOU MUST FOLLOW THE HOUSE RULES! ⚠️
+Read them now: cat houserules.md
+
+File Coordination Protocol (from house rules):
 
 1. BEFORE editing "${file}", create this declaration:
 
@@ -172,7 +176,9 @@ You MUST follow the file coordination protocol:
 
 3. Only proceed with editing after declaring and confirming no conflicts
 
-This prevents merge conflicts and wasted work!`;
+This prevents merge conflicts and wasted work!
+
+REMEMBER: Always follow the house rules - cat houserules.md`;
     
     console.log(instruction);
     console.log('─'.repeat(60));
@@ -182,7 +188,7 @@ This prevents merge conflicts and wasted work!`;
     fs.writeFileSync(alertFile, `# File Coordination Alert\n\n${instruction}`);
     
     console.log(`\n💾 Full instructions saved to: ${alertFile}`);
-    console.log('⚠️'.repeat(30) + '\n');
+    console.log('🟧'.repeat(30) + '\n');
   }
 
   /**
@@ -197,9 +203,10 @@ This prevents merge conflicts and wasted work!`;
     
     this.lastAlertTime[file] = Date.now();
     
-    console.log('\n' + '🚫'.repeat(30));
-    console.log('🚫  FILE CONFLICT DETECTED!');
-    console.log('🚫'.repeat(30));
+    // Red box for conflict
+    console.log('\n' + '🔴'.repeat(30));
+    console.log('🔴  FILE CONFLICT DETECTED!');
+    console.log('🔴'.repeat(30));
     
     console.log(`\n❌ File "${file}" is being edited by: ${conflict.conflictsWith}`);
     console.log(`   Session: ${conflict.session}`);
@@ -211,6 +218,9 @@ This prevents merge conflicts and wasted work!`;
     
     const instruction = `
 STOP! File conflict detected.
+
+⚠️ YOU MUST FOLLOW THE HOUSE RULES! ⚠️
+Read them now: cat houserules.md
 
 The file "${file}" is currently being edited by another agent:
 - Agent: ${conflict.conflictsWith}
@@ -234,7 +244,9 @@ ls -la .file-coordination/active-edits/
 To work on different files instead:
 1. Revert changes to "${file}"
 2. Choose alternative files
-3. Declare the new files before editing them`;
+3. Declare the new files before editing them
+
+REMEMBER: Always follow the house rules - cat houserules.md`;
     
     console.log(instruction);
     console.log('─'.repeat(60));
@@ -244,17 +256,17 @@ To work on different files instead:
     fs.writeFileSync(alertFile, `# File Conflict Alert\n\n${instruction}`);
     
     console.log(`\n💾 Full instructions saved to: ${alertFile}`);
-    console.log('🚫'.repeat(30) + '\n');
+    console.log('🔴'.repeat(30) + '\n');
   }
 
   /**
    * Start monitoring for file changes
    */
   async startMonitoring(intervalMs = 2000) {
-    console.log('🔍 Enhanced file monitoring started');
-    console.log(`   Session: ${this.sessionId}`);
-    console.log(`   Checking every ${intervalMs/1000} seconds for undeclared changes`);
-    console.log('─'.repeat(60));
+    display.header('FILE MONITOR ACTIVE', `Session: ${this.sessionId}`);
+    display.info(`Checking every ${intervalMs/1000} seconds for undeclared changes`);
+    display.keyValue('Coordination', 'ENABLED', 0);
+    display.keyValue('Alert Mode', 'Orange = Undeclared | Red = Conflict', 0);
     
     // Initial check
     await this.detectChanges();
@@ -283,7 +295,7 @@ To work on different files instead:
     try {
       fs.watch(declDir, async (eventType, filename) => {
         if (filename && filename.endsWith('.json')) {
-          console.log(`\n📁 Declaration change: ${eventType} ${filename}`);
+          console.log(`📁 Declaration change: ${eventType} ${filename}`);
           
           // Re-check our current changed files
           for (const file of this.changedFiles) {
@@ -302,7 +314,7 @@ To work on different files instead:
   stopMonitoring() {
     if (this.monitorInterval) {
       clearInterval(this.monitorInterval);
-      console.log('🛑 File monitoring stopped');
+      console.log('⚠️ File monitoring stopped');
     }
   }
 }

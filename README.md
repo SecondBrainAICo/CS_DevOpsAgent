@@ -1,10 +1,18 @@
-# CS_DevOpsAgent 🚀
+# CS_DevOpsAgent 🚀 v1.3.0
 
 [![npm version](https://badge.fury.io/js/s9n-devops-agent.svg)](https://badge.fury.io/js/s9n-devops-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-blue)](https://github.com/SecondBrainAICo/CS_DevOpsAgent)
 
-An intelligent Git automation system with multi-agent support, session management, and seamless integration with AI coding assistants like Claude, GitHub Copilot, and Cursor.
+An intelligent Git automation system with multi-agent support, real-time file coordination, session management, and seamless integration with AI coding assistants like Claude, GitHub Copilot, and Cursor.
+
+## 🆕 What's New in v1.3.0
+
+- **🟧 Real-time Undeclared Edit Detection**: Instantly alerts when files are edited without declaration
+- **🔴 File Conflict Prevention**: Detects and reports when multiple agents try to edit the same files
+- **📋 Copy-Paste Agent Instructions**: Provides exact commands to give misbehaving AI agents
+- **⚡ 2-Second Detection**: Near-instant feedback on coordination violations
+- **🔒 File-level Advisory Locks**: Prevent simultaneous edits to the same files
 
 ## 🔗 Quick Links
 
@@ -15,14 +23,25 @@ An intelligent Git automation system with multi-agent support, session managemen
 
 ## Features ✨
 
+### Core Features
 - **🤖 Multi-Agent Support**: Work with Claude, GitHub Copilot, Cursor, and other AI coding assistants
 - **📁 Git Worktree Management**: Isolated workspaces for each session to prevent conflicts
 - **🔄 Automatic Commits & Push**: Monitors changes and commits with proper messages
 - **📅 Daily Version Rollover**: Automatic version management with customizable increments
 - **🎯 Session Management**: Create, manage, and track multiple development sessions
 - **⚙️ VS Code Integration**: Seamlessly integrates with VS Code tasks
-- **🔐 Safe Concurrent Development**: Multiple agents can work simultaneously without conflicts
 - **🏷️ Smart Branching**: Automatic branch creation with configurable naming patterns
+
+### File Coordination (v1.3.0) 🆕
+- **🟧 Undeclared Edit Detection**: Orange alerts when agents edit files without declaring them
+- **🔴 Conflict Detection**: Red alerts when multiple agents try to edit the same files
+- **📝 Declaration Protocol**: Agents must declare files before editing to prevent conflicts
+- **⚡ Real-time Monitoring**: Detects violations within 2 seconds
+- **📋 Actionable Instructions**: Provides copy-paste commands to correct agent behavior
+- **🔒 Advisory Locks**: File-level coordination without blocking legitimate work
+
+### Infrastructure
+- **🔐 Safe Concurrent Development**: Multiple agents can work simultaneously without conflicts
 - **🐋 Docker Auto-Restart**: Automatically restart Docker containers after code push (v1.2.0)
 
 ## Installation 📦
@@ -110,8 +129,82 @@ I'm working in a DevOps-managed session with the following setup:
 Please switch to this directory before making any changes:
 cd "/path/to/worktree"
 
+IMPORTANT: File Coordination Protocol
+Before editing ANY files, you MUST:
+1. Declare your intent by creating .file-coordination/active-edits/<agent>-8a3s-45b1.json
+2. List all files you plan to edit in that JSON file
+3. Check for conflicts with other agents' declarations
+4. Only proceed if no conflicts exist
+5. Release the files when done
+
 Write commit messages to: .devops-commit-8a3s-45b1.msg
 The DevOps agent will automatically commit and push changes.
+```
+
+## File Coordination System 🔒 (v1.3.0)
+
+### Overview
+
+The file coordination system prevents multiple AI agents from editing the same files simultaneously, avoiding merge conflicts and wasted work.
+
+### How It Works
+
+1. **Declaration Phase**: Before editing, agents declare which files they'll modify
+2. **Conflict Check**: System checks if files are already being edited
+3. **Real-time Monitoring**: Detects undeclared edits within 2 seconds
+4. **Alert System**: 
+   - 🟧 **Orange Alert**: Files edited without declaration
+   - 🔴 **Red Alert**: Files being edited by another agent
+5. **Copy-Paste Instructions**: Provides exact commands to correct agent behavior
+
+### Setup File Coordination
+
+```bash
+# Initialize the coordination system
+./scripts/setup-file-coordination.sh
+
+# Test the system
+./test_scripts/test-file-coordination.sh
+```
+
+### For AI Agents
+
+Agents should follow this protocol:
+
+```json
+// Before editing, create: .file-coordination/active-edits/<agent>-<session>.json
+{
+  "agent": "claude",
+  "session": "8a3s-45b1",
+  "files": ["src/main.js", "src/utils.js"],
+  "operation": "edit",
+  "reason": "Implementing authentication feature",
+  "declaredAt": "2025-09-30T12:00:00Z",
+  "estimatedDuration": 300
+}
+```
+
+### Alert Examples
+
+#### Undeclared Edit Alert (🟧 Orange)
+```
+🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧
+🟧  UNDECLARED FILE EDIT DETECTED!
+🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧
+
+❌ File "src/main.js" was modified WITHOUT declaration!
+📋 COPY THIS INSTRUCTION TO YOUR CODING AGENT:
+[Instructions on how to declare the file]
+```
+
+#### Conflict Alert (🔴 Red)
+```
+🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
+🔴  FILE CONFLICT DETECTED!
+🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
+
+❌ File "src/main.js" is being edited by: claude-session-abc123
+[Instructions on how to resolve]
 ```
 
 ## Commands 📝
