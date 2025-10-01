@@ -5,6 +5,33 @@ All notable changes to s9n-devops-agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-09-30
+
+### Added
+- 🟧 Real-time undeclared edit detection with orange alerts
+- 🔴 File conflict detection with red alerts for actual conflicts  
+- 📋 Copy-paste instructions for correcting agent behavior
+- ⚡ 2-second detection interval for near-instant feedback
+- 🔒 File-level advisory locks to prevent simultaneous edits
+- Enhanced file monitor (`file-monitor-enhanced.cjs`) for real-time detection
+- File coordinator (`file-coordinator.cjs`) for managing declarations and conflicts
+- Setup script for file coordination system (`setup-file-coordination.sh`)
+- Helper scripts: `check-file-availability.sh`, `declare-file-edits.sh`, `release-file-edits.sh`
+- Comprehensive test suite for coordination system (`test-file-coordination.sh`)
+- Updated house rules with mandatory file coordination protocol
+- Session coordinator now includes coordination instructions for agents
+
+### Changed
+- House rules now include file coordination protocol at the top
+- Session setup instructions now include file declaration requirements
+- Alert colors: Orange for undeclared edits, Red for actual conflicts
+- Module files renamed to `.cjs` extension for CommonJS compatibility
+
+### Fixed
+- Multiple agents can now work safely without file conflicts
+- Reduced merge conflicts through proactive coordination
+- Prevention of wasted work from simultaneous edits
+
 ## [1.2.0] - 2025-09-30
 
 ### Added

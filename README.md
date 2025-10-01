@@ -1,10 +1,19 @@
-# CS_DevOpsAgent 🚀
+# CS_DevOpsAgent 🚀 v1.3.0
 
 [![npm version](https://badge.fury.io/js/s9n-devops-agent.svg)](https://badge.fury.io/js/s9n-devops-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-blue)](https://github.com/SecondBrainAICo/CS_DevOpsAgent)
 
-An intelligent Git automation system with multi-agent support, session management, and seamless integration with AI coding assistants like Claude, GitHub Copilot, and Cursor.
+An intelligent Git automation system with multi-agent support, real-time file coordination, session management, and seamless integration with AI coding assistants like Claude, GitHub Copilot, and Cursor.
+
+## 🆕 What's New in v1.3.0
+
+- **📚 Intelligent House Rules System**: Auto-creates and updates project conventions for AI agents
+- **🟧 Real-time Undeclared Edit Detection**: Instantly alerts when files are edited without declaration
+- **🔴 File Conflict Prevention**: Detects and reports when multiple agents try to edit the same files
+- **🔄 Smart Version Updates**: House rules sections update independently while preserving user content
+- **🚀 Streamlined Setup**: One-command setup with `npm start` - handles everything automatically
+- **🔧 Self-Healing**: Automatically recovers if house rules are deleted
 
 ## 🔗 Quick Links
 
@@ -15,14 +24,25 @@ An intelligent Git automation system with multi-agent support, session managemen
 
 ## Features ✨
 
+### Core Features
 - **🤖 Multi-Agent Support**: Work with Claude, GitHub Copilot, Cursor, and other AI coding assistants
 - **📁 Git Worktree Management**: Isolated workspaces for each session to prevent conflicts
 - **🔄 Automatic Commits & Push**: Monitors changes and commits with proper messages
 - **📅 Daily Version Rollover**: Automatic version management with customizable increments
 - **🎯 Session Management**: Create, manage, and track multiple development sessions
 - **⚙️ VS Code Integration**: Seamlessly integrates with VS Code tasks
-- **🔐 Safe Concurrent Development**: Multiple agents can work simultaneously without conflicts
 - **🏷️ Smart Branching**: Automatic branch creation with configurable naming patterns
+
+### File Coordination (v1.3.0) 🆕
+- **🟧 Undeclared Edit Detection**: Orange alerts when agents edit files without declaring them
+- **🔴 Conflict Detection**: Red alerts when multiple agents try to edit the same files
+- **📝 Declaration Protocol**: Agents must declare files before editing to prevent conflicts
+- **⚡ Real-time Monitoring**: Detects violations within 2 seconds
+- **📋 Actionable Instructions**: Provides copy-paste commands to correct agent behavior
+- **🔒 Advisory Locks**: File-level coordination without blocking legitimate work
+
+### Infrastructure
+- **🔐 Safe Concurrent Development**: Multiple agents can work simultaneously without conflicts
 - **🐋 Docker Auto-Restart**: Automatically restart Docker containers after code push (v1.2.0)
 
 ## Installation 📦
@@ -66,36 +86,33 @@ npm test
 
 ## Quick Start 🚀
 
-### First-Time Setup (Required After Installation)
+### One-Command Setup & Start
+
+```bash
+# Just run npm start - it handles everything!
+npm start
+
+# On first run, it will:
+# ✅ Set up house rules for AI agents
+# ✅ Configure file coordination system
+# ✅ Set up your developer initials
+# ✅ Configure version strategy
+# ✅ Start the session manager
+```
+
+That's it! No separate setup commands needed.
+
+### Alternative Setup Methods
 
 ```bash
 # Navigate to your project
 cd /path/to/your/project
 
-# Run the interactive setup wizard
+# Run the interactive setup wizard (for manual setup)
 s9n-devops-agent setup
-```
 
-**The setup wizard will:**
-1. 📝 Ask for your 3-letter developer initials (for branch naming)
-2. 🔢 Configure version numbering strategy
-3. 🕐 Set timezone for daily rollover
-4. 📁 Create `local_deploy/` directory structure
-5. ⚙️ Generate configuration files
-6. 📋 Update `.gitignore` with agent files
-
-**Important Files to Create:**
-- `docs/houserules.md` - Instructions for AI assistants ([template here](docs/INSTALLATION_GUIDE.md#house-rules-setup))
-- `local_deploy/project-settings.json` - Created automatically by setup
-
-### Start a DevOps Session
-
-```bash
-# Start the interactive session manager
+# Or start a session directly
 s9n-devops-agent start
-
-# Or create a new session directly
-s9n-devops-agent create --task "implement-api"
 ```
 
 ### Working with AI Assistants
@@ -108,11 +125,96 @@ I'm working in a DevOps-managed session with the following setup:
 - Working Directory: /path/to/worktree
 - Task: implement-api
 
-Please switch to this directory before making any changes:
-cd "/path/to/worktree"
+CRITICAL FIRST STEP:
+1. Read and follow the house rules: cat "/path/to/worktree/houserules.md"
+2. Switch to the working directory: cd "/path/to/worktree"
+
+FILE COORDINATION PROTOCOL (from house rules):
+Before editing ANY files, you MUST:
+- Declare your intent in .file-coordination/active-edits/<agent>-8a3s-45b1.json
+- Check for conflicts with other agents
+- Only edit files you've declared
+- Release files when done
 
 Write commit messages to: .devops-commit-8a3s-45b1.msg
 The DevOps agent will automatically commit and push changes.
+```
+
+## House Rules & File Coordination System 📚🔒
+
+### House Rules System (NEW!)
+
+The DevOps Agent automatically manages "house rules" that teach AI agents your project conventions:
+
+**Features:**
+- **Auto-Creation**: Created automatically on first run
+- **Smart Updates**: Updates only DevOps sections, preserves your custom rules
+- **Version Tracking**: Each section independently versioned with checksums
+- **Self-Healing**: Automatically recreates if deleted
+- **CI/CD Ready**: Works in automated environments
+
+**House Rules Commands:**
+```bash
+# Check status
+npm run house-rules:status
+
+# Update or create
+npm run house-rules:update
+
+# Health check and repair
+npm run house-rules:repair
+```
+
+### File Coordination System
+
+Prevents multiple AI agents from editing the same files simultaneously:
+
+1. **Declaration Phase**: Agents declare which files they'll modify
+2. **Conflict Check**: System checks if files are already being edited
+3. **Real-time Monitoring**: Detects violations within 2 seconds
+4. **Alert System**: 
+   - 🟧 **Orange Alert**: Files edited without declaration
+   - 🔴 **Red Alert**: Files being edited by another agent
+5. **Copy-Paste Instructions**: Provides exact commands to correct agent behavior
+
+### For AI Agents
+
+Agents should follow this protocol:
+
+```json
+// Before editing, create: .file-coordination/active-edits/<agent>-<session>.json
+{
+  "agent": "claude",
+  "session": "8a3s-45b1",
+  "files": ["src/main.js", "src/utils.js"],
+  "operation": "edit",
+  "reason": "Implementing authentication feature",
+  "declaredAt": "2025-09-30T12:00:00Z",
+  "estimatedDuration": 300
+}
+```
+
+### Alert Examples
+
+#### Undeclared Edit Alert (🟧 Orange)
+```
+🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧
+🟧  UNDECLARED FILE EDIT DETECTED!
+🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧🟧
+
+❌ File "src/main.js" was modified WITHOUT declaration!
+📋 COPY THIS INSTRUCTION TO YOUR CODING AGENT:
+[Instructions on how to declare the file]
+```
+
+#### Conflict Alert (🔴 Red)
+```
+🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
+🔴  FILE CONFLICT DETECTED!
+🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
+
+❌ File "src/main.js" is being edited by: claude-session-abc123
+[Instructions on how to resolve]
 ```
 
 ## Commands 📝

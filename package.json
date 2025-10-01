@@ -1,6 +1,6 @@
 {
   "name": "s9n-devops-agent",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "CS_DevOpsAgent - Intelligent Git Automation System with multi-agent support and session management",
   "type": "module",
   "main": "src/cs-devops-agent-worker.js",
@@ -25,6 +25,10 @@
     "devops:close": "node src/close-session.js",
     "devops:cleanup": "./cleanup-sessions.sh",
     "setup": "node src/setup-cs-devops-agent.js",
+    "postinstall": "node scripts/post-install.js || true",
+    "house-rules:status": "node src/house-rules-manager.js status",
+    "house-rules:update": "node src/house-rules-manager.js update",
+    "house-rules:repair": "./scripts/repair-house-rules.sh",
     "test": "jest test_cases/",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

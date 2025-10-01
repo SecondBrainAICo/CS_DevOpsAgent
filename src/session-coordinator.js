@@ -461,7 +461,13 @@ class SessionCoordinator {
     });
     
     console.log(`\n${CONFIG.colors.yellow}═══ Auto-merge Configuration ═══${CONFIG.colors.reset}`);
-    console.log(`${CONFIG.colors.dim}(Automatically merge today's work into a target branch)${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}Automatically merge your daily work branches into a target branch.${CONFIG.colors.reset}`);
+    console.log();
+    console.log(`${CONFIG.colors.bright}How it works:${CONFIG.colors.reset}`);
+    console.log(`  • The agent creates dated branches (e.g., ${CONFIG.colors.blue}agent_dev_2025-10-01${CONFIG.colors.reset})`);
+    console.log(`  • At the end of each day, your work is automatically merged`);
+    console.log(`  • This keeps your target branch (main/develop) up to date`);
+    console.log(`  • Prevents accumulation of stale feature branches`);
     
     // Ask if they want auto-merge
     const autoMerge = await new Promise((resolve) => {
@@ -784,6 +790,28 @@ INSTRUCTIONS:
 - **Worktree Path:** \`${worktreePath}\`
 - **Branch:** \`${branchName}\`
 
+## 🚨 CRITICAL: File Coordination Protocol
+
+**BEFORE editing any files, you MUST:**
+
+1. **Declare your intent** by creating:
+   \`\`\`json
+   // File: .file-coordination/active-edits/<agent>-${sessionId}.json
+   {
+     "agent": "<your-name>",
+     "session": "${sessionId}",
+     "files": ["list", "files", "to", "edit"],
+     "operation": "edit",
+     "reason": "${task}",
+     "declaredAt": "<ISO-8601-timestamp>",
+     "estimatedDuration": 300
+   }
+   \`\`\`
+
+2. **Check for conflicts** - read all files in \`.file-coordination/active-edits/\`
+3. **Only proceed if no conflicts** - wait or choose different files if blocked
+4. **Release files when done** - delete your declaration after edits
+
 ## Instructions for Claude/Cline
 
 ### Step 1: Navigate to Your Worktree
@@ -797,18 +825,25 @@ git branch --show-current
 # Should output: ${branchName}
 \`\`\`
 
-### Step 3: Work on Your Task
+### Step 3: Declare Files Before Editing
+Create your declaration in \`.file-coordination/active-edits/\`
+
+### Step 4: Work on Your Task
 Make changes for: **${task}**
 
-### Step 4: Commit Your Changes
+### Step 5: Commit Your Changes
 Write your commit message to the session-specific file:
 \`\`\`bash
 echo "feat: your commit message here" > .devops-commit-${sessionId}.msg
 \`\`\`
 
-### Step 5: Automatic Processing
+### Step 6: Release Your File Locks
+Delete your declaration from \`.file-coordination/active-edits/\`
+
+### Step 7: Automatic Processing
 The DevOps agent will automatically:
 - Detect your changes
+- Check for coordination conflicts
 - Read your commit message
 - Commit and push to the remote repository
 - Clear the message file
@@ -853,11 +888,21 @@ The DevOps agent will automatically:
     console.log(`- Working Directory: ${instructions.worktreePath}`);
     console.log(`- Task: ${task || 'development'}`);
     console.log(``);
-    console.log(`Please switch to this directory before making any changes:`);
-    console.log(`cd "${instructions.worktreePath}"`);
+    console.log(`CRITICAL FIRST STEP:`);
+    console.log(`1. Read and follow the house rules: cat "${instructions.worktreePath}/houserules.md"`);
+    console.log(`2. Switch to the working directory: cd "${instructions.worktreePath}"`);
+    console.log(``);
+    console.log(`FILE COORDINATION PROTOCOL (from house rules at ${instructions.worktreePath}/houserules.md):`);
+    console.log(`Before editing ANY files, you MUST:`);
+    console.log(`- Declare your intent in .file-coordination/active-edits/<agent>-${sessionId}.json`);
+    console.log(`- Check for conflicts with other agents`);
+    console.log(`- Only edit files you've declared`);
+    console.log(`- Release files when done`);
     console.log(``);
     console.log(`Write commit messages to: .devops-commit-${sessionId}.msg`);
     console.log(`The DevOps agent will automatically commit and push changes.`);
+    console.log(``);
+    console.log(`Remember: ALWAYS check house rules first for the latest protocols!`);
     console.log();
     
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);

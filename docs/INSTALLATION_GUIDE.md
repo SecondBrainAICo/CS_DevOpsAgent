@@ -1,419 +1,359 @@
-# CS_DevOpsAgent Installation & Setup Guide
+# Installation & Setup Guide
 
 ## Table of Contents
-- [What Gets Installed](#what-gets-installed)
-- [Installation Process](#installation-process)
-- [Post-Installation Setup](#post-installation-setup)
-- [Configuration Files](#configuration-files)
-- [House Rules Setup](#house-rules-setup)
-- [Environment Variables](#environment-variables)
-- [Troubleshooting](#troubleshooting)
+1. [Prerequisites](#prerequisites)
+2. [Installation Methods](#installation-methods)
+3. [Quick Start (One Command!)](#quick-start-one-command)
+4. [House Rules System](#house-rules-system)
+5. [Configuration Options](#configuration-options)
+6. [CI/CD Setup](#cicd-setup)
+7. [Troubleshooting](#troubleshooting)
 
-## What Gets Installed
+## Prerequisites
 
-When you run `npm install -g s9n-devops-agent`, the following components are installed:
+- **Node.js**: Version 16.0.0 or higher
+- **Git**: Version 2.20.0 or higher (for worktree support)
+- **Operating System**: macOS, Linux, or Windows with WSL
+- **Terminal**: Any modern terminal (zsh, bash, fish)
 
-### 1. **Binary Executable** (`s9n-devops-agent`)
-- Located in your global npm bin directory (e.g., `/usr/local/bin` or `~/.npm-global/bin`)
-- Provides the main CLI interface for all DevOps agent commands
-- Automatically added to your PATH for global access
+## Installation Methods
 
-### 2. **Core Source Files** (in npm global node_modules)
-```
-s9n-devops-agent/
-├── bin/
-│   └── cs-devops-agent         # Main CLI entry point
-├── src/
-│   ├── cs-devops-agent-worker.js    # Core worker that monitors changes
-│   ├── session-coordinator.js       # Multi-session management
-│   ├── worktree-manager.js         # Git worktree isolation
-│   ├── claude-session-manager.js   # AI assistant integration
-│   ├── docker-utils.js             # Docker container management
-│   ├── setup-cs-devops-agent.js    # Interactive setup wizard
-│   └── close-session.js            # Session cleanup utilities
-├── docs/
-│   ├── houserules.md              # AI assistant guidelines
-│   ├── SESSION_MANAGEMENT.md      # Session documentation
-│   └── TESTING.md                  # Testing guidelines
-├── start-devops-session.sh        # Session starter script
-└── cleanup-sessions.sh            # Cleanup utility
-```
-
-### 3. **Dependencies**
-- `chokidar@^3.5.3` - File system monitoring for auto-commits
-- `execa@^7.1.1` - Process execution for Git commands
-
-### 4. **No Project Files Are Modified**
-- The global installation does NOT modify any files in your project
-- All configuration is stored separately
-- Your project remains clean until you run setup
-
-## Installation Process
-
-### Step 1: Install the Package
+### Method 1: NPM Package (Recommended)
 
 ```bash
 # Global installation (recommended)
 npm install -g s9n-devops-agent
 
-# Verify installation
-s9n-devops-agent --help
+# Or local installation
+npm install --save-dev s9n-devops-agent
 ```
 
-### Step 2: Check Installation Location
+### Method 2: From Source
 
 ```bash
-# Find where npm installed the package
-npm list -g s9n-devops-agent
+# Clone the repository
+git clone https://github.com/SecondBrainAICo/CS_DevOpsAgent.git
+cd CS_DevOpsAgent
 
-# Check the binary location
-which s9n-devops-agent
+# Install dependencies
+npm install
 
-# View installed files
-ls -la $(npm root -g)/s9n-devops-agent/
+# Link globally for CLI access
+npm link
 ```
 
-## Post-Installation Setup
+## Quick Start (One Command!)
 
-### Step 1: Run the Setup Wizard
-
-Navigate to your project directory and run:
+### 🚀 The Simplest Setup Ever
 
 ```bash
-cd /path/to/your/project
-s9n-devops-agent setup
+# Just run this - it handles EVERYTHING!
+npm start
 ```
 
-The setup wizard will:
+**That's it!** On first run, `npm start` will:
 
-1. **Prompt for Developer Initials** (3 letters)
-   - Used for branch naming (e.g., `dev_abc_feature`)
-   - Stored globally in `~/.devops-agent/settings.json`
+1. ✅ **Check for house rules** - Create if missing, update if needed
+2. ✅ **Set up file coordination** - Prevent AI agents from conflicting
+3. ✅ **Configure your identity** - Set developer initials
+4. ✅ **Set version strategy** - Configure how versions increment
+5. ✅ **Start session manager** - Ready to create AI coding sessions
 
-2. **Configure Version Strategy**
-   - Daily version rollover settings
-   - Version increment size (0.01, 0.1, etc.)
-   - Timezone for daily rollover
+### What Happens on First Run?
 
-3. **Create Project Configuration**
-   - Creates `local_deploy/` directory if not exists
-   - Generates `local_deploy/project-settings.json`
-   - Sets up `.gitignore` entries
+```
+$ npm start
 
-4. **Configure VS Code Integration** (optional)
-   - Creates `.vscode/tasks.json` for easy startup
-   - Adds environment variables to `.vscode/settings.json`
+═══════════════════════════════════════════════════════════
+First-time Setup: House Rules & File Coordination
+═══════════════════════════════════════════════════════════
 
-### Step 2: Create House Rules File
+House rules help AI agents understand your project conventions and
+prevent conflicts when multiple agents work on the same codebase.
 
-The house rules file tells AI assistants how to work with your project:
+Would you like to:
+  1) Create comprehensive house rules (recommended)
+  2) Specify path to existing house rules
+  3) Skip for now
+
+Your choice [1]: 1
+✓ Will create comprehensive house rules at: houserules.md
+
+Setting up file coordination system...
+✓ File coordination directories created
+✓ Setup complete! AI agents will now follow house rules and coordinate file edits.
+```
+
+## House Rules System
+
+### What Are House Rules?
+
+House rules are project conventions that teach AI agents:
+- How to write code in your style
+- How to coordinate with other agents
+- How to format commits
+- How to handle documentation
+
+### Automatic Management
+
+The DevOps Agent uses an intelligent versioning system:
+
+```markdown
+<!-- DEVOPS_AGENT_SECTION:file-coordination:1.3.0:a5f2c891 -->
+## 🚨 CRITICAL: File Coordination Protocol
+[content managed by DevOps Agent]
+<!-- END_DEVOPS_AGENT_SECTION:file-coordination -->
+
+## Your Custom Rules
+[your content is never touched]
+```
+
+### House Rules Commands
 
 ```bash
-# Create the docs directory if it doesn't exist
-mkdir -p docs
+# Check if updates are available
+npm run house-rules:status
 
-# Create house rules from template
-cat > docs/houserules.md << 'EOF'
-# House Rules for AI Assistants
+# Update or create house rules
+npm run house-rules:update
 
-## Working with CS_DevOpsAgent
-
-When you start working on this project, you'll be given:
-- A session ID (e.g., 8a3s-45b1)
-- A working directory (git worktree)
-- A commit message file path
-
-## Commit Message Rules
-
-1. Always write commit messages to the specified `.devops-commit-*.msg` file
-2. Use Conventional Commit format:
-   - `feat:` for new features
-   - `fix:` for bug fixes
-   - `docs:` for documentation
-   - `refactor:` for code refactoring
-   - `test:` for tests
-   - `chore:` for maintenance
-
-3. Include a brief description and bullet points for changes:
-   ```
-   feat: implement user authentication
-
-   - Add login endpoint
-   - Create JWT token generation
-   - Add password hashing
-   ```
-
-## Testing Policy
-
-1. Every bug fix must have a test
-2. Tests go in `test_cases/<area>/<component>/`
-3. Name format: `YYYYMMDD_<description>_spec.<ext>`
-
-## Infrastructure Changes
-
-When modifying configuration files, package.json, or docker files:
-- Document changes in `/Documentation/infrastructure.md`
-- Use `infra:` prefix in commit messages
-
-## Multi-Agent Coordination
-
-Before making changes:
-1. Check for `.ac-prep/` directory for other agents' plans
-2. Write your plan to `.ac-prep/<agent-name>.json`
-3. Wait for acknowledgment in `.ac/ack/<agent-name>.json`
-4. Only edit files within your acknowledged scope
-
-## Environment Variables
-
-Key variables that might be set:
-- `AGENT_NAME` or `AI_AGENT` - Your agent identifier
-- `AC_BRANCH_PREFIX` - Branch naming prefix
-- `AC_DEBUG` - Enable debug output
-- `AC_USE_WORKTREE` - Worktree management (usually auto)
-EOF
-
-echo "Created docs/houserules.md"
+# Health check and repair if deleted
+npm run house-rules:repair
 ```
 
-### Step 3: Initialize Git Configuration
+### Updates Preserve Your Content
+
+When you update the DevOps Agent:
+1. Post-install checks for house rules updates
+2. Only updates DevOps-managed sections
+3. Your custom rules are NEVER modified
+4. Backups are created before any changes
+
+## Configuration Options
+
+### Environment Variables
 
 ```bash
-# Ensure proper git configuration
-git config user.name "Your Name"
-git config user.email "your.email@example.com"
+# Auto-setup without prompts (useful for CI)
+export DEVOPS_AUTO_SETUP=true
 
-# Set up gitignore for DevOps agent files
-echo "# CS_DevOpsAgent files" >> .gitignore
-echo ".devops-commit-*.msg" >> .gitignore
-echo "local_deploy/sessions/" >> .gitignore
-echo "local_deploy/worktrees/" >> .gitignore
-echo "local_deploy/logs/" >> .gitignore
-echo ".ac/" >> .gitignore
-echo ".ac-prep/" >> .gitignore
-echo ".ac-shards.json" >> .gitignore
+# Developer initials (used in branch names)
+export AC_BRANCH_PREFIX="dev_abc_"
+
+# Daily branch rollover is now automatic (no prompting)
+# Version increments daily: v0.20 → v0.21 → v0.22
+
+# Timezone for daily rollover
+export AC_TZ="America/New_York"
+
+# Debug mode
+export AC_DEBUG=true
 ```
 
-## Configuration Files
+### Configuration Files
 
-### 1. Global Settings (`~/.devops-agent/settings.json`)
-
-Created after first setup, contains:
+**Global Settings** (`~/.devops-agent/settings.json`):
 ```json
 {
   "developerInitials": "abc",
   "email": "developer@example.com",
-  "defaultTimezone": "America/New_York"
+  "configured": true
 }
 ```
 
-### 2. Project Settings (`local_deploy/project-settings.json`)
-
-Per-project configuration:
+**Project Settings** (`local_deploy/project-settings.json`):
 ```json
 {
-  "version": {
-    "prefix": "v0.",
-    "startMinor": 20,
-    "increment": 1
+  "versioningStrategy": {
+    "prefix": "v1.",
+    "startMinor": 30,
+    "dailyIncrement": 1,
+    "configured": true
   },
-  "autoMerge": {
+  "autoMergeConfig": {
     "enabled": true,
-    "targetBranch": "main"
-  },
-  "docker": {
-    "autoRestart": false,
-    "rebuildOnRestart": false
+    "targetBranch": "main",
+    "strategy": "pull-request"
   }
 }
 ```
 
-### 3. Session Files (created during runtime)
+## CI/CD Setup
 
-```
-local_deploy/
-├── sessions/          # Active session metadata
-├── session-locks/     # Coordination locks
-├── worktrees/        # Git worktrees for isolation
-└── logs/             # Session logs
-```
+### Automatic Setup in CI
 
-## House Rules Setup
+The DevOps Agent detects CI environments and auto-configures:
 
-The house rules file (`docs/houserules.md`) is essential for AI assistants to understand your project workflow. Key sections to customize:
+```yaml
+# GitHub Actions Example
+- name: Install DevOps Agent
+  run: npm install -g s9n-devops-agent
 
-### Testing Requirements
-```markdown
-## Testing Policy
-Goal: Every feature ships with tests
-Location: test_cases/<your-structure>
-Framework: [pytest/jest/go test/rspec]
+# House rules are auto-created in CI
+# No prompts, fully automated
 ```
 
-### Code Style
-```markdown
-## Code Style Guidelines
-- Indentation: [2 spaces/4 spaces/tabs]
-- Line length: [80/100/120]
-- Quote style: [single/double]
-```
+### Supported CI Environments
 
-### Project-Specific Rules
-```markdown
-## Project Conventions
-- API endpoints: /api/v1/<resource>
-- Database migrations: db/migrate/
-- Environment configs: config/environments/
-```
+Automatically detected:
+- GitHub Actions (`GITHUB_ACTIONS`)
+- GitLab CI (`GITLAB_CI`)
+- Jenkins (`JENKINS_URL`)
+- Travis CI (`TRAVIS`)
+- CircleCI (`CI`)
 
-## Environment Variables
+### Force Automation
 
-### Core Variables (set automatically)
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `AC_BRANCH_PREFIX` | Branch naming prefix | `dev_<initials>_` |
-| `AC_PUSH` | Auto-push to remote | `true` |
-| `AC_DEBUG` | Debug logging | `false` |
-| `AC_TZ` | Timezone for rollover | `America/New_York` |
-
-### Advanced Variables (optional)
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `AC_VERSION_PREFIX` | Version prefix | `v0.` |
-| `AC_VERSION_INCREMENT` | Daily increment | `1` (0.01) or `10` (0.1) |
-| `AC_USE_WORKTREE` | Worktree mode | `auto` |
-| `AC_SHARD_STRATEGY` | Conflict handling | `block`/`queue`/`branch` |
-| `AC_MSG_MIN_BYTES` | Min commit message | `20` |
-| `AC_DEBOUNCE_MS` | Change debounce | `1500` |
-
-### Setting Environment Variables
-
-**Bash/Zsh (.bashrc/.zshrc):**
 ```bash
-export AC_BRANCH_PREFIX="dev_abc_"
-export AC_DEBUG=true
-export AC_TZ="America/New_York"
+# Force automatic setup (no prompts)
+DEVOPS_AUTO_SETUP=true npm start
 ```
 
-**VS Code (settings.json):**
-```json
-{
-  "terminal.integrated.env.osx": {
-    "AC_BRANCH_PREFIX": "dev_abc_",
-    "AC_DEBUG": "true"
-  }
-}
+## Typical Workflow
+
+### 1. Start Your Day
+
+```bash
+npm start
+# Creates new daily branch automatically
+# No rollover prompts - it's automatic!
+```
+
+### 2. Create a Session
+
+```
+Select an Option:
+N) Create a new session
+
+Enter task/feature name: implement-api
+Agent type [claude]: claude
+
+Creating session...
+✓ Worktree created
+✓ House rules applied
+```
+
+### 3. Copy Instructions to AI
+
+The tool provides exact instructions for your AI:
+
+```
+CRITICAL FIRST STEP:
+1. Read and follow the house rules: cat "/path/to/worktree/houserules.md"
+2. Switch to the working directory: cd "/path/to/worktree"
+
+FILE COORDINATION PROTOCOL (from house rules):
+Before editing ANY files, you MUST:
+- Declare your intent in .file-coordination/active-edits/
+- Check for conflicts with other agents
+- Only edit files you've declared
+```
+
+### 4. AI Works in Isolation
+
+- AI writes code in its worktree
+- Commits are automatic
+- Pushes happen seamlessly
+- No conflicts with other agents
+
+### 5. End of Day
+
+```bash
+# Sessions auto-merge if configured
+# Daily branches roll over at midnight
+# Everything is automated!
 ```
 
 ## Troubleshooting
 
-### Installation Issues
+### House Rules Issues
 
-**Command not found after installation:**
+**House rules deleted accidentally?**
 ```bash
-# Check npm bin directory
-npm bin -g
-
-# Add to PATH if needed
-export PATH="$PATH:$(npm bin -g)"
+npm run house-rules:repair
+# Auto-detects and recreates
 ```
 
-**Permission errors during global install:**
+**House rules out of date?**
 ```bash
-# Fix npm permissions
-mkdir ~/.npm-global
-npm config set prefix '~/.npm-global'
-echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
+npm start
+# Prompts to update on startup
 ```
 
-### Setup Issues
-
-**Setup wizard not finding project:**
+**Want to force update?**
 ```bash
-# Ensure you're in a git repository
-git init
-
-# Or specify project root
-AC_PROJECT_ROOT=/path/to/project s9n-devops-agent setup
+npm run house-rules:update
 ```
 
-**Worktree creation fails:**
+### Session Issues
+
+**Session not starting?**
 ```bash
-# Check git version (needs 2.5+)
-git --version
+# Check prerequisites
+node --version  # Should be 16+
+git --version   # Should be 2.20+
 
-# Clean up broken worktrees
-git worktree prune
-
-# List existing worktrees
-git worktree list
+# Clean up and retry
+npm run devops:cleanup
+npm start
 ```
 
-### Runtime Issues
+**AI not following house rules?**
+- Ensure AI reads: `cat houserules.md` first
+- Check coordination: `ls .file-coordination/active-edits/`
+- View alerts: `ls .coordination-alert-*.md`
 
-**Agent not detecting changes:**
+### Permission Issues
+
 ```bash
-# Check if running
-ps aux | grep devops-agent
+# Fix script permissions
+chmod +x scripts/*.sh
+chmod +x start-devops-session.sh
 
-# Enable debug mode
-AC_DEBUG=true s9n-devops-agent start
-
-# Check file watchers
-ls -la .devops-commit-*.msg
+# Fix npm permissions (if needed)
+npm config set prefix ~/.npm-global
+export PATH=~/.npm-global/bin:$PATH
 ```
 
-**Commit messages not being picked up:**
+## Advanced Features
+
+### Multi-Agent Setup
+
 ```bash
-# Verify message file exists
-ls -la .devops-commit-*.msg
+# Terminal 1: Claude on backend
+npm start
+# Create session for "backend-api"
 
-# Check minimum size
-wc -c .devops-commit-*.msg  # Should be > 20 bytes
+# Terminal 2: Copilot on frontend  
+npm start
+# Create session for "ui-components"
 
-# Write test message
-echo "test: checking agent" > .devops-commit-test.msg
+# Both work without conflicts!
 ```
 
-**Multi-agent conflicts:**
-```bash
-# Check coordination files
-ls -la .ac-prep/        # Prep requests
-ls -la .ac/ack/         # Acknowledgments
-cat .ac-shards.json     # Shard allocations
+### Docker Integration
 
-# Clear stuck coordination
-rm -rf .ac-prep .ac
+```bash
+# If docker-compose.yml exists:
+npm start
+# -> Auto-restart Docker containers? Y
+# -> Rebuild on restart? N
+# -> Service to restart: app
+
+# Now Docker restarts after each push!
 ```
 
-## Next Steps
+### Custom Configurations
 
-After installation and setup:
+```bash
+# Skip all prompts with environment
+export DEVOPS_AUTO_SETUP=true
+export AC_BRANCH_PREFIX="team_"
+export AC_VERSION_PREFIX="v2."
+export AC_TZ="Europe/London"
 
-1. **Start a session:**
-   ```bash
-   s9n-devops-agent start
-   ```
-
-2. **Copy instructions to your AI assistant**
-
-3. **Begin development** - The agent will handle commits automatically
-
-4. **Monitor activity:**
-   ```bash
-   # View logs
-   tail -f local_deploy/logs/devops-*.log
-   
-   # Check session status
-   s9n-devops-agent list
-   ```
-
-5. **Close session when done:**
-   ```bash
-   s9n-devops-agent close <session-id>
-   ```
+npm start  # Uses all environment settings
+```
 
 ## Getting Help
 
@@ -423,4 +363,4 @@ After installation and setup:
 
 ---
 
-**Note**: This agent is designed to work alongside AI coding assistants. It does NOT modify your code - it only manages git operations based on the commit messages your AI assistant writes.
+**Remember**: The beauty of v1.3.0 is that `npm start` handles everything. No complex setup, no multiple commands - just run and go! 🚀

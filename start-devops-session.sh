@@ -237,6 +237,142 @@ select_session() {
     fi
 }
 
+# Function to setup house rules and file coordination
+setup_house_rules() {
+    local ROOT="$1"
+    local COORD_DIR="$ROOT/.file-coordination"
+    
+    # Check if we need to update existing house rules (even if coordination is set up)
+    if [[ -f "$SCRIPT_DIR/src/house-rules-manager.js" ]]; then
+        # Check status of house rules
+        local STATUS=$(node "$SCRIPT_DIR/src/house-rules-manager.js" status 2>/dev/null || echo '{"needsUpdate": false, "exists": true}')
+        local NEEDS_UPDATE=$(echo "$STATUS" | grep -o '"needsUpdate"[[:space:]]*:[[:space:]]*true' || echo "")
+        local EXISTS=$(echo "$STATUS" | grep -o '"exists"[[:space:]]*:[[:space:]]*true' || echo "")
+        
+        # Check if house rules were deleted (coordination exists but house rules don't)
+        if [[ -d "$COORD_DIR" ]] && [[ -z "$EXISTS" ]]; then
+            echo -e "${YELLOW}⚠ House rules file appears to be missing!${NC}"
+            echo "The file coordination system is set up, but house rules are gone."
+            echo
+            echo -n "Recreate house rules? (Y/n): "
+            read RECREATE
+            if [[ "${RECREATE}" != "n" ]] && [[ "${RECREATE}" != "N" ]]; then
+                echo -e "${BLUE}Recreating house rules...${NC}"
+                node "$SCRIPT_DIR/src/house-rules-manager.js" update 2>/dev/null
+                echo -e "${GREEN}✓ House rules recreated!${NC}"
+                echo
+            fi
+        elif [[ -n "$NEEDS_UPDATE" ]]; then
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${BOLD}House Rules Update Available${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo
+            echo "The DevOps Agent has updated house rules sections."
+            echo "Your custom rules will be preserved."
+            echo
+            echo -n "Update house rules now? (Y/n): "
+            read UPDATE_CHOICE
+            
+            if [[ "${UPDATE_CHOICE}" != "n" ]] && [[ "${UPDATE_CHOICE}" != "N" ]]; then
+                echo -e "${BLUE}Updating house rules...${NC}"
+                node "$SCRIPT_DIR/src/house-rules-manager.js" update
+                echo -e "${GREEN}✓ House rules updated!${NC}"
+                echo
+            fi
+        fi
+    fi
+    
+    # Check if coordination system is already set up
+    if [[ -d "$COORD_DIR" ]] && [[ -f "$ROOT/check-file-availability.sh" ]]; then
+        return 0  # Already set up
+    fi
+    
+    echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}First-time Setup: House Rules & File Coordination${NC}"
+    echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
+    echo
+    echo "House rules help AI agents understand your project conventions and"
+    echo "prevent conflicts when multiple agents work on the same codebase."
+    echo
+    
+    # Check for existing house rules
+    local HOUSERULES_PATH=""
+    local HOUSERULES_FOUND=false
+    
+    if [[ -f "$ROOT/houserules.md" ]]; then
+        HOUSERULES_PATH="$ROOT/houserules.md"
+        HOUSERULES_FOUND=true
+        echo -e "${GREEN}✓${NC} Found existing house rules at: houserules.md"
+    elif [[ -f "$ROOT/HOUSERULES.md" ]]; then
+        HOUSERULES_PATH="$ROOT/HOUSERULES.md"
+        HOUSERULES_FOUND=true
+        echo -e "${GREEN}✓${NC} Found existing house rules at: HOUSERULES.md"
+    elif [[ -f "$ROOT/.github/HOUSERULES.md" ]]; then
+        HOUSERULES_PATH="$ROOT/.github/HOUSERULES.md"
+        HOUSERULES_FOUND=true
+        echo -e "${GREEN}✓${NC} Found existing house rules at: .github/HOUSERULES.md"
+    elif [[ -f "$ROOT/docs/houserules.md" ]]; then
+        HOUSERULES_PATH="$ROOT/docs/houserules.md"
+        HOUSERULES_FOUND=true
+        echo -e "${GREEN}✓${NC} Found existing house rules at: docs/houserules.md"
+    else
+        echo "No existing house rules found."
+        echo
+        echo "Would you like to:"
+        echo "  ${BOLD}1)${NC} Create comprehensive house rules (recommended)"
+        echo "  ${BOLD}2)${NC} Specify path to existing house rules"
+        echo "  ${BOLD}3)${NC} Skip for now"
+        echo
+        echo -n "Your choice [1]: "
+        read CHOICE
+        
+        case "${CHOICE:-1}" in
+            1)
+                HOUSERULES_PATH="$ROOT/houserules.md"
+                HOUSERULES_FOUND=false
+                echo -e "${GREEN}✓${NC} Will create comprehensive house rules at: houserules.md"
+                ;;
+            2)
+                echo -n "Enter path to your house rules (relative to $ROOT): "
+                read CUSTOM_PATH
+                if [[ -f "$ROOT/$CUSTOM_PATH" ]]; then
+                    HOUSERULES_PATH="$ROOT/$CUSTOM_PATH"
+                    HOUSERULES_FOUND=true
+                    echo -e "${GREEN}✓${NC} Using house rules at: $CUSTOM_PATH"
+                else
+                    echo -e "${YELLOW}File not found. Creating new house rules at: houserules.md${NC}"
+                    HOUSERULES_PATH="$ROOT/houserules.md"
+                    HOUSERULES_FOUND=false
+                fi
+                ;;
+            3)
+                echo -e "${YELLOW}⚠ Skipping house rules setup${NC}"
+                echo "You can set them up later by running: ./scripts/setup-file-coordination.sh"
+                return 0
+                ;;
+        esac
+    fi
+    
+    echo
+    echo -e "${BLUE}Setting up file coordination system...${NC}"
+    
+    # Run the actual setup inline (simplified version)
+    if [[ -f "$SCRIPT_DIR/scripts/setup-file-coordination.sh" ]]; then
+        bash "$SCRIPT_DIR/scripts/setup-file-coordination.sh"
+    else
+        # Inline setup if script doesn't exist
+        mkdir -p "$COORD_DIR/active-edits" "$COORD_DIR/completed-edits"
+        echo -e "${GREEN}✓${NC} File coordination directories created"
+    fi
+    
+    echo
+    echo -e "${GREEN}✓ Setup complete!${NC} AI agents will now follow house rules and coordinate file edits."
+    echo
+    echo -e "${DIM}Press Enter to continue...${NC}"
+    read -r
+    echo
+}
+
 # Main function
 main() {
     # Show copyright first
@@ -255,6 +391,9 @@ main() {
     # Get repo root
     REPO_ROOT=$(git rev-parse --show-toplevel)
     cd "$REPO_ROOT"
+    
+    # Check and setup house rules on first run
+    setup_house_rules "$REPO_ROOT"
     
     echo -e "${BOLD}Welcome to DevOps Agent Session Manager${NC}"
     echo
