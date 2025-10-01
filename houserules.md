@@ -69,9 +69,14 @@ local_deploy/migration-backup/
 ```
 type(scope): subject line describing the change (max 72 characters)
 
-- Bullet point 1: Specific file or module changed and what was done
-- Bullet point 2: Behavioral change or feature added (if applicable)
-- Bullet point 3: Any side effects or related updates (if applicable)
+[WHY - 2 lines explaining the motivation/reason for these changes]
+This change was needed because [specific problem or requirement].
+[Additional context about why this approach was chosen].
+
+[WHAT - Each item identifies files changed and what was done]
+- File(s): path/to/file1.js, file2.js - Specific change made to these files
+- File(s): src/module.js - Behavioral change or feature added
+- File(s): docs/README.md, config.json - Related updates or side effects
 ```
 
 **Commit Types**:
@@ -83,12 +88,29 @@ type(scope): subject line describing the change (max 72 characters)
 - `chore`: Maintenance tasks (configs, dependencies, cleanup)
 
 **Rules**:
-- Be specific about WHAT changed and WHERE (mention file names)
+- Always start with WHY (2 lines): Explain the problem/need that motivated these changes
+- For each WHAT item: List the specific files changed, then describe what was done
+- Format: "File(s): path/to/file.ext, other.ext - Description of changes"
+- Group related file changes together in one bullet point
+- Be specific about WHAT changed and WHERE (exact file paths)
 - Describe the IMPACT of the change, not just what was done
 - Never include bash commands or command-line syntax
 - Never attempt to run git commands directly
 - Keep the subject line under 72 characters
 - Use present tense ("add" not "added", "fix" not "fixed")
+
+**Example Commit Message**:
+```
+fix(worktree): resolve push-behind error in multi-agent scenarios
+
+The DevOps agent was failing when multiple agents pushed to the same branch simultaneously.
+This fix adds retry logic with pull-merge to handle the common "behind remote" scenario.
+
+- File(s): src/cs-devops-agent-worker.js - Add retry logic with git pull --no-rebase on push failures
+- File(s): src/utils.js, src/git-helpers.js - Extract common git operations into reusable helper functions  
+- File(s): test_cases/worktree/20250929_push_behind_spec.js - Add test case for push-behind scenario
+- File(s): docs/README.md - Document the new retry behavior and configuration options
+```
 
 ### 2. Product Requirement Docs Updates
 
