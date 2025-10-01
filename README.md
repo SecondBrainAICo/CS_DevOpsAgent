@@ -8,11 +8,12 @@ An intelligent Git automation system with multi-agent support, real-time file co
 
 ## 🆕 What's New in v1.3.0
 
+- **📚 Intelligent House Rules System**: Auto-creates and updates project conventions for AI agents
 - **🟧 Real-time Undeclared Edit Detection**: Instantly alerts when files are edited without declaration
 - **🔴 File Conflict Prevention**: Detects and reports when multiple agents try to edit the same files
-- **📋 Copy-Paste Agent Instructions**: Provides exact commands to give misbehaving AI agents
-- **⚡ 2-Second Detection**: Near-instant feedback on coordination violations
-- **🔒 File-level Advisory Locks**: Prevent simultaneous edits to the same files
+- **🔄 Smart Version Updates**: House rules sections update independently while preserving user content
+- **🚀 Streamlined Setup**: One-command setup with `npm start` - handles everything automatically
+- **🔧 Self-Healing**: Automatically recovers if house rules are deleted
 
 ## 🔗 Quick Links
 
@@ -94,27 +95,21 @@ npm run dev
 
 ## Quick Start 🚀
 
-### First-Time Setup
+### One-Command Setup & Start
 
 ```bash
-# Run the interactive setup wizard
-s9n-devops-agent setup
+# Just run npm start - it handles everything!
+npm start
 
-# This will configure:
-# - Your developer initials (used in branch names)
-# - Version numbering strategy
-# - Default timezone for daily rollover
+# On first run, it will:
+# ✅ Set up house rules for AI agents
+# ✅ Configure file coordination system
+# ✅ Set up your developer initials
+# ✅ Configure version strategy
+# ✅ Start the session manager
 ```
 
-### Start a DevOps Session
-
-```bash
-# Start the interactive session manager
-s9n-devops-agent start
-
-# Or create a new session directly
-s9n-devops-agent create --task "implement-api"
-```
+That's it! No separate setup commands needed.
 
 ### Working with AI Assistants
 
@@ -126,46 +121,57 @@ I'm working in a DevOps-managed session with the following setup:
 - Working Directory: /path/to/worktree
 - Task: implement-api
 
-Please switch to this directory before making any changes:
-cd "/path/to/worktree"
+CRITICAL FIRST STEP:
+1. Read and follow the house rules: cat "/path/to/worktree/houserules.md"
+2. Switch to the working directory: cd "/path/to/worktree"
 
-IMPORTANT: File Coordination Protocol
+FILE COORDINATION PROTOCOL (from house rules):
 Before editing ANY files, you MUST:
-1. Declare your intent by creating .file-coordination/active-edits/<agent>-8a3s-45b1.json
-2. List all files you plan to edit in that JSON file
-3. Check for conflicts with other agents' declarations
-4. Only proceed if no conflicts exist
-5. Release the files when done
+- Declare your intent in .file-coordination/active-edits/<agent>-8a3s-45b1.json
+- Check for conflicts with other agents
+- Only edit files you've declared
+- Release files when done
 
 Write commit messages to: .devops-commit-8a3s-45b1.msg
 The DevOps agent will automatically commit and push changes.
 ```
 
-## File Coordination System 🔒 (v1.3.0)
+## House Rules & File Coordination System 📚🔒
 
-### Overview
+### House Rules System (NEW!)
 
-The file coordination system prevents multiple AI agents from editing the same files simultaneously, avoiding merge conflicts and wasted work.
+The DevOps Agent automatically manages "house rules" that teach AI agents your project conventions:
 
-### How It Works
+**Features:**
+- **Auto-Creation**: Created automatically on first run
+- **Smart Updates**: Updates only DevOps sections, preserves your custom rules
+- **Version Tracking**: Each section independently versioned with checksums
+- **Self-Healing**: Automatically recreates if deleted
+- **CI/CD Ready**: Works in automated environments
 
-1. **Declaration Phase**: Before editing, agents declare which files they'll modify
+**House Rules Commands:**
+```bash
+# Check status
+npm run house-rules:status
+
+# Update or create
+npm run house-rules:update
+
+# Health check and repair
+npm run house-rules:repair
+```
+
+### File Coordination System
+
+Prevents multiple AI agents from editing the same files simultaneously:
+
+1. **Declaration Phase**: Agents declare which files they'll modify
 2. **Conflict Check**: System checks if files are already being edited
-3. **Real-time Monitoring**: Detects undeclared edits within 2 seconds
+3. **Real-time Monitoring**: Detects violations within 2 seconds
 4. **Alert System**: 
    - 🟧 **Orange Alert**: Files edited without declaration
    - 🔴 **Red Alert**: Files being edited by another agent
 5. **Copy-Paste Instructions**: Provides exact commands to correct agent behavior
-
-### Setup File Coordination
-
-```bash
-# Initialize the coordination system
-./scripts/setup-file-coordination.sh
-
-# Test the system
-./test_scripts/test-file-coordination.sh
-```
 
 ### For AI Agents
 
