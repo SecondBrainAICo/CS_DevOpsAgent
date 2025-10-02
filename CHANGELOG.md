@@ -5,6 +5,21 @@ All notable changes to s9n-devops-agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2025-10-02
+
+### Changed
+- 🎯 **Improved User Experience**: Changed "Instructions for Claude/Cline" to "Instructions for Your Coding Agent" for broader compatibility
+- ⏱️ **Better Instruction Flow**: Moved copy-paste instructions to appear AFTER agent initialization and interactive commands  
+- 🔍 **House Rules Search**: Enhanced to search repository-wide, excluding DevOpsAgent directories
+- 📁 **Backup Organization**: House rules backups now stored in `DevopsAgent_Backups/` folder
+- 🏠 **Parent Directory Detection**: Improved detection when running as submodule in `Scripts_Dev` or similar directories
+
+### Fixed
+- 🔧 House rules manager now correctly finds parent project's house rules when running as submodule
+- 📊 CLI output now returns clean JSON for status commands
+- ⏰ Instructions display timing for better user experience
+- 🚫 Prevents using DevOpsAgent's own template house rules file
+
 ## [1.3.1] - 2025-10-02
 
 ### Added
@@ -103,6 +118,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite
 - Binary build support for multiple platforms
 
+[1.3.2]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/releases/tag/v1.0.0
