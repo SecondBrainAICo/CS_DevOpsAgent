@@ -789,7 +789,7 @@ class SessionCoordinator {
         branchName,
         lockFile,
         instructionsFile,
-        instructions: instructions.plaintext
+        task
       };
       
     } catch (error) {
@@ -1273,7 +1273,12 @@ The DevOps agent is monitoring this worktree for changes.
     
     // Now display the instructions AFTER the agent is running
     console.log('\n'.repeat(2)); // Add some spacing
-    this.displayInstructions(session.instructions, session.sessionId, session.task);
+    // Create instructions object with worktreePath for display
+    const instructionsForDisplay = {
+      worktreePath: session.worktreePath,
+      sessionId: session.sessionId
+    };
+    this.displayInstructions(instructionsForDisplay, session.sessionId, options.task || 'development');
     
     return session;
   }
