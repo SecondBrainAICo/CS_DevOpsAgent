@@ -131,8 +131,15 @@ class HouseRulesManager {
       
       // If found, use the parent directory as the project root
       if (targetIndex > 0) {
-        // Go up to the parent of the DevOpsAgent directory
-        this.projectRoot = pathParts.slice(0, targetIndex).join(path.sep);
+        // Check if the parent directory is 'Scripts_Dev' or similar subdirectory
+        // If so, go up one more level to reach the actual project root
+        let parentIndex = targetIndex;
+        if (targetIndex > 1 && (pathParts[targetIndex - 1] === 'Scripts_Dev' || 
+                                pathParts[targetIndex - 1] === 'scripts' || 
+                                pathParts[targetIndex - 1] === 'tools')) {
+          parentIndex = targetIndex - 1;
+        }
+        this.projectRoot = pathParts.slice(0, parentIndex).join(path.sep);
       } else {
         // Fallback: try to use git to find the parent repo
         try {
