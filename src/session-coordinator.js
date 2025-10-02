@@ -924,6 +924,8 @@ The DevOps agent will automatically:
     console.log(`- Working Directory: ${instructions.worktreePath}`);
     console.log(`- Task: ${task || 'development'}`);
     console.log(``);
+    console.log(`⚠️  IMPORTANT: DO NOT start working yet! Wait for the user's specific instructions.`);
+    console.log(``);
     console.log(`CRITICAL FIRST STEP:`);
     console.log(`1. Read and follow the house rules: cat "${instructions.worktreePath}/houserules.md"`);
     console.log(`2. Switch to the working directory: cd "${instructions.worktreePath}"`);
@@ -938,7 +940,7 @@ The DevOps agent will automatically:
     console.log(`Write commit messages to: .devops-commit-${sessionId}.msg`);
     console.log(`The DevOps agent will automatically commit and push changes.`);
     console.log(``);
-    console.log(`Remember: ALWAYS check house rules first for the latest protocols!`);
+    console.log(`Remember: ALWAYS check house rules first, then WAIT for user instructions!`);
     console.log();
     
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);

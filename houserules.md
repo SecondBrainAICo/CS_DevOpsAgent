@@ -368,7 +368,7 @@ npm start
 
 This will:
 1. Ask if you want to use an existing session or create new
-2. Generate instructions for Claude/Cline
+2. Generate instructions for your coding agent
 3. Start the DevOps agent monitoring the appropriate worktree
 
 ### Worktree Organization
@@ -383,7 +383,7 @@ This will:
 - `.devops-commit-<session-id>.msg` - Session-specific commit message file
 - `SESSION_README.md` - Session documentation
 
-### Multiple Claude/Cline Sessions
+### Multiple Coding Agent Sessions
 
 **Each session gets**:
 - Unique session ID
@@ -393,7 +393,7 @@ This will:
 
 **Coordination Files**:
 - `.session-locks/` - Active session locks
-- `.claude-sessions.json` - Session registry
+- `.agent-sessions.json` - Session registry
 - `.worktrees/` - Agent worktrees
 
 ## Environment Variables
@@ -498,7 +498,7 @@ function appendToLogFile(message) {
 npm start
 # Select "N" for new session
 # Enter task name
-# Copy instructions to Claude/Cline
+# Copy instructions to your coding agent
 ```
 
 ### 2. Handling Push-Behind Scenarios
@@ -518,7 +518,7 @@ The agent automatically:
 ./start-devops-session.sh
 # Creates session def-456
 
-# Each Claude/Cline works in their respective worktree
+# Each coding agent works in their respective worktree
 ```
 
 ## Review Cadence

@@ -215,7 +215,7 @@ select_session() {
         echo
         echo -e "${GREEN}Using existing session: ${session_id}${NC}"
         
-        # Display instructions for Claude/Cline IMMEDIATELY after selection
+        # Display instructions for coding agent IMMEDIATELY after selection
         display_instructions "$session_id" "$worktree_path" "$branch_name" "$task"
         
         # Add a pause and visual separator before starting the agent
@@ -424,7 +424,7 @@ main() {
     echo
     echo "This tool will:"
     echo "  1. Help you create or select a session"
-    echo "  2. Generate instructions for Claude/Cline"
+    echo "  2. Generate instructions for your coding agent"
     echo "  3. Start the DevOps agent to monitor changes"
     echo
     
