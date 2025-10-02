@@ -81,6 +81,14 @@ class SessionCoordinator {
 
   getRepoRoot() {
     try {
+      // Check if we're in a submodule
+      const superproject = execSync('git rev-parse --show-superproject-working-tree', { encoding: 'utf8' }).trim();
+      if (superproject) {
+        // We're in a submodule, use the parent repository root
+        console.log(`${CONFIG.colors.dim}Running from submodule, using parent repository: ${superproject}${CONFIG.colors.reset}`);
+        return superproject;
+      }
+      // Not in a submodule, use current repository root
       return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
     } catch (error) {
       console.error('Error: Not in a git repository');
