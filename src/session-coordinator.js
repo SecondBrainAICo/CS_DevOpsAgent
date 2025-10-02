@@ -944,9 +944,13 @@ The DevOps agent will automatically:
     console.log();
     
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);
+    console.log();
+    
+    // Pause before continuing
+    console.log(`${CONFIG.colors.dim}Press Enter to start the DevOps agent monitoring...${CONFIG.colors.reset}`);
     
     // Status info
-    console.log(`\n${CONFIG.colors.green}✓ DevOps agent is starting...${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.green}✓ DevOps agent is starting...${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.dim}Full instructions saved to: ${CONFIG.instructionsDir}/${sessionId}.md${CONFIG.colors.reset}`);
   }
 
