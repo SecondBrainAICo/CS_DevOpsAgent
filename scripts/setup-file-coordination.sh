@@ -9,7 +9,14 @@
 
 set -euo pipefail
 
-ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# Check if we're in a submodule and use the parent repository if so
+SUPERPROJECT="$(git rev-parse --show-superproject-working-tree 2>/dev/null || echo "")"
+if [ -n "$SUPERPROJECT" ]; then
+    ROOT="$SUPERPROJECT"
+else
+    ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+fi
+
 COORD_DIR="$ROOT/.file-coordination"
 ACTIVE_EDITS="$COORD_DIR/active-edits"
 COMPLETED_EDITS="$COORD_DIR/completed-edits"

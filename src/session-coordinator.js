@@ -711,10 +711,46 @@ class SessionCoordinator {
     const branchName = `${agentType}/${devInitials}/${sessionId}/${task.replace(/\s+/g, '-')}`;
     
     try {
+      // Detect if we're in a submodule and get the parent repository
+      let repoRoot = process.cwd();
+      let isSubmodule = false;
+      let parentRemote = null;
+      
+      try {
+        // Check if we're in a submodule
+        execSync('git rev-parse --show-superproject-working-tree', { stdio: 'pipe' });
+        const superproject = execSync('git rev-parse --show-superproject-working-tree', { encoding: 'utf8' }).trim();
+        
+        if (superproject) {
+          isSubmodule = true;
+          // Get the parent repository's remote
+          parentRemote = execSync(`git -C "${superproject}" remote get-url origin`, { encoding: 'utf8' }).trim();
+          console.log(`\n${CONFIG.colors.yellow}Detected submodule - will configure worktree for parent repository${CONFIG.colors.reset}`);
+          console.log(`${CONFIG.colors.dim}Parent repository: ${superproject}${CONFIG.colors.reset}`);
+          console.log(`${CONFIG.colors.dim}Parent remote: ${parentRemote}${CONFIG.colors.reset}`);
+        }
+      } catch (e) {
+        // Not a submodule, continue normally
+      }
+      
       // Create worktree
       console.log(`\n${CONFIG.colors.yellow}Creating worktree...${CONFIG.colors.reset}`);
       execSync(`git worktree add -b ${branchName} "${worktreePath}" HEAD`, { stdio: 'pipe' });
       console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Worktree created at: ${worktreePath}`);
+      
+      // If we're in a submodule, set up the correct remote for the worktree
+      if (isSubmodule && parentRemote) {
+        console.log(`${CONFIG.colors.yellow}Configuring worktree to use parent repository remote...${CONFIG.colors.reset}`);
+        // Remove the default origin that points to the submodule
+        try {
+          execSync(`git -C "${worktreePath}" remote remove origin`, { stdio: 'pipe' });
+        } catch (e) {
+          // Origin might not exist, continue
+        }
+        // Add the parent repository as origin
+        execSync(`git -C "${worktreePath}" remote add origin ${parentRemote}`, { stdio: 'pipe' });
+        console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Worktree configured to push to parent repository`);
+      }
       
       // Create session lock
       const lockData = {
