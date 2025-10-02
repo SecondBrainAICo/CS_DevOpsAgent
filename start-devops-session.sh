@@ -64,10 +64,10 @@ display_instructions() {
     local task="$4"
     
     echo
-    echo -e "${BG_GREEN}${BOLD} Instructions for Claude/Cline ${NC}"
+    echo -e "${BG_GREEN}${BOLD} Instructions for Your Coding Agent ${NC}"
     echo
     echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BOLD}COPY AND PASTE THIS ENTIRE BLOCK INTO CLAUDE BEFORE YOUR PROMPT:${NC}"
+    echo -e "${BOLD}COPY AND PASTE THIS ENTIRE BLOCK INTO YOUR CODING AGENT BEFORE YOUR PROMPT:${NC}"
     echo -e "${YELLOW}──────────────────────────────────────────────────────────────${NC}"
     echo
     echo "I'm working in a DevOps-managed session with the following setup:"

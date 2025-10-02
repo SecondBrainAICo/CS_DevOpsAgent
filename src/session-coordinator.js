@@ -763,7 +763,7 @@ class SessionCoordinator {
   }
 
   /**
-   * Generate instructions for Claude/Cline
+   * Generate instructions for the coding agent
    */
   generateClaudeInstructions(sessionData) {
     const { sessionId, worktreePath, branchName, task } = sessionData;
@@ -812,7 +812,7 @@ INSTRUCTIONS:
 3. **Only proceed if no conflicts** - wait or choose different files if blocked
 4. **Release files when done** - delete your declaration after edits
 
-## Instructions for Claude/Cline
+## Instructions for Your Coding Agent
 
 ### Step 1: Navigate to Your Worktree
 \`\`\`bash
@@ -874,11 +874,11 @@ The DevOps agent will automatically:
    * Display instructions in a user-friendly format
    */
   displayInstructions(instructions, sessionId, task) {
-    console.log(`\n${CONFIG.colors.bgGreen}${CONFIG.colors.bright} Instructions for Claude/Cline ${CONFIG.colors.reset}\n`);
+    console.log(`\n${CONFIG.colors.bgGreen}${CONFIG.colors.bright} Instructions for Your Coding Agent ${CONFIG.colors.reset}\n`);
     
     // Clean separator
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);
-    console.log(`${CONFIG.colors.bright}COPY AND PASTE THIS ENTIRE BLOCK INTO CLAUDE BEFORE YOUR PROMPT:${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.bright}COPY AND PASTE THIS ENTIRE BLOCK INTO YOUR CODING AGENT BEFORE YOUR PROMPT:${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.yellow}──────────────────────────────────────────────────────────────${CONFIG.colors.reset}`);
     console.log();
     
@@ -1070,11 +1070,11 @@ The DevOps agent is monitoring this worktree for changes.
     fs.writeFileSync(lockFile, JSON.stringify(session, null, 2));
     
     const instructions = this.generateClaudeInstructions(session);
-    this.displayInstructions(instructions, session.sessionId, session.task);
+    // Don't display instructions here - they'll be shown after agent starts
     
     return {
       ...session,
-      instructions: instructions.plaintext
+      instructions: instructions
     };
   }
 
@@ -1223,10 +1223,15 @@ The DevOps agent is monitoring this worktree for changes.
     
     console.log(`\n${CONFIG.colors.yellow}Starting agent for session ${session.sessionId}...${CONFIG.colors.reset}`);
     
-    // Wait a moment for user to see instructions
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    // Start the agent first
     await this.startAgent(session.sessionId);
+    
+    // Wait for agent to initialize and show its interactive commands
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // Now display the instructions AFTER the agent is running
+    console.log('\n'.repeat(2)); // Add some spacing
+    this.displayInstructions(session.instructions, session.sessionId, session.task);
     
     return session;
   }
