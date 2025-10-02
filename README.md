@@ -1,4 +1,4 @@
-# CS_DevOpsAgent 🚀 v1.3.0
+# CS_DevOpsAgent 🚀 v1.3.1
 
 [![npm version](https://badge.fury.io/js/s9n-devops-agent.svg)](https://badge.fury.io/js/s9n-devops-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -6,8 +6,15 @@
 
 An intelligent Git automation system with multi-agent support, real-time file coordination, session management, and seamless integration with AI coding assistants like Claude, GitHub Copilot, and Cursor.
 
-## 🆕 What's New in v1.3.0
+## 🆕 What's New in v1.3.1
 
+### Latest Updates (v1.3.1)
+- **🔒 Enhanced File Locking**: Improved coordination scripts with proper empty directory handling
+- **🧪 File Locking Demo**: New comprehensive test showing how multi-agent coordination prevents conflicts
+- **📁 Better Organization**: Coordination scripts moved to `scripts/coordination/` for clarity
+- **🐛 Bug Fixes**: Fixed glob expansion issues in file coordination scripts
+
+### Previous Features (v1.3.0)
 - **📚 Intelligent House Rules System**: Auto-creates and updates project conventions for AI agents
 - **🟧 Real-time Undeclared Edit Detection**: Instantly alerts when files are edited without declaration
 - **🔴 File Conflict Prevention**: Detects and reports when multiple agents try to edit the same files
@@ -176,6 +183,21 @@ Prevents multiple AI agents from editing the same files simultaneously:
    - 🟧 **Orange Alert**: Files edited without declaration
    - 🔴 **Red Alert**: Files being edited by another agent
 5. **Copy-Paste Instructions**: Provides exact commands to correct agent behavior
+
+**Coordination Commands:**
+```bash
+# Check if files are available
+./scripts/coordination/check-file-availability.sh src/main.js src/utils.js
+
+# Declare intent to edit files
+./scripts/coordination/declare-file-edits.sh <agent-name> <session-id> file1.js file2.js
+
+# Release files after editing
+./scripts/coordination/release-file-edits.sh <agent-name> <session-id>
+
+# Run file locking demo
+./test_scripts/multi-agent/test-file-locking.sh
+```
 
 ### For AI Agents
 

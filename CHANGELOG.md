@@ -5,6 +5,27 @@ All notable changes to s9n-devops-agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-10-02
+
+### Added
+- 🧪 Comprehensive file locking demonstration test (`test-file-locking.sh`)
+- 📁 Better script organization - coordination scripts moved to `scripts/coordination/`
+- 🔒 Visual demonstration of how file locking prevents conflicts between agents
+
+### Changed  
+- 📦 Improved commit message format in house rules (includes WHY and file tracking)
+- 🔧 Coordination scripts now handle empty directories correctly
+- 🎨 Enhanced test output with color-coded results and clear explanations
+
+### Fixed
+- 🐛 Fixed glob expansion issues when no JSON files exist in coordination directories
+- 🔍 Fixed false positive conflicts in empty active-edits directory
+- ✅ All coordination scripts now properly handle edge cases
+
+### Removed
+- 🧹 Cleaned up coordination alert files from repository (now properly git-ignored)
+- 🗑️ Removed unnecessary test branches and worktrees
+
 ## [1.3.0] - 2025-09-30
 
 ### Added
