@@ -382,7 +382,8 @@ setup_house_rules() {
     
     # Run the actual setup inline (simplified version)
     if [[ -f "$SCRIPT_DIR/scripts/setup-file-coordination.sh" ]]; then
-        bash "$SCRIPT_DIR/scripts/setup-file-coordination.sh"
+        # Pass the house rules path we already found!
+        HOUSERULES_PATH="$HOUSERULES_PATH" bash "$SCRIPT_DIR/scripts/setup-file-coordination.sh"
     else
         # Inline setup if script doesn't exist
         mkdir -p "$COORD_DIR/active-edits" "$COORD_DIR/completed-edits"

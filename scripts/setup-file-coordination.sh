@@ -30,10 +30,12 @@ BLOCKED_FILES="$COORD_DIR/blocked-files"
 echo "[INFO] Setting up file coordination system at: $ROOT"
 
 # Check for existing house rules
-HOUSERULES_PATH=""
-HOUSERULES_FOUND=false
-
-if [ -f "$ROOT/houserules.md" ]; then
+# First check if HOUSERULES_PATH was passed from the parent script
+if [ -n "$HOUSERULES_PATH" ] && [ -f "$HOUSERULES_PATH" ]; then
+    # Use the path that was already found by the parent script
+    HOUSERULES_FOUND=true
+    echo "[INFO] Using house rules from parent script: $HOUSERULES_PATH"
+elif [ -f "$ROOT/houserules.md" ]; then
     HOUSERULES_PATH="$ROOT/houserules.md"
     HOUSERULES_FOUND=true
     echo "[INFO] Found existing house rules at: houserules.md"
