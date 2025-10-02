@@ -425,8 +425,24 @@ ${endMarker}`;
 
     // Create backup if requested
     if (backupExisting) {
-      const backupPath = `${this.houseRulesPath}.backup.${Date.now()}`;
+      // Create backup in DevopsAgent_Backups folder
+      const backupDir = path.join(this.projectRoot, 'DevopsAgent_Backups');
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+        // Ensure backup folder is in gitignore
+        this.ensureBackupInGitignore();
+      }
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const backupFileName = `houserules_backup_${timestamp}.md`;
+      const backupPath = path.join(backupDir, backupFileName);
+      
       fs.copyFileSync(this.houseRulesPath, backupPath);
+      
+      // Only log if not running as CLI
+      if (!process.argv[1]?.endsWith('house-rules-manager.js')) {
+        console.log(`Backup created: ${backupPath}`);
+      }
     }
 
     // Build new content
@@ -484,6 +500,33 @@ ${endMarker}`;
       addedSections: additions,
       totalChanges: updates.length + additions.length
     };
+  }
+
+  /**
+   * Ensure backup folder is in gitignore
+   */
+  ensureBackupInGitignore() {
+    const gitignorePath = path.join(this.projectRoot, '.gitignore');
+    const backupPattern = 'DevopsAgent_Backups/';
+    
+    try {
+      if (fs.existsSync(gitignorePath)) {
+        const content = fs.readFileSync(gitignorePath, 'utf8');
+        
+        // Check if pattern already exists
+        if (!content.includes(backupPattern)) {
+          // Add to gitignore
+          const updatedContent = content.trimEnd() + '\n\n# DevOps Agent backup files\n' + backupPattern + '\n';
+          fs.writeFileSync(gitignorePath, updatedContent);
+        }
+      } else {
+        // Create gitignore with the pattern
+        const content = '# DevOps Agent backup files\n' + backupPattern + '\n';
+        fs.writeFileSync(gitignorePath, content);
+      }
+    } catch (err) {
+      // Silently fail - not critical if gitignore can't be updated
+    }
   }
 
   /**
