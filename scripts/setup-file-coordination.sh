@@ -9,10 +9,15 @@
 
 set -euo pipefail
 
-# Check if we're in a submodule and use the parent repository if so
-SUPERPROJECT="$(git rev-parse --show-superproject-working-tree 2>/dev/null || echo "")"
-if [ -n "$SUPERPROJECT" ]; then
-    ROOT="$SUPERPROJECT"
+# Check if we're in the CS_DevOpsAgent directory and go up to the actual project
+CURRENT_DIR="$(pwd)"
+if [[ "$CURRENT_DIR" == *"/CS_DevOpsAgent"* ]] || [[ "$CURRENT_DIR" == *"/DevOpsAgent"* ]]; then
+    # Go up to the parent of Scripts_Dev (or wherever DevOpsAgent is)
+    ROOT="$(cd "$(dirname "$(dirname "$CURRENT_DIR")")" && pwd)"
+    # If that's MVPEmails, go up one more to DistilledConceptExtractor
+    if [[ "$(basename "$ROOT")" == "Scripts_Dev" ]]; then
+        ROOT="$(dirname "$ROOT")"
+    fi
 else
     ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 fi
