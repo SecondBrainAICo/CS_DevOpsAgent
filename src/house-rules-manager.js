@@ -119,8 +119,10 @@ class HouseRulesManager {
 
   /**
    * Find existing house rules file
+   * Searches across the repository, excluding the DevOps agent directories
    */
   findHouseRulesFile() {
+    // First try the standard locations
     const possiblePaths = [
       'houserules.md',
       'HOUSERULES.md',
@@ -133,10 +135,75 @@ class HouseRulesManager {
       const fullPath = path.join(this.projectRoot, relativePath);
       if (fs.existsSync(fullPath)) {
         this.houseRulesPath = fullPath;
+        // Only log if not running as CLI
+        if (!process.argv[1]?.endsWith('house-rules-manager.js')) {
+          console.log(`Found house rules at: ${fullPath}`);
+        }
         return fullPath;
       }
     }
 
+    // If not found in standard locations, search the repository
+    // excluding DevOps agent directories
+    const foundPath = this.searchForHouseRules(this.projectRoot);
+    if (foundPath) {
+      this.houseRulesPath = foundPath;
+      // Only log if not running as CLI
+      if (!process.argv[1]?.endsWith('house-rules-manager.js')) {
+        console.log(`Found house rules at: ${foundPath}`);
+      }
+      return foundPath;
+    }
+
+    return null;
+  }
+
+  /**
+   * Recursively search for house rules files
+   * @param {string} dir Directory to search
+   * @param {number} depth Current depth (to prevent infinite recursion)
+   * @returns {string|null} Path to house rules file or null
+   */
+  searchForHouseRules(dir, depth = 0) {
+    // Limit search depth to prevent excessive recursion
+    if (depth > 5) return null;
+
+    try {
+      const files = fs.readdirSync(dir);
+      
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        const stat = fs.statSync(filePath);
+        
+        // Check if it's a house rules file
+        if (stat.isFile() && /^houserules\.md$/i.test(file)) {
+          // Skip if it's in a DevOps agent directory
+          if (!filePath.includes('DevOpsAgent') && 
+              !filePath.includes('CS_DevOpsAgent') &&
+              !filePath.includes('node_modules') &&
+              !filePath.includes('.git')) {
+            return filePath;
+          }
+        }
+        
+        // Recursively search subdirectories
+        if (stat.isDirectory() && 
+            !file.startsWith('.') && 
+            file !== 'node_modules' && 
+            file !== 'DevOpsAgent' &&
+            file !== 'CS_DevOpsAgent' &&
+            file !== '.git') {
+          const found = this.searchForHouseRules(filePath, depth + 1);
+          if (found) return found;
+        }
+      }
+    } catch (err) {
+      // Ignore permission errors and continue searching
+      if (err.code !== 'EACCES' && err.code !== 'EPERM') {
+        console.error(`Error searching ${dir}:`, err.message);
+      }
+    }
+    
     return null;
   }
 
@@ -422,18 +489,23 @@ ${endMarker}`;
 export default HouseRulesManager;
 
 // CLI interface when run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Check if this is the main module being run
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                     process.argv[1]?.endsWith('house-rules-manager.js');
+
+if (isMainModule) {
   const manager = new HouseRulesManager();
   const command = process.argv[2];
 
   switch (command) {
     case 'status':
-      console.log('House Rules Status:', JSON.stringify(manager.getStatus(), null, 2));
+      // Output only the JSON for the bash script to parse
+      console.log(JSON.stringify(manager.getStatus()));
       break;
       
     case 'update':
       manager.updateHouseRules().then(result => {
-        console.log('Update Result:', JSON.stringify(result, null, 2));
+        console.log(JSON.stringify(result));
       });
       break;
       

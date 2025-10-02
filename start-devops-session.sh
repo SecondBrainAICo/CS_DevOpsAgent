@@ -299,22 +299,46 @@ setup_house_rules() {
     local HOUSERULES_PATH=""
     local HOUSERULES_FOUND=false
     
-    if [[ -f "$ROOT/houserules.md" ]]; then
-        HOUSERULES_PATH="$ROOT/houserules.md"
+    # Function to search for house rules file
+    find_house_rules() {
+        local search_dir="$1"
+        local depth="${2:-0}"
+        
+        # Limit search depth
+        if [[ $depth -gt 5 ]]; then
+            return 1
+        fi
+        
+        # First check standard locations
+        for possible_path in "houserules.md" "HOUSERULES.md" ".github/HOUSERULES.md" "docs/houserules.md" "docs/HOUSERULES.md"; do
+            if [[ -f "$search_dir/$possible_path" ]]; then
+                echo "$search_dir/$possible_path"
+                return 0
+            fi
+        done
+        
+        # If not found, search recursively (excluding DevOps directories)
+        while IFS= read -r -d '' file; do
+            local rel_path="${file#$search_dir/}"
+            if [[ ! "$file" =~ "DevOpsAgent" ]] && 
+               [[ ! "$file" =~ "CS_DevOpsAgent" ]] && 
+               [[ ! "$file" =~ "node_modules" ]] && 
+               [[ ! "$file" =~ ".git" ]]; then
+                echo "$file"
+                return 0
+            fi
+        done < <(find "$search_dir" -maxdepth 3 -type f \( -iname "houserules.md" -o -iname "HOUSERULES.md" \) -print0 2>/dev/null)
+        
+        return 1
+    }
+    
+    # Search for house rules file
+    if FOUND_PATH=$(find_house_rules "$ROOT"); then
+        HOUSERULES_PATH="$FOUND_PATH"
         HOUSERULES_FOUND=true
-        echo -e "${GREEN}✓${NC} Found existing house rules at: houserules.md"
-    elif [[ -f "$ROOT/HOUSERULES.md" ]]; then
-        HOUSERULES_PATH="$ROOT/HOUSERULES.md"
-        HOUSERULES_FOUND=true
-        echo -e "${GREEN}✓${NC} Found existing house rules at: HOUSERULES.md"
-    elif [[ -f "$ROOT/.github/HOUSERULES.md" ]]; then
-        HOUSERULES_PATH="$ROOT/.github/HOUSERULES.md"
-        HOUSERULES_FOUND=true
-        echo -e "${GREEN}✓${NC} Found existing house rules at: .github/HOUSERULES.md"
-    elif [[ -f "$ROOT/docs/houserules.md" ]]; then
-        HOUSERULES_PATH="$ROOT/docs/houserules.md"
-        HOUSERULES_FOUND=true
-        echo -e "${GREEN}✓${NC} Found existing house rules at: docs/houserules.md"
+        # Make path relative for display
+        local REL_PATH="${FOUND_PATH#$ROOT/}"
+        echo -e "${GREEN}✓${NC} Found existing house rules at: $REL_PATH"
     else
         echo "No existing house rules found."
         echo
