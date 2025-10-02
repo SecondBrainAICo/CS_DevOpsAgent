@@ -16,6 +16,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -112,7 +113,46 @@ To prevent conflicts with other agents editing the same files, you MUST follow t
 
 class HouseRulesManager {
   constructor(projectRoot) {
-    this.projectRoot = projectRoot || process.cwd();
+    const cwd = projectRoot || process.cwd();
+    
+    // If we're running from within a DevOpsAgent directory, we need to find the parent project
+    if (cwd.includes('/DevOpsAgent') || cwd.includes('/CS_DevOpsAgent')) {
+      // Parse the path to find where the DevOpsAgent directory is
+      const pathParts = cwd.split(path.sep);
+      
+      // Find the index of DevOpsAgent or CS_DevOpsAgent
+      let targetIndex = -1;
+      for (let i = pathParts.length - 1; i >= 0; i--) {
+        if (pathParts[i] === 'CS_DevOpsAgent' || pathParts[i] === 'DevOpsAgent') {
+          targetIndex = i;
+          break;
+        }
+      }
+      
+      // If found, use the parent directory as the project root
+      if (targetIndex > 0) {
+        // Go up to the parent of the DevOpsAgent directory
+        this.projectRoot = pathParts.slice(0, targetIndex).join(path.sep);
+      } else {
+        // Fallback: try to use git to find the parent repo
+        try {
+          const gitRoot = execSync('git rev-parse --show-toplevel', { cwd, encoding: 'utf8' }).trim();
+          // Only use git root if it's not a DevOpsAgent directory
+          if (!gitRoot.includes('/DevOpsAgent') && !gitRoot.includes('/CS_DevOpsAgent')) {
+            this.projectRoot = gitRoot;
+          } else {
+            // Use parent of cwd
+            this.projectRoot = path.dirname(path.dirname(cwd));
+          }
+        } catch (err) {
+          // Default to parent of parent directory
+          this.projectRoot = path.dirname(path.dirname(cwd));
+        }
+      }
+    } else {
+      this.projectRoot = cwd;
+    }
+    
     this.houseRulesPath = null;
     this.findHouseRulesFile();
   }
@@ -134,6 +174,11 @@ class HouseRulesManager {
     for (const relativePath of possiblePaths) {
       const fullPath = path.join(this.projectRoot, relativePath);
       if (fs.existsSync(fullPath)) {
+        // NEVER use house rules from within DevOpsAgent directories
+        if (fullPath.includes('/DevOpsAgent/') || fullPath.includes('/CS_DevOpsAgent/')) {
+          continue;
+        }
+        
         this.houseRulesPath = fullPath;
         // Only log if not running as CLI
         if (!process.argv[1]?.endsWith('house-rules-manager.js')) {
