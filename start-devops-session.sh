@@ -25,8 +25,14 @@ BG_BLUE=$'\033[44m'
 BG_GREEN=$'\033[42m'
 BG_YELLOW=$'\033[43m'
 
-# Get the directory where this script is located (zsh-compatible)
-SCRIPT_DIR="${0:A:h}"
+# Get the directory where this script is located (compatible with both bash and zsh)
+if [[ -n "${BASH_SOURCE[0]}" ]]; then
+    # Running in bash
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+else
+    # Running in zsh
+    SCRIPT_DIR="${0:A:h}"
+fi
 SRC_DIR="$SCRIPT_DIR/src"
 
 # Function to display copyright
