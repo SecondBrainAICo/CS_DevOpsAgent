@@ -7,10 +7,14 @@ BLOCKED_FILES=""
 
 for file in $FILES_TO_CHECK; do
     # Check if file is being edited
-    if grep -l "\"$file\"" "$COORD_DIR"/*.json 2>/dev/null | head -1; then
-        BLOCKED_BY=$(grep -l "\"$file\"" "$COORD_DIR"/*.json | xargs basename | cut -d. -f1)
-        echo "❌ BLOCKED: $file (being edited by $BLOCKED_BY)"
-        BLOCKED_FILES="$BLOCKED_FILES $file"
+    if [ -n "$(ls -A "$COORD_DIR" 2>/dev/null)" ]; then
+        if grep -l "\"$file\"" "$COORD_DIR"/*.json 2>/dev/null | head -1; then
+            BLOCKED_BY=$(grep -l "\"$file\"" "$COORD_DIR"/*.json | xargs basename | cut -d. -f1)
+            echo "❌ BLOCKED: $file (being edited by $BLOCKED_BY)"
+            BLOCKED_FILES="$BLOCKED_FILES $file"
+        else
+            echo "✅ AVAILABLE: $file"
+        fi
     else
         echo "✅ AVAILABLE: $file"
     fi
