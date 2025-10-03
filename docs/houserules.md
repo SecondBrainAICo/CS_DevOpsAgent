@@ -53,21 +53,43 @@ To prevent conflicts with other agents editing the same files, you MUST follow t
 
 ## Testing Policy (Required)
 
+### Test-Driven Development (TDD) Requirements
+
+**CRITICAL: For ALL new features and copied code (except infrastructure):**
+1. **WRITE THE TEST FIRST** - Before implementing any new functionality
+2. **RED-GREEN-REFACTOR** cycle:
+   - RED: Write a failing test that defines expected behavior
+   - GREEN: Write minimal code to make the test pass
+   - REFACTOR: Improve the code while keeping tests green
+
+### When Tests Are MANDATORY:
+- **New Features**: Test MUST be written BEFORE implementation code
+- **Copied/Adapted Code**: Test MUST verify the adaptation works correctly
+- **Bug Fixes**: Test MUST reproduce the bug first (fail), then pass after fix
+- **API Changes**: Test MUST cover new endpoints/methods
+- **Business Logic**: Test MUST validate all logic paths
+
+### When Tests Are OPTIONAL:
+- **Pure Infrastructure Code**: Build scripts, deployment configs
+- **Configuration Files**: Unless they contain logic
+- **Documentation**: README files, comments
+- **Generated Code**: Auto-generated files (but test the generator!)
+
 Goal: Every bug fix and feature ships with an executable test.
 
 Location: test_cases/<area>/<component>/.
 
-DoD: (1) failing test reproduces bug (red), (2) fix makes it pass (green), (3) tests wired into CI and local runner.
+DoD: (1) failing test defines behavior (red), (2) implementation makes it pass (green), (3) tests wired into CI and local runner.
 
 Naming: YYYYMMDD_<short-slug>_spec.(py|ts|js|go|rb|java)
 
-Non-duplication: Extend existing tests for the same bug.
+Non-duplication: Extend existing tests for the same functionality.
 
 Determinism: No flaky/random tests; use seeds and fake timers.
 
 ## Test Generation Rules (for Claude / code assistants)
 
-Always write the failing test first.
+**ALWAYS write the test BEFORE the implementation code.**
 
 Infer <area>/<component> from changed paths.
 
@@ -76,6 +98,47 @@ Stub external services; avoid real I/O unless explicitly needed.
 Use native runners per language (pytest, vitest/jest, go test, rspec, JUnit).
 
 Add short "why it failed before the fix" note in the test.
+
+## TDD Workflow for New Features
+
+### Step 1: Write the Test First
+Before writing ANY implementation code:
+1. Create test file in `test_cases/<area>/<component>/`
+2. Define expected behavior through test assertions
+3. Run test to ensure it FAILS (Red phase)
+4. Commit the failing test with message: `test: add failing test for <feature>`
+
+### Step 2: Implement Minimal Code
+1. Write ONLY enough code to make the test pass
+2. Don't add extra features or optimizations yet
+3. Run test to ensure it PASSES (Green phase)
+4. Commit implementation with message: `feat: implement <feature> to pass test`
+
+### Step 3: Refactor (if needed)
+1. Improve code quality, performance, or structure
+2. Ensure tests still pass after each change
+3. Commit refactoring with message: `refactor: improve <aspect> of <feature>`
+
+### Example TDD Flow for Agents:
+```bash
+# 1. First, declare your intent to edit test and implementation files
+echo '{"files": ["test_cases/session/coordinator/test_new_feature.js", "src/new_feature.js"]}' > .file-coordination/active-edits/claude-session.json
+
+# 2. Write the test FIRST
+# Create: test_cases/session/coordinator/20241003_new_feature_spec.js
+
+# 3. Run test to verify it fails
+npm test test_cases/session/coordinator/20241003_new_feature_spec.js
+
+# 4. NOW write the implementation
+# Create/modify: src/new_feature.js
+
+# 5. Run test to verify it passes
+npm test test_cases/session/coordinator/20241003_new_feature_spec.js
+
+# 6. Release your file locks
+rm .file-coordination/active-edits/claude-session.json
+```
 
 ## Test Case Template
 ```

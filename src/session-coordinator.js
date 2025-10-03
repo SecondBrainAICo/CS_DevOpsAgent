@@ -713,10 +713,10 @@ class SessionCoordinator {
       dockerConfig = await this.promptForDockerConfig();
     }
     
-    // Create worktree with developer initials in the name
-    const worktreeName = `${agentType}-${devInitials}-${sessionId}-${task.replace(/\s+/g, '-')}`;
+    // Create worktree with developer initials first in the name
+    const worktreeName = `${devInitials}-${agentType}-${sessionId}-${task.replace(/\s+/g, '-')}`;
     const worktreePath = path.join(this.worktreesPath, worktreeName);
-    const branchName = `${agentType}/${devInitials}/${sessionId}/${task.replace(/\s+/g, '-')}`;
+    const branchName = `${devInitials}/${agentType}/${sessionId}/${task.replace(/\s+/g, '-')}`;
     
     try {
       // Detect if we're in a submodule and get the parent repository
@@ -970,6 +970,34 @@ The DevOps agent will automatically:
    * Create configuration in the worktree
    */
   createWorktreeConfig(worktreePath, sessionData) {
+    // Create file coordination directory structure
+    const fileCoordDir = path.join(worktreePath, '.file-coordination');
+    const activeEditsDir = path.join(fileCoordDir, 'active-edits');
+    const historyDir = path.join(fileCoordDir, 'history');
+    
+    // Create directories if they don't exist
+    [fileCoordDir, activeEditsDir, historyDir].forEach(dir => {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    });
+    
+    // Create README for file coordination
+    const coordReadme = `# File Coordination System
+
+This directory manages multi-agent file access coordination.
+
+## Structure
+- \`active-edits/\` - Current file locks by agents
+- \`history/\` - Completed edits log
+
+## Usage
+Agents must declare files before editing by creating a JSON file in active-edits/.
+See house rules for details.
+`;
+    fs.writeFileSync(path.join(fileCoordDir, 'README.md'), coordReadme);
+    console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Created file coordination directory structure`);
+    
     // Session config file
     const configPath = path.join(worktreePath, '.devops-session.json');
     fs.writeFileSync(configPath, JSON.stringify(sessionData, null, 2));
@@ -991,7 +1019,7 @@ The DevOps agent will automatically:
         'DEVOPS_WORKTREE': path.basename(worktreePath),
         'DEVOPS_BRANCH': sessionData.branchName,
         'AC_MSG_FILE': `.devops-commit-${sessionData.sessionId}.msg`,
-        'AC_BRANCH_PREFIX': `${sessionData.agentType}_${sessionData.sessionId}_`
+        'AC_BRANCH_PREFIX': `${sessionData.developerInitials || 'dev'}_${sessionData.agentType}_${sessionData.sessionId}_`
       }
     };
     
@@ -1165,12 +1193,12 @@ The DevOps agent is monitoring this worktree for changes.
       ...process.env,
       DEVOPS_SESSION_ID: sessionId,
       AC_MSG_FILE: `.devops-commit-${sessionId}.msg`,
-      AC_BRANCH_PREFIX: `${sessionData.agentType}_${devInitials}_${sessionId}_`,
+      AC_BRANCH_PREFIX: `${devInitials}_${sessionData.agentType}_${sessionId}_`,
       AC_WORKING_DIR: sessionData.worktreePath,
       // Don't set AC_BRANCH - let the agent create daily branches within the worktree
       // AC_BRANCH would force a static branch, preventing daily/weekly rollover
       AC_PUSH: 'true',  // Enable auto-push for session branches
-      AC_DAILY_PREFIX: `${sessionData.agentType}_${devInitials}_${sessionId}_`,  // Daily branches with dev initials
+      AC_DAILY_PREFIX: `${devInitials}_${sessionData.agentType}_${sessionId}_`,  // Daily branches with dev initials first
       AC_TZ: process.env.AC_TZ || 'Asia/Dubai',  // Preserve timezone for daily branches
       AC_DATE_STYLE: process.env.AC_DATE_STYLE || 'dash',  // Preserve date style
       // Apply version configuration if set
