@@ -918,6 +918,10 @@ The DevOps agent will automatically:
    * Display instructions in a user-friendly format
    */
   displayInstructions(instructions, sessionId, task) {
+    // Get the parent repository root (where the session was started from)
+    const parentRepoRoot = process.cwd();
+    const houseRulesPath = path.join(parentRepoRoot, 'houserules.md');
+    
     console.log(`\n${CONFIG.colors.bgGreen}${CONFIG.colors.bright} Instructions for Your Coding Agent ${CONFIG.colors.reset}\n`);
     
     // Clean separator
@@ -935,10 +939,10 @@ The DevOps agent will automatically:
     console.log(`⚠️  IMPORTANT: DO NOT start working yet! Wait for the user's specific instructions.`);
     console.log(``);
     console.log(`CRITICAL FIRST STEP:`);
-    console.log(`1. Read and follow the house rules: cat "${instructions.worktreePath}/houserules.md"`);
+    console.log(`1. Read and follow the house rules: cat "${houseRulesPath}"`);
     console.log(`2. Switch to the working directory: cd "${instructions.worktreePath}"`);
     console.log(``);
-    console.log(`FILE COORDINATION PROTOCOL (from house rules at ${instructions.worktreePath}/houserules.md):`);
+    console.log(`FILE COORDINATION PROTOCOL (from house rules at ${houseRulesPath}):`);
     console.log(`Before editing ANY files, you MUST:`);
     console.log(`- Declare your intent in .file-coordination/active-edits/<agent>-${sessionId}.json`);
     console.log(`- Check for conflicts with other agents`);

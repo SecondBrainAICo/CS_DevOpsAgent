@@ -160,7 +160,7 @@ create_new_session() {
     echo -e "${YELLOW}Creating session for: ${task_name}${NC}"
     
     # Run the session coordinator to create AND START the session
-    cd "$SCRIPT_DIR"
+    # Keep current directory to ensure session is created for the right repo
     node "$SRC_DIR/session-coordinator.js" create-and-start --task "$task_name" --agent "$agent_type"
 }
 
@@ -234,7 +234,7 @@ select_session() {
         echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
         
         # Start the agent for this session
-        cd "$SCRIPT_DIR"
+        # Keep current directory to ensure agent runs in the right repo
         node "$SRC_DIR/session-coordinator.js" start "$session_id"
         return 0
     else
