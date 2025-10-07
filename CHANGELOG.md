@@ -5,6 +5,23 @@ All notable changes to s9n-devops-agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2025-10-03
+
+### Added
+- 🐋 **Enhanced Docker Detection**: Now searches parent directory and parent/Infrastructure folder for docker-compose files
+- 💬 **User Prompting**: When no Docker config found, prompts user to manually specify docker-compose file path
+- 📍 **Location Labels**: Shows where each docker-compose file was found (project/parent/Infrastructure)
+
+### Changed
+- `findDockerComposeFiles()` now searches multiple locations for better multi-repo support
+- Session coordinator provides helpful guidance when Docker config not auto-detected
+- Supports common multi-repo patterns (frontend/backend with shared networking)
+
+### Why
+- Multi-repo projects often keep docker-compose at parent level for container networking
+- Enables single compose file to orchestrate multiple related projects
+- Better user experience with clear prompts instead of silent failures
+
 ## [1.3.2] - 2025-10-02
 
 ### Changed
@@ -118,6 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite
 - Binary build support for multiple platforms
 
+[1.3.3]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.2.0...v1.3.0
