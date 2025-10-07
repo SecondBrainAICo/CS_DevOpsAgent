@@ -1,4 +1,4 @@
-# House Rules for DevOps Agent (Modular Structure)
+# House Rules for DevOps Agent (Traditional Structure)
 
 ## 🚨 CRITICAL: File Coordination & Infrastructure Protocol (MUST FOLLOW)
 
@@ -39,21 +39,18 @@
 
 ## Project Structure & Folder Guidelines
 
-**Refer to `folders.md` for complete folder descriptions. You may create new module and feature subfolders following the established patterns, but MUST update `folders.md` when doing so.**
+**Traditional folder structure with infrastructure management:**
 
 ```
 DevOpsAgent/
-├── ModuleName/            # Module-specific folders
-│   ├── src/              # Source code for this module
-│   │   └── featurename/  # Feature-specific code
-│   └── test/             # Tests for this module
-│       └── featurename/  # Feature-specific tests
-├── test_scripts/          # Test execution scripts
-├── docs/                  # Documentation
-├── deploy_test/           # Deployment test scripts
-├── infrastructure/        # Infrastructure docs (READ BEFORE CREATING RESOURCES)
-│   └── infrastructure.md  # Server, instance, Docker information
-├── local_deploy/          # Local-only files (gitignored) - ALL DEBUG/TEMP FILES GO HERE
+├── src/                   # All source code
+├── test_cases/           # All test files
+├── test_scripts/         # Test execution scripts
+├── docs/                 # Documentation
+├── deploy_test/          # Deployment test scripts
+├── infrastructure/       # Infrastructure docs (READ BEFORE CREATING RESOURCES)
+│   └── infrastructure.md # Server, instance, Docker information
+├── local_deploy/         # Local-only files (gitignored) - ALL DEBUG/TEMP FILES GO HERE
 └── product_requirement_docs/  # PRDs
 ```
 
@@ -92,8 +89,9 @@ This change was needed because [specific problem or requirement].
 [Additional context about why this approach was chosen].
 
 [WHAT - Each item identifies files changed and what was done]
-- File(s): path/to/file1.js, file2.js - Specific change made to these files
+- File(s): src/module.js, src/helper.js - Specific change made to these files
 - File(s): infrastructure/infrastructure.md - Updated with new server configuration
+- File(s): test_cases/module.test.js - Added tests for new functionality
 - File(s): docs/README.md - Related documentation updates
 ```
 
@@ -177,7 +175,7 @@ Last Updated: YYYY-MM-DDTHH:MM:SSZ
 
 ## Testing Policy
 
-**Location**: `ModuleName/test/featurename/`
+**Location**: `test_cases/<area>/<component>/`
 **Naming**: `YYYYMMDD_<short-slug>_spec.js`
 
 **Test Structure**:
@@ -282,6 +280,51 @@ When creating infrastructure, document in `/infrastructure/infrastructure.md`:
 4. Update `/infrastructure/infrastructure.md`
 5. Test the changes
 6. Commit with `infra` type
+
+## File Organization Guidelines
+
+### Source Code (`/src`)
+- Organize by feature or module
+- Use clear, descriptive file names
+- Group related functionality together
+- Keep utilities and helpers in dedicated folders
+
+### Test Files (`/test_cases`)
+- Mirror the structure of `/src` where possible
+- Use descriptive test file names
+- Group tests by feature or component
+- Include integration tests for complex workflows
+
+### Example Organization
+```
+src/
+├── auth/
+│   ├── authentication.js
+│   ├── authorization.js
+│   └── session-manager.js
+├── api/
+│   ├── user-routes.js
+│   ├── admin-routes.js
+│   └── middleware.js
+└── utils/
+    ├── logger.js
+    ├── validator.js
+    └── helpers.js
+
+test_cases/
+├── auth/
+│   ├── authentication.test.js
+│   ├── authorization.test.js
+│   └── session-manager.test.js
+├── api/
+│   ├── user-routes.test.js
+│   ├── admin-routes.test.js
+│   └── integration/
+│       └── api-flow.test.js
+└── utils/
+    ├── logger.test.js
+    └── validator.test.js
+```
 
 ## Common Workflows
 
