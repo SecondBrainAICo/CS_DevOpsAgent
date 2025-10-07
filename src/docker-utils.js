@@ -46,7 +46,7 @@ export async function isDockerComposeAvailable() {
 }
 
 /**
- * Find docker-compose files in the project
+ * Find docker-compose files in the project, parent directory, and parent/Infrastructure
  */
 export function findDockerComposeFiles(projectPath) {
   const possibleFiles = [
@@ -60,14 +60,30 @@ export function findDockerComposeFiles(projectPath) {
     'docker-compose.local.yaml'
   ];
   
+  const searchLocations = [
+    { path: projectPath, label: 'project directory' },
+    { path: path.dirname(projectPath), label: 'parent directory' },
+    { path: path.join(path.dirname(projectPath), 'Infrastructure'), label: 'parent/Infrastructure' },
+    { path: path.join(path.dirname(projectPath), 'infrastructure'), label: 'parent/infrastructure' }
+  ];
+  
   const found = [];
-  for (const file of possibleFiles) {
-    const filePath = path.join(projectPath, file);
-    if (fs.existsSync(filePath)) {
-      found.push({
-        name: file,
-        path: filePath
-      });
+  
+  for (const location of searchLocations) {
+    // Check if location exists
+    if (!fs.existsSync(location.path)) {
+      continue;
+    }
+    
+    for (const file of possibleFiles) {
+      const filePath = path.join(location.path, file);
+      if (fs.existsSync(filePath)) {
+        found.push({
+          name: file,
+          path: filePath,
+          location: location.label
+        });
+      }
     }
   }
   

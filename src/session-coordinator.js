@@ -702,7 +702,7 @@ class SessionCoordinator {
       if (dockerInfo.hasCompose) {
         console.log(`${CONFIG.colors.dim}Found docker-compose files:${CONFIG.colors.reset}`);
         dockerInfo.composeFiles.forEach(file => {
-          console.log(`  • ${file.name}`);
+          console.log(`  • ${file.name} ${CONFIG.colors.dim}(in ${file.location})${CONFIG.colors.reset}`);
         });
       }
       
@@ -711,6 +711,72 @@ class SessionCoordinator {
       }
       
       dockerConfig = await this.promptForDockerConfig();
+    } else {
+      // No Docker configuration found - prompt user
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+      
+      console.log(`\n${CONFIG.colors.yellow}No Docker Configuration Found${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}I couldn't find any docker-compose files in:${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}  • Project directory${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}  • Parent directory${CONFIG.colors.reset}`);
+      console.log(`${CONFIG.colors.dim}  • Parent/Infrastructure or parent/infrastructure${CONFIG.colors.reset}`);
+      
+      const hasDocker = await new Promise((resolve) => {
+        rl.question(`\nDo you have a Docker setup you'd like to configure? (y/N): `, (answer) => {
+          resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+        });
+      });
+      
+      if (hasDocker) {
+        const dockerPath = await new Promise((resolve) => {
+          rl.question(`\nEnter the full path to your docker-compose file: `, (answer) => {
+            resolve(answer.trim());
+          });
+        });
+        
+        if (dockerPath && fs.existsSync(dockerPath)) {
+          console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Found docker-compose file at: ${dockerPath}`);
+          
+          // Ask about rebuild and service preferences
+          const rebuild = await new Promise((resolve) => {
+            rl.question('\nRebuild containers on restart? (y/N): ', (answer) => {
+              resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+            });
+          });
+          
+          const specificService = await new Promise((resolve) => {
+            rl.question('\nSpecific service to restart (leave empty for all): ', (answer) => {
+              resolve(answer.trim() || null);
+            });
+          });
+          
+          dockerConfig = {
+            enabled: true,
+            composeFile: dockerPath,
+            rebuild: rebuild,
+            service: specificService,
+            forceRecreate: false
+          };
+          
+          console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Docker restart configuration:`);
+          console.log(`  ${CONFIG.colors.bright}Auto-restart:${CONFIG.colors.reset} Enabled`);
+          console.log(`  ${CONFIG.colors.bright}Compose file:${CONFIG.colors.reset} ${path.basename(dockerPath)}`);
+          console.log(`  ${CONFIG.colors.bright}Rebuild:${CONFIG.colors.reset} ${rebuild ? 'Yes' : 'No'}`);
+          if (specificService) {
+            console.log(`  ${CONFIG.colors.bright}Service:${CONFIG.colors.reset} ${specificService}`);
+          }
+        } else if (dockerPath) {
+          console.log(`${CONFIG.colors.red}✗${CONFIG.colors.reset} File not found: ${dockerPath}`);
+          console.log(`${CONFIG.colors.dim}Skipping Docker configuration${CONFIG.colors.reset}`);
+        }
+      } else {
+        console.log(`${CONFIG.colors.dim}Skipping Docker configuration${CONFIG.colors.reset}`);
+      }
+      
+      rl.close();
     }
     
     // Create worktree with developer initials first in the name
