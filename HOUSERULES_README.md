@@ -1,49 +1,41 @@
 # House Rules Documentation
 
-This repository contains multiple versions of the house rules to accommodate different project structures and needs.
+This repository contains two versions of the house rules to accommodate different project organization preferences.
 
 ## Available Versions
 
-### 1. Traditional Structure Version
-**File**: `houserules_improved_traditional.md`
+### 1. Core Version (Structure-Agnostic)
+**File**: `houserules_core.md`
 
 **Use When**:
-- Working with existing projects that use `/src` and `/test_cases` folders
-- Migrating from legacy codebases
-- Teams prefer traditional folder organization
-- Quick setup without restructuring existing code
+- Want essential coordination and infrastructure features only
+- Team prefers to organize folders their own way
+- Working with existing projects with established structure
+- Quick setup without opinionated folder organization
 
-**Structure**:
-```
-Project/
-├── src/                   # All source code
-├── test_cases/           # All test files
-├── infrastructure/       # Infrastructure documentation
-└── [other folders]
-```
+**What You Get**:
+- Infrastructure coordination and documentation requirements
+- File coordination protocol for multi-agent work
+- Essential DevOps agent features
+- `local_deploy/` folder for temporary files
+- No specific folder structure requirements
 
-### 2. Modular Structure Version
-**File**: `houserules_improved.md`
+### 2. Structured Version (Full Organization)
+**File**: `houserules_structured.md`
 
 **Use When**:
-- Starting new projects
-- Want better code organization and scalability
+- Want comprehensive folder organization system
+- Starting new projects that will scale
+- Team wants opinionated structure for consistency
 - Working with large, complex applications
-- Teams prefer domain-driven design approach
 
-**Structure**:
-```
-Project/
-├── ModuleName/           # Module-based organization
-│   ├── src/
-│   │   └── featurename/
-│   └── test/
-│       └── featurename/
-├── infrastructure/       # Infrastructure documentation
-└── [other folders]
-```
+**What You Get**:
+- Everything from the core version
+- Complete modular folder structure (`/ModuleName/src/featurename/`)
+- Detailed folder creation and management rules
+- Reference to `folders.md` for structure guidance
 
-**Additional File**: `folders.md` - Detailed folder structure guide for the modular approach
+**Additional File**: `folders.md` - Detailed folder structure guide and creation protocols
 
 ## Key Features (Both Versions)
 
@@ -71,14 +63,15 @@ Both versions include the same core improvements:
 
 ## Choosing the Right Version
 
-| Factor | Traditional | Modular |
-|--------|-------------|---------|
-| **Existing Codebase** | ✅ Better | ❌ Requires migration |
-| **New Projects** | ✅ Good | ✅ Better |
-| **Large Applications** | ❌ Can become cluttered | ✅ Excellent |
-| **Team Learning Curve** | ✅ Familiar | ❌ Requires training |
-| **Long-term Maintainability** | ❌ Harder to scale | ✅ Excellent |
-| **Feature Isolation** | ❌ Limited | ✅ Excellent |
+| Factor | Core (Structure-Agnostic) | Structured (Full Organization) |
+|--------|---------------------------|--------------------------------|
+| **Existing Codebase** | ✅ Perfect - No changes needed | ❌ May require restructuring |
+| **New Projects** | ✅ Good - Quick start | ✅ Excellent - Scales well |
+| **Team Flexibility** | ✅ Maximum freedom | ❌ Must follow structure |
+| **Learning Curve** | ✅ Minimal | ❌ Requires training |
+| **Long-term Maintainability** | ❌ Depends on team discipline | ✅ Excellent |
+| **Large Applications** | ❌ Can become disorganized | ✅ Excellent |
+| **Infrastructure Features** | ✅ Full support | ✅ Full support |
 
 ## Migration Path
 
@@ -91,9 +84,17 @@ If you want to transition from traditional to modular structure:
 
 ## Implementation
 
+### Automatic Setup (Recommended)
+The DevOps agent will ask during setup:
+- "Do you want structured folder organization? (Y/N)"
+- **Y**: Copies `houserules_structured.md` and `folders.md` to your project
+- **N**: Copies `houserules_core.md` to your project
+- Always creates `/infrastructure/infrastructure.md` template
+
+### Manual Setup
 1. **Choose your version** based on project needs
 2. **Copy the appropriate houserules file** to your project as `houserules.md`
-3. **Copy `folders.md`** if using the modular structure
+3. **Copy `folders.md`** if using the structured version
 4. **Create `/infrastructure/infrastructure.md`** using the provided template
 5. **Train your team** on the new standards and protocols
 
