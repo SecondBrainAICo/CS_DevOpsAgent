@@ -74,9 +74,42 @@ This folder is gitignored and includes:
 - Temporary test data
 - Local configuration overrides
 - Session logs and traces
-- Worktrees for DevOps agent development
-- Session data when dogfooding the agent
-- All locks and coordination files
+- Performance profiling results
+- Any files containing sensitive data
+- Migration scripts for local use only
+- Backup files before major changes
+- **WORKTREES FOR DEVOPS AGENT'S OWN DEVELOPMENT**
+- **SESSION DATA WHEN DOGFOODING THE AGENT**
+- **ALL LOCKS AND COORDINATION FILES**
+
+### Development vs Production Usage
+
+**When developing DevOpsAgent itself (dogfooding):**
+- All worktrees go in: `local_deploy/worktrees/`
+- All session locks go in: `local_deploy/session-locks/`
+- All instructions go in: `local_deploy/instructions/`
+- All session data go in: `local_deploy/sessions/`
+- This keeps the main repo clean while we develop
+
+**When DevOpsAgent is used on OTHER projects (production):**
+- It will create `.worktrees/` in the target project
+- It will create `.session-locks/` in the target project
+- Those folders should be added to the target project's .gitignore
+
+**Examples:**
+```bash
+# Good - files in local_deploy/ won't be committed
+local_deploy/debug.log
+local_deploy/session-traces/
+local_deploy/temp-test-data.json
+local_deploy/performance-profile.txt
+local_deploy/migration-backup/
+
+# Bad - these would be tracked by git
+./debug.log
+./temp-data.json
+./test-output.txt
+```
 
 ## Commit Policy
 
@@ -241,6 +274,34 @@ if (!fs.existsSync(LOG_DIR)) {
 }
 ```
 
+### Log Levels
+```javascript
+const log = (...args) => {
+  const message = `[cs-devops-agent] ${args.join(' ')}`;
+  console.log(message);
+  // Also write to file in local_deploy
+  appendToLogFile(message);
+};
+
+const dlog = (...args) => {
+  if (DEBUG) {
+    const message = `[debug] ${args.join(' ')}`;
+    console.log(message);
+    appendToLogFile(message);
+  }
+};
+
+function appendToLogFile(message) {
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(LOG_FILE, `${timestamp} ${message}\n`);
+}
+```
+
+### Log Rotation
+- Keep logs in `local_deploy/logs/` organized by date
+- Format: `devops-agent-YYYY-MM-DD.log`
+- Never commit log files to git
+
 ### What to Log
 - Session creation/destruction
 - Worktree operations
@@ -334,3 +395,131 @@ execSync(`git checkout ${userBranch}`);
 - Update when infrastructure patterns change
 - Keep in sync with actual implementation
 - Document lessons learned from production issues
+
+## File Paths and References
+
+### Path Formatting Rules
+- Use relative paths for files in same/sub/parent directories
+- Use absolute paths for system files or files outside working tree
+- Examples:
+  - Same directory: `main.js`, `config.yaml`
+  - Subdirectory: `ModuleName/src/featurename/worker.js`, `ModuleName/test/unit/test.js`
+  - Parent directory: `../package.json`, `../../Makefile`
+  - Absolute: `/etc/hosts`, `/usr/local/bin/node`
+
+### Code Block Formatting
+```javascript path=/absolute/path/to/file.js start=10
+// Real code from actual file
+```
+
+```javascript path=null start=null
+// Example or hypothetical code
+```
+
+## Performance Considerations
+
+**File System Operations:**
+```javascript
+// Use async operations for better performance
+const fs = require('fs').promises;
+
+// Good - non-blocking
+const data = await fs.readFile(path, 'utf8');
+
+// Avoid - blocking
+const data = fs.readFileSync(path, 'utf8');
+```
+
+**Git Operations:**
+- Batch operations when possible
+- Use `--no-pager` for git commands to avoid hanging
+- Implement retry logic for network-dependent operations
+
+## Additional Development Guidelines
+
+### Debugging Helpers
+
+**Debug Mode:**
+```javascript
+// Use environment variable for debug output
+const DEBUG = process.env.DEBUG === 'true';
+const DEBUG_FILE = process.env.DEBUG_FILE || './local_deploy/debug.log';
+
+function debugLog(...args) {
+  if (DEBUG) {
+    const timestamp = new Date().toISOString();
+    const message = `[DEBUG] ${timestamp} ${args.join(' ')}`;
+    console.log(message);
+    
+    // Also write to debug file in local_deploy
+    if (DEBUG_FILE) {
+      fs.appendFileSync(DEBUG_FILE, message + '\n');
+    }
+  }
+}
+```
+
+**Debug Output Location:**
+- All debug files MUST be written to `local_deploy/` directory
+- Never write debug output to the project root or src directories
+- Example: `local_deploy/debug-${Date.now()}.log`
+
+**Performance Timing:**
+```javascript
+function timeOperation(name, fn) {
+  const start = Date.now();
+  const result = fn();
+  const duration = Date.now() - start;
+  console.log(`[PERF] ${name} took ${duration}ms`);
+  return result;
+}
+```
+
+### Dependency Management
+
+**Package.json Best Practices:**
+- Use exact versions for critical dependencies
+- Document why each dependency is needed
+- Regularly audit for security vulnerabilities
+- Keep dependencies up to date
+
+**Import Organization:**
+```javascript
+// Group imports logically
+// 1. Node built-ins
+import fs from 'fs';
+import path from 'path';
+
+// 2. External dependencies
+import express from 'express';
+import lodash from 'lodash';
+
+// 3. Internal modules
+import { config } from './config';
+import { utils } from './utils';
+```
+
+### Code Review Checklist
+
+Before committing, verify:
+- [ ] Tests pass
+- [ ] No console.log() left in production code
+- [ ] Error handling is comprehensive
+- [ ] Documentation is updated
+- [ ] Code follows project style guide
+- [ ] No sensitive data in code or comments
+- [ ] Performance impact considered
+- [ ] Security implications reviewed
+
+### Communication with Users
+
+**Progress Updates:**
+- Provide clear status updates for long-running operations
+- Use spinners or progress bars where appropriate
+- Estimate completion time when possible
+
+**Error Communication:**
+- Explain what went wrong in user-friendly terms
+- Suggest potential fixes or workarounds
+- Provide links to documentation when relevant
+- Include error codes for support reference
