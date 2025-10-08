@@ -1,4 +1,4 @@
-# CS_DevOpsAgent 🚀 v1.3.1
+# DevOps Agent 🚀 v1.3.1
 
 [![npm version](https://badge.fury.io/js/s9n-devops-agent.svg)](https://badge.fury.io/js/s9n-devops-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
