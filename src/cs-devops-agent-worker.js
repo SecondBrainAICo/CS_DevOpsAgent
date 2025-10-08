@@ -114,7 +114,12 @@ import { execa } from "execa";
 import readline from "node:readline";
 import { stdin as input, stdout as output } from 'node:process';
 import { execSync } from 'child_process';
+import { createRequire } from 'module';
 import { restartDockerContainers } from './docker-utils.js';
+
+// Import CommonJS module (FileCoordinator)
+const require = createRequire(import.meta.url);
+const FileCoordinator = require('./file-coordinator.cjs');
 
 // ============================================================================
 // CONFIGURATION SECTION - All settings can be overridden via environment vars
@@ -1352,7 +1357,7 @@ function saveProjectSettings(settings, settingsPath) {
 // Display copyright and license information immediately
 console.log("\n" + "=".repeat(70));
 console.log("  CS_DevOpsAgent - Intelligent Git Automation System");
-console.log("  Version 2.4.0 | Build 20240930.1");
+console.log("  Version 1.4.6 | Build 20251008.1");
 console.log("  \n  Copyright (c) 2024 SecondBrain Labs");
 console.log("  Author: Sachin Dev Duggal");
 console.log("  \n  Licensed under the MIT License");
@@ -1568,6 +1573,24 @@ console.log();
       lastNonMsgChangeTs = now;
     }
     dlog(`watcher: ${evt} ${p}`);
+    
+    // ========== FILE COORDINATION CHECK ==========
+    // Check for undeclared file edits whenever a non-message file changes
+    if (!isMsg && sessionId && (evt === 'add' || evt === 'change')) {
+      try {
+        const coordinator = new FileCoordinator(sessionId, process.cwd(), repoRoot);
+        const conflictCheck = await coordinator.detectUndeclaredEdits();
+        
+        if (conflictCheck.hasConflicts) {
+          const reportPath = coordinator.createConflictReport(conflictCheck);
+          // Don't block the watcher, but alert the user
+          console.log(`\n⚠️  File coordination warning: See ${reportPath}\n`);
+        }
+      } catch (err) {
+        // Don't break the watcher if coordination check fails
+        dlog('File coordination check error:', err.message);
+      }
+    }
     
     // ========== SPECIAL HANDLING FOR MESSAGE FILE ==========
     // When .claude-commit-msg changes, wait a bit then commit
