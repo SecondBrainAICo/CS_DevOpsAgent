@@ -14,16 +14,48 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 class FileCoordinator {
-  constructor(sessionId, workingDir = process.cwd()) {
+  constructor(sessionId, workingDir = process.cwd(), repoRoot = null) {
     this.sessionId = sessionId;
     this.workingDir = workingDir;
-    this.coordDir = path.join(workingDir, '.file-coordination');
+    
+    // Find repository root (shared across all worktrees)
+    this.repoRoot = repoRoot || this.findRepoRoot(workingDir);
+    
+    // Use shared coordination directory in local_deploy
+    // This ensures all agents can see each other's file locks
+    this.coordDir = path.join(this.repoRoot, 'local_deploy', '.file-coordination');
     this.activeEditsDir = path.join(this.coordDir, 'active-edits');
     this.completedEditsDir = path.join(this.coordDir, 'completed-edits');
     this.conflictsDir = path.join(this.coordDir, 'conflicts');
     
     // Ensure directories exist
     this.ensureDirectories();
+  }
+  
+  /**
+   * Find the repository root (works from worktrees too)
+   */
+  findRepoRoot(startDir) {
+    try {
+      const { execSync } = require('child_process');
+      // This works even from worktrees - returns main repo root
+      const superproject = execSync('git rev-parse --show-superproject-working-tree', { 
+        cwd: startDir, 
+        encoding: 'utf8' 
+      }).trim();
+      
+      if (superproject) {
+        return superproject;
+      }
+      
+      return execSync('git rev-parse --show-toplevel', { 
+        cwd: startDir, 
+        encoding: 'utf8' 
+      }).trim();
+    } catch (err) {
+      // Fallback to working directory if git fails
+      return startDir;
+    }
   }
 
   ensureDirectories() {

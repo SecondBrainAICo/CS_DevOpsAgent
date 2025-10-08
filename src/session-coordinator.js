@@ -74,6 +74,12 @@ class SessionCoordinator {
     // Store project-specific settings in local_deploy
     this.projectSettingsPath = path.join(this.repoRoot, 'local_deploy', 'project-settings.json');
     
+    // Package version
+    const packageJsonPath = path.join(__dirname, '../package.json');
+    this.currentVersion = fs.existsSync(packageJsonPath) 
+      ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')).version 
+      : '0.0.0';
+    
     this.ensureDirectories();
     this.cleanupStaleLocks();
     this.ensureSettingsFile();
@@ -126,6 +132,63 @@ class SessionCoordinator {
         }
       });
     }
+  }
+  
+  /**
+   * Check for newer version on npm registry
+   */
+  async checkForUpdates() {
+    const globalSettings = this.loadGlobalSettings();
+    const now = Date.now();
+    
+    // Only check once per day
+    if (globalSettings.lastUpdateCheck && (now - globalSettings.lastUpdateCheck) < 86400000) {
+      return;
+    }
+    
+    try {
+      // Check npm for latest version
+      const result = execSync('npm view s9n-devops-agent version', {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 5000
+      }).trim();
+      
+      // Update last check time
+      globalSettings.lastUpdateCheck = now;
+      this.saveGlobalSettings(globalSettings);
+      
+      // Compare versions
+      if (result && this.compareVersions(result, this.currentVersion) > 0) {
+        console.log(`\n${CONFIG.colors.yellow}▲ Update Available!${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}Current version: ${this.currentVersion}${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.bright}Latest version:  ${result}${CONFIG.colors.reset}`);
+        console.log(`\n${CONFIG.colors.green}To update, run:${CONFIG.colors.reset}`);
+        console.log(`  ${CONFIG.colors.bright}npm install -g s9n-devops-agent@latest${CONFIG.colors.reset}`);
+        console.log();
+      }
+    } catch (err) {
+      // Silently fail - don't block execution on update check
+    }
+  }
+  
+  /**
+   * Compare semantic versions
+   * Returns: 1 if v1 > v2, -1 if v1 < v2, 0 if equal
+   */
+  compareVersions(v1, v2) {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+      const p1 = parts1[i] || 0;
+      const p2 = parts2[i] || 0;
+      
+      if (p1 > p2) return 1;
+      if (p1 < p2) return -1;
+    }
+    
+    return 0;
   }
   
   /**
@@ -393,17 +456,55 @@ class SessionCoordinator {
    * Prompt for Docker restart configuration
    */
   async promptForDockerConfig() {
+    // Check if Docker setting is already configured with 'Never'
+    const projectSettings = this.loadProjectSettings();
+    if (projectSettings.dockerConfig && projectSettings.dockerConfig.neverAsk === true) {
+      // User selected 'Never' - skip Docker configuration
+      return { enabled: false, neverAsk: true };
+    }
+    
+    if (projectSettings.dockerConfig && projectSettings.dockerConfig.alwaysEnabled === true) {
+      // User selected 'Always' - use saved configuration
+      console.log(`\n${CONFIG.colors.dim}Using saved Docker configuration${CONFIG.colors.reset}`);
+      return projectSettings.dockerConfig;
+    }
+    
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
     });
     
+    console.log(`\n${CONFIG.colors.yellow}═══ Docker Configuration ═══${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}Automatically restart Docker containers after each push.${CONFIG.colors.reset}`);
+    console.log();
+    console.log(`${CONFIG.colors.bright}Options:${CONFIG.colors.reset}`);
+    console.log(`  ${CONFIG.colors.green}Y${CONFIG.colors.reset}) Yes - Enable for this session only`);
+    console.log(`  ${CONFIG.colors.red}N${CONFIG.colors.reset}) No - Disable for this session`);
+    console.log(`  ${CONFIG.colors.blue}A${CONFIG.colors.reset}) Always - Enable and remember settings`);
+    console.log(`  ${CONFIG.colors.magenta}Never${CONFIG.colors.reset}) Never ask again (permanently disable)`);
+    
     // Ask if they want automatic Docker restarts
-    const autoRestart = await new Promise((resolve) => {
-      rl.question('\nAuto-restart Docker containers after push? (y/N): ', (answer) => {
-        resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+    const answer = await new Promise((resolve) => {
+      rl.question('\nAuto-restart Docker containers after push? (Y/N/A/Never) [N]: ', (ans) => {
+        resolve(ans.trim().toLowerCase());
       });
     });
+    
+    // Handle 'Never' option
+    if (answer === 'never' || answer === 'nev') {
+      rl.close();
+      // Save 'Never' setting
+      projectSettings.dockerConfig = {
+        enabled: false,
+        neverAsk: true
+      };
+      this.saveProjectSettings(projectSettings);
+      console.log(`${CONFIG.colors.dim}Docker configuration disabled permanently. Edit local_deploy/project-settings.json to change.${CONFIG.colors.reset}`);
+      return { enabled: false, neverAsk: true };
+    }
+    
+    const autoRestart = answer === 'y' || answer === 'yes' || answer === 'a' || answer === 'always';
+    const alwaysAutoRestart = answer === 'a' || answer === 'always';
     
     if (!autoRestart) {
       rl.close();
@@ -457,11 +558,19 @@ class SessionCoordinator {
       composeFile: selectedComposeFile,
       rebuild: rebuild,
       service: specificService,
-      forceRecreate: false
+      forceRecreate: false,
+      alwaysEnabled: alwaysAutoRestart
     };
     
+    // Save configuration if 'Always' was selected
+    if (alwaysAutoRestart) {
+      projectSettings.dockerConfig = config;
+      this.saveProjectSettings(projectSettings);
+      console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Docker configuration saved permanently`);
+    }
+    
     console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Docker restart configuration:`);
-    console.log(`  ${CONFIG.colors.bright}Auto-restart:${CONFIG.colors.reset} Enabled`);
+    console.log(`  ${CONFIG.colors.bright}Auto-restart:${CONFIG.colors.reset} Enabled${alwaysAutoRestart ? ' (Always)' : ' (This session)'}`);
     if (selectedComposeFile) {
       console.log(`  ${CONFIG.colors.bright}Compose file:${CONFIG.colors.reset} ${path.basename(selectedComposeFile)}`);
     }
@@ -717,6 +826,9 @@ class SessionCoordinator {
    * Create a new session and generate Claude instructions
    */
   async createSession(options = {}) {
+    // Check for updates (once per day)
+    await this.checkForUpdates();
+    
     // Ensure both global and project setup are complete
     await this.ensureGlobalSetup();     // Developer initials (once per user)
     await this.ensureProjectSetup();    // Version strategy (once per project)
@@ -950,7 +1062,7 @@ INSTRUCTIONS:
 
 1. **Declare your intent** by creating:
    \`\`\`json
-   // File: .file-coordination/active-edits/<agent>-${sessionId}.json
+   // File: ${path.join(this.repoRoot, 'local_deploy/.file-coordination/active-edits')}/<agent>-${sessionId}.json
    {
      "agent": "<your-name>",
      "session": "${sessionId}",
@@ -962,7 +1074,7 @@ INSTRUCTIONS:
    }
    \`\`\`
 
-2. **Check for conflicts** - read all files in \`.file-coordination/active-edits/\`
+2. **Check for conflicts** - read all files in \`${path.join(this.repoRoot, 'local_deploy/.file-coordination/active-edits')}\`
 3. **Only proceed if no conflicts** - wait or choose different files if blocked
 4. **Release files when done** - delete your declaration after edits
 
@@ -980,7 +1092,7 @@ git branch --show-current
 \`\`\`
 
 ### Step 3: Declare Files Before Editing
-Create your declaration in \`.file-coordination/active-edits/\`
+Create your declaration in \`${path.join(this.repoRoot, 'local_deploy/.file-coordination/active-edits')}\`
 
 ### Step 4: Work on Your Task
 Make changes for: **${task}**
@@ -992,7 +1104,7 @@ echo "feat: your commit message here" > .devops-commit-${sessionId}.msg
 \`\`\`
 
 ### Step 6: Release Your File Locks
-Delete your declaration from \`.file-coordination/active-edits/\`
+Delete your declaration from \`${path.join(this.repoRoot, 'local_deploy/.file-coordination/active-edits')}\`
 
 ### Step 7: Automatic Processing
 The DevOps agent will automatically:
@@ -1052,9 +1164,11 @@ The DevOps agent will automatically:
     console.log(`1. Read and follow the house rules: cat "${houseRulesPath}"`);
     console.log(`2. Switch to the working directory: cd "${instructions.worktreePath}"`);
     console.log(``);
+    const coordPath = path.join(this.repoRoot, 'local_deploy/.file-coordination/active-edits');
     console.log(`FILE COORDINATION PROTOCOL (from house rules at ${houseRulesPath}):`);
+    console.log(`Shared lock directory: ${coordPath}`);
     console.log(`Before editing ANY files, you MUST:`);
-    console.log(`- Declare your intent in .file-coordination/active-edits/<agent>-${sessionId}.json`);
+    console.log(`- Declare your intent in local_deploy/.file-coordination/active-edits/<agent>-${sessionId}.json`);
     console.log(`- Check for conflicts with other agents`);
     console.log(`- Only edit files you've declared`);
     console.log(`- Release files when done`);

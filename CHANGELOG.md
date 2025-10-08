@@ -5,6 +5,33 @@ All notable changes to s9n-devops-agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2025-10-08
+
+### Fixed
+- 🔒 **Shared File Coordination**: Fixed file-coordination to use `local_deploy/.file-coordination/` instead of per-worktree coordination
+- 🤝 **Multi-Agent Lock Visibility**: All agents now see each other's file locks across all worktrees
+- 📍 **Repository Root Detection**: Added smart repo root detection that works from worktrees and submodules
+
+### Added
+- 🐋 **Docker Never Option**: Added "Never" option (Y/N/A/Never) to Docker configuration prompts
+- 💾 **Persistent Docker Settings**: Docker preferences now saved to `local_deploy/project-settings.json` when using Always/Never
+- 🔄 **Automatic Version Check**: Agent now checks npm registry for updates once per day
+- 📦 **Update Notifications**: Shows available updates with install command when newer version exists
+- 🗂️ **Project Cleanup**: Moved old houserules to `archive/` folder for cleaner root directory
+- 📚 **Documentation Organization**: Moved `HOUSERULES_README.md` and `IMPLEMENTATION_SUMMARY.md` to `docs/` folder
+
+### Changed
+- File coordination instructions now show full path to shared lock directory
+- Docker prompt includes "Always" option to remember settings across sessions
+- Version checking happens automatically on session creation (with 24-hour cooldown)
+- Archive folder excluded from npm package
+
+### Why
+- **File Coordination Fix**: Previously each worktree had its own `.file-coordination/` folder, so agents couldn't see each other's locks. Moving to shared `local_deploy/.file-coordination/` ensures all agents coordinate properly.
+- **Docker Settings**: Users were asked about Docker on every session. Now they can choose "Always" to configure once, or "Never" to stop being asked.
+- **Version Checking**: Keeps users informed of updates without being intrusive (once per day check).
+- **Project Organization**: Cleaner root directory makes it easier to understand project structure.
+
 ## [1.4.2] - 2025-10-08
 
 ### Fixed
@@ -202,6 +229,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite
 - Binary build support for multiple platforms
 
+[1.4.3]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.3...v1.4.0
