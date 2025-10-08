@@ -25,6 +25,7 @@ import { execSync, spawn, fork } from 'child_process';
 import crypto from 'crypto';
 import readline from 'readline';
 import { hasDockerConfiguration } from './docker-utils.js';
+import HouseRulesManager from './house-rules-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -147,6 +148,19 @@ class SessionCoordinator {
       
       console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Developer initials saved globally: ${CONFIG.colors.bright}${initials}${CONFIG.colors.reset}`);
       console.log(`${CONFIG.colors.dim}Your initials are saved in ~/.devops-agent/settings.json${CONFIG.colors.reset}`);
+    }
+  }
+  
+  /**
+   * Ensure house rules are set up for the project
+   */
+  async ensureHouseRulesSetup() {
+    const houseRulesManager = new HouseRulesManager(this.repoRoot);
+    
+    // Check if house rules exist
+    if (!houseRulesManager.houseRulesPath || !fs.existsSync(houseRulesManager.houseRulesPath)) {
+      console.log(`\n${CONFIG.colors.yellow}House rules not found - setting up now...${CONFIG.colors.reset}`);
+      await houseRulesManager.initialSetup();
     }
   }
   
@@ -463,6 +477,16 @@ class SessionCoordinator {
    * Prompt for auto-merge configuration
    */
   async promptForMergeConfig() {
+    // Check if auto-merge setting is already configured
+    const projectSettings = this.loadProjectSettings();
+    if (projectSettings.autoMergeConfig && projectSettings.autoMergeConfig.alwaysEnabled !== undefined) {
+      // Already configured with 'Always', use saved settings
+      if (projectSettings.autoMergeConfig.alwaysEnabled) {
+        console.log(`\n${CONFIG.colors.dim}Using saved auto-merge configuration${CONFIG.colors.reset}`);
+        return projectSettings.autoMergeConfig;
+      }
+    }
+    
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -476,18 +500,26 @@ class SessionCoordinator {
     console.log(`  • At the end of each day, your work is automatically merged`);
     console.log(`  • This keeps your target branch (main/develop) up to date`);
     console.log(`  • Prevents accumulation of stale feature branches`);
+    console.log();
+    console.log(`${CONFIG.colors.bright}Options:${CONFIG.colors.reset}`);
+    console.log(`  ${CONFIG.colors.green}Y${CONFIG.colors.reset}) Yes - Enable for this session only`);
+    console.log(`  ${CONFIG.colors.red}N${CONFIG.colors.reset}) No - Disable for this session`);
+    console.log(`  ${CONFIG.colors.blue}A${CONFIG.colors.reset}) Always - Enable and remember for all sessions (24x7 operation)`);
     
     // Ask if they want auto-merge
-    const autoMerge = await new Promise((resolve) => {
-      rl.question('\nEnable auto-merge at end of day? (y/N): ', (answer) => {
-        resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+    const answer = await new Promise((resolve) => {
+      rl.question('\nEnable auto-merge? (Y/N/A) [N]: ', (ans) => {
+        resolve(ans.trim().toLowerCase());
       });
     });
+    
+    const autoMerge = answer === 'y' || answer === 'yes' || answer === 'a' || answer === 'always';
+    const alwaysAutoMerge = answer === 'a' || answer === 'always';
     
     if (!autoMerge) {
       rl.close();
       console.log(`${CONFIG.colors.dim}Auto-merge disabled. You'll need to manually merge your work.${CONFIG.colors.reset}`);
-      return { autoMerge: false };
+      return { autoMerge: false, alwaysEnabled: false };
     }
     
     // Get available branches
@@ -549,12 +581,23 @@ class SessionCoordinator {
       autoMerge: true,
       targetBranch,
       strategy,
-      requireTests: strategy !== 'pull-request'
+      requireTests: strategy !== 'pull-request',
+      alwaysEnabled: alwaysAutoMerge
     };
     
     console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Auto-merge configuration saved:`);
     console.log(`  ${CONFIG.colors.bright}Today's work${CONFIG.colors.reset} → ${CONFIG.colors.bright}${targetBranch}${CONFIG.colors.reset}`);
     console.log(`  Strategy: ${CONFIG.colors.bright}${strategy}${CONFIG.colors.reset}`);
+    
+    if (alwaysAutoMerge) {
+      console.log(`  ${CONFIG.colors.blue}Mode: Always enabled${CONFIG.colors.reset} (24x7 operation - auto rollover)`);
+      // Save to project settings
+      projectSettings.autoMergeConfig = config;
+      this.saveProjectSettings(projectSettings);
+    } else {
+      console.log(`  ${CONFIG.colors.dim}Mode: This session only${CONFIG.colors.reset}`);
+    }
+    
     console.log(`${CONFIG.colors.dim}  (Daily branches will be merged into ${targetBranch} at end of day)${CONFIG.colors.reset}`);
     
     return config;
@@ -677,6 +720,7 @@ class SessionCoordinator {
     // Ensure both global and project setup are complete
     await this.ensureGlobalSetup();     // Developer initials (once per user)
     await this.ensureProjectSetup();    // Version strategy (once per project)
+    await this.ensureHouseRulesSetup(); // House rules setup (once per project)
     
     const sessionId = this.generateSessionId();
     const task = options.task || 'development';
