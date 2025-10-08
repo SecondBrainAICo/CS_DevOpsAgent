@@ -530,6 +530,228 @@ ${endMarker}`;
   }
 
   /**
+   * Initial setup - prompt for folder structure preference and copy appropriate files
+   */
+  async initialSetup() {
+    // Check if house rules already exist
+    if (this.houseRulesPath && fs.existsSync(this.houseRulesPath)) {
+      return {
+        alreadyExists: true,
+        path: this.houseRulesPath,
+        message: 'House rules already exist'
+      };
+    }
+
+    // Import readline for interactive prompts
+    const readline = await import('readline');
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    return new Promise((resolve) => {
+      console.log('\n📋 House Rules Setup');
+      console.log('━'.repeat(60));
+      console.log('\nWould you like to enforce a structured folder organization?');
+      console.log('\n  ✅ YES - Get comprehensive folder structure with guidelines');
+      console.log('     • Modular organization (/ModuleName/src/featurename/)');
+      console.log('     • Best for: New projects, large applications');
+      console.log('     • Includes: houserules + folders.md guide');
+      console.log('\n  ❌ NO  - Use flexible structure (organize your own way)');
+      console.log('     • No enforced folder structure');
+      console.log('     • Best for: Existing projects, quick setup');
+      console.log('     • Includes: Core house rules only');
+      console.log();
+      
+      rl.question('Do you want structured folder organization? (Y/N) [N]: ', (answer) => {
+        const wantStructure = answer.trim().toLowerCase() === 'y' || answer.trim().toLowerCase() === 'yes';
+        rl.close();
+        
+        try {
+          const result = this.setupHouseRules(wantStructure);
+          console.log();
+          console.log(`${wantStructure ? '📁' : '📄'} House rules setup complete!`);
+          console.log(`   Location: ${result.houseRulesPath}`);
+          
+          if (wantStructure) {
+            console.log(`   Folder guide: ${result.foldersPath}`);
+            console.log();
+            console.log('💡 TIP: Open folders.md to customize your project structure');
+          }
+          
+          if (result.infrastructurePath) {
+            console.log(`   Infrastructure docs: ${result.infrastructurePath}`);
+          }
+          
+          console.log();
+          resolve(result);
+        } catch (error) {
+          console.error('❌ Failed to setup house rules:', error.message);
+          resolve({ success: false, error: error.message });
+        }
+      });
+    });
+  }
+
+  /**
+   * Setup house rules by copying appropriate template
+   */
+  setupHouseRules(withStructure = false) {
+    // Determine source and target paths
+    const agentRoot = path.join(__dirname, '..');
+    const sourceFileName = withStructure ? 'houserules_structured.md' : 'houserules_core.md';
+    const sourcePath = path.join(agentRoot, sourceFileName);
+    const targetPath = path.join(this.projectRoot, 'houserules.md');
+    
+    // Verify source file exists
+    if (!fs.existsSync(sourcePath)) {
+      throw new Error(`Source house rules template not found: ${sourcePath}`);
+    }
+    
+    // Copy house rules
+    fs.copyFileSync(sourcePath, targetPath);
+    this.houseRulesPath = targetPath;
+    
+    const result = {
+      success: true,
+      withStructure,
+      houseRulesPath: targetPath
+    };
+    
+    // If structured, also copy folders.md
+    if (withStructure) {
+      const foldersSrc = path.join(agentRoot, 'folders.md');
+      const foldersDest = path.join(this.projectRoot, 'folders.md');
+      
+      if (fs.existsSync(foldersSrc)) {
+        fs.copyFileSync(foldersSrc, foldersDest);
+        result.foldersPath = foldersDest;
+      }
+    }
+    
+    // Always create infrastructure directory and template
+    const infraDir = path.join(this.projectRoot, 'infrastructure');
+    if (!fs.existsSync(infraDir)) {
+      fs.mkdirSync(infraDir, { recursive: true });
+    }
+    
+    const infraDocPath = path.join(infraDir, 'infrastructure.md');
+    if (!fs.existsSync(infraDocPath)) {
+      const infraTemplate = this.getInfrastructureTemplate();
+      fs.writeFileSync(infraDocPath, infraTemplate);
+      result.infrastructurePath = infraDocPath;
+    }
+    
+    return result;
+  }
+
+  /**
+   * Get infrastructure.md template content
+   */
+  getInfrastructureTemplate() {
+    return `# Infrastructure Documentation
+
+**IMPORTANT**: This file documents all infrastructure resources for this project.
+Always read this file before creating new servers, instances, or Docker containers.
+
+## Overview
+Last Updated: ${new Date().toISOString()}
+
+## Docker Containers
+
+### Example Container
+- **Name**: example-service
+- **Image**: nginx:latest
+- **Ports**: 8080:80
+- **Purpose**: Example web server
+- **Dependencies**: None
+- **Configuration**: 
+  - Environment: \`ENV=production\`
+  - Volumes: \`./data:/usr/share/nginx/html\`
+
+## Servers / Instances
+
+### Example Server
+- **Name**: api-server
+- **Type**: AWS EC2 t2.micro
+- **IP/Domain**: api.example.com
+- **Purpose**: REST API backend
+- **Access**: SSH key required
+- **Dependencies**: PostgreSQL database
+
+## Databases
+
+### Example Database
+- **Name**: main-db
+- **Type**: PostgreSQL 14
+- **Host**: localhost:5432
+- **Purpose**: Application data storage
+- **Backup Schedule**: Daily at 2 AM UTC
+
+## Services / APIs
+
+### Example Service
+- **Name**: auth-service
+- **Type**: OAuth2 Provider
+- **Endpoint**: https://auth.example.com
+- **Purpose**: User authentication
+- **API Keys**: Stored in environment variables
+
+## Network Configuration
+
+- **VPC/Network**: default
+- **Subnets**: 
+  - Public: 10.0.1.0/24
+  - Private: 10.0.2.0/24
+- **Security Groups**: 
+  - web-sg: Allows 80, 443
+  - api-sg: Allows 8080
+
+## Monitoring & Logging
+
+- **Monitoring**: CloudWatch / Prometheus
+- **Logging**: Centralized logging to /var/log/
+- **Alerts**: Email notifications enabled
+
+## Backup & Recovery
+
+- **Backup Location**: S3 bucket or local path
+- **Recovery Time Objective (RTO)**: < 1 hour
+- **Recovery Point Objective (RPO)**: < 15 minutes
+
+## Access & Credentials
+
+**NOTE**: Never commit credentials to this file.
+Document where credentials are stored (e.g., password manager, secrets vault).
+
+- **SSH Keys**: Stored in team password manager
+- **API Keys**: Environment variables only
+- **Database Passwords**: AWS Secrets Manager
+
+## Rollback Procedures
+
+### How to Remove/Rollback Infrastructure
+
+1. **Docker Containers**: 
+   \`\`\`bash
+   docker-compose down
+   \`\`\`
+
+2. **Servers**: 
+   - Stop the instance via cloud console
+   - Take snapshot before termination
+   - Document instance ID and configuration
+
+## Change History
+
+### YYYY-MM-DD - Initial Setup
+- Created base infrastructure
+- Deployed example services
+- Configured networking and security
+`;
+  }
+
+  /**
    * Get status of house rules
    */
   getStatus() {
