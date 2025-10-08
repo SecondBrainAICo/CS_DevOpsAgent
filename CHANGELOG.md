@@ -5,6 +5,32 @@ All notable changes to s9n-devops-agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-10-08
+
+### Added
+- 📋 **Interactive House Rules Setup**: First-time setup now prompts for folder structure preference
+- 📁 **Folder Structure Choice**: Choose between structured (modular) or flexible organization
+- 📄 **Template Files**: Automatically copies `houserules_core.md` or `houserules_structured.md` + `folders.md`
+- 🏗️ **Infrastructure Template**: Auto-creates `infrastructure/infrastructure.md` with comprehensive template
+- ♾️ **Always Auto-Merge**: New "Always" option (Y/N/A) saves auto-merge settings permanently
+- 🤖 **24x7 Operation Support**: Settings persist across sessions for hands-off operation
+- 📚 **Multiple House Rules Versions**: Core, structured, traditional, and improved variants
+- 📖 **House Rules README**: Complete guide explaining different versions and use cases
+
+### Changed
+- House rules setup now integrated into first session creation flow
+- Auto-merge prompt enhanced with three options: Yes (session), No, Always (permanent)
+- Settings saved to `local_deploy/project-settings.json` when Always selected
+- Session coordinator checks for existing house rules before prompting
+- House rules manager intelligently detects project root when running as submodule
+
+### Why
+- Users need flexibility to choose organizational style that fits their project
+- 24x7 running agents require permanent settings to avoid repeated prompts
+- Different projects have different needs (new vs existing, small vs large)
+- Automatic infrastructure documentation prevents port conflicts and resource collisions
+- Always option enables true hands-off operation with automatic daily rollover
+
 ## [1.3.3] - 2025-10-03
 
 ### Added
@@ -135,6 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite
 - Binary build support for multiple platforms
 
+[1.4.0]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.3...v1.4.0
 [1.3.3]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.3.0...v1.3.1
