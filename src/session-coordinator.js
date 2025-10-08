@@ -111,6 +111,17 @@ class SessionCoordinator {
       }
     });
     
+    // Ensure file-coordination directory
+    const fileCoordinationDir = path.join(this.repoRoot, 'local_deploy', '.file-coordination');
+    const activeEditsDir = path.join(fileCoordinationDir, 'active-edits');
+    const completedEditsDir = path.join(fileCoordinationDir, 'completed-edits');
+    
+    [fileCoordinationDir, activeEditsDir, completedEditsDir].forEach(dir => {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    });
+    
     // Ensure global settings directory in home folder
     if (!fs.existsSync(this.globalSettingsDir)) {
       fs.mkdirSync(this.globalSettingsDir, { recursive: true });
@@ -1743,7 +1754,7 @@ async function main() {
   console.log("=".repeat(70));
   console.log();
   console.log("  CS_DevOpsAgent - Intelligent Git Automation System");
-  console.log("  Version 2.4.0 | Build 20240930.1");
+  console.log("  Version 1.4.5 | Build 20251008.1");
   console.log("  ");
   console.log("  Copyright (c) 2024 SecondBrain Labs");
   console.log("  Author: Sachin Dev Duggal");

@@ -599,7 +599,7 @@ ${endMarker}`;
   setupHouseRules(withStructure = false) {
     // Determine source and target paths
     const agentRoot = path.join(__dirname, '..');
-    const sourceFileName = withStructure ? 'houserules_structured.md' : 'houserules_core.md';
+    const sourceFileName = withStructure ? 'houserules_structured.md' : 'houserules.md';
     const sourcePath = path.join(agentRoot, sourceFileName);
     const targetPath = path.join(this.projectRoot, 'houserules.md');
     
