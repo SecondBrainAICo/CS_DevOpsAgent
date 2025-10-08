@@ -1455,29 +1455,107 @@ console.log();
     usePolling: USE_POLLING,
     interval: 500,
     ignored: [
+      // Python artifacts
       "**/__pycache__/**",
       "**/*.pyc",
+      "**/*.pyo",
+      "**/*.pyd",
+      "**/.pytest_cache/**",
+      "**/.mypy_cache/**",
+      "**/*.egg-info/**",
+      
+      // System files
       "**/.DS_Store",
+      "**/Thumbs.db",
+      
+      // Logs and temp files
       "**/logs/**",
+      "**/log/**",
+      "**/*.log",
+      "**/tmp/**",
+      "**/temp/**",
+      "**/.tmp/**",
+      
+      // Dependencies
       "**/node_modules/**",
+      "**/vendor/**",
+      "**/bower_components/**",
+      
+      // Version control
       "**/.git/**",
+      "**/.svn/**",
+      "**/.hg/**",
+      
+      // Build artifacts
       "**/local_deploy/**",
       "**/dist/**",
       "**/build/**",
-      "**/coverage/**",
+      "**/out/**",
       "**/.next/**",
       "**/.nuxt/**",
-      "**/tmp/**",
-      "**/temp/**",
-      "**/.cache/**",
-      "**/vendor/**",
+      "**/.output/**",
+      "**/public/build/**",
+      
+      // Test and coverage
+      "**/coverage/**",
+      "**/.nyc_output/**",
+      "**/htmlcov/**",
+      "**/.coverage",
+      "**/lcov-report/**",
+      
+      // Database and migrations (can be very large)
+      "**/migrations/**",
+      "**/database/**",
+      "**/*.sqlite",
+      "**/*.db",
+      
+      // IDE and editor files
       "**/.vscode/**",
       "**/.idea/**",
-      "**/*.log",
+      "**/.fleet/**",
+      "**/.vs/**",
+      "**/*.swp",
+      "**/*.swo",
+      "**/*~",
+      
+      // Cache directories
+      "**/.cache/**",
+      "**/.parcel-cache/**",
+      "**/.eslintcache",
+      "**/.stylelintcache",
+      
+      // Lock files (don't need to trigger commits)
       "**/*.lock",
       "**/package-lock.json",
       "**/yarn.lock",
-      "**/pnpm-lock.yaml"
+      "**/pnpm-lock.yaml",
+      "**/poetry.lock",
+      "**/Pipfile.lock",
+      "**/Gemfile.lock",
+      "**/composer.lock",
+      
+      // Archived worktrees (from DevOps Agent)
+      "**/archived_*_worktree/**",
+      "**/archived_*/**",
+      
+      // Media and binary files that change frequently
+      "**/*.mp4",
+      "**/*.avi",
+      "**/*.mov",
+      "**/*.pdf",
+      "**/*.zip",
+      "**/*.tar",
+      "**/*.gz",
+      "**/*.7z",
+      
+      // Environment and secrets
+      "**/.env.local",
+      "**/.env.*.local",
+      
+      // OS-specific
+      "**/.Trashes",
+      "**/.Spotlight-V100",
+      "**/.fseventsd"
     ],
   })
   .on("all", async (evt, p) => {
