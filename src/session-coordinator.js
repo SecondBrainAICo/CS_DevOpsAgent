@@ -1209,33 +1209,8 @@ The DevOps agent will automatically:
    * Create configuration in the worktree
    */
   createWorktreeConfig(worktreePath, sessionData) {
-    // Create file coordination directory structure
-    const fileCoordDir = path.join(worktreePath, '.file-coordination');
-    const activeEditsDir = path.join(fileCoordDir, 'active-edits');
-    const historyDir = path.join(fileCoordDir, 'history');
-    
-    // Create directories if they don't exist
-    [fileCoordDir, activeEditsDir, historyDir].forEach(dir => {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-    });
-    
-    // Create README for file coordination
-    const coordReadme = `# File Coordination System
-
-This directory manages multi-agent file access coordination.
-
-## Structure
-- \`active-edits/\` - Current file locks by agents
-- \`history/\` - Completed edits log
-
-## Usage
-Agents must declare files before editing by creating a JSON file in active-edits/.
-See house rules for details.
-`;
-    fs.writeFileSync(path.join(fileCoordDir, 'README.md'), coordReadme);
-    console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Created file coordination directory structure`);
+    // NOTE: File coordination now uses shared local_deploy/.file-coordination/
+    // No need to create per-worktree coordination directories
     
     // Session config file
     const configPath = path.join(worktreePath, '.devops-session.json');
