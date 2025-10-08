@@ -1454,7 +1454,31 @@ console.log();
     ignoreInitial: true,
     usePolling: USE_POLLING,
     interval: 500,
-    ignored: ["**/__pycache__/**", "**/*.pyc", "**/.DS_Store", "**/logs/**"],
+    ignored: [
+      "**/__pycache__/**",
+      "**/*.pyc",
+      "**/.DS_Store",
+      "**/logs/**",
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/local_deploy/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+      "**/.next/**",
+      "**/.nuxt/**",
+      "**/tmp/**",
+      "**/temp/**",
+      "**/.cache/**",
+      "**/vendor/**",
+      "**/.vscode/**",
+      "**/.idea/**",
+      "**/*.log",
+      "**/*.lock",
+      "**/package-lock.json",
+      "**/yarn.lock",
+      "**/pnpm-lock.yaml"
+    ],
   })
   .on("all", async (evt, p) => {
     const now = Date.now();
