@@ -1357,7 +1357,7 @@ function saveProjectSettings(settings, settingsPath) {
 // Display copyright and license information immediately
 console.log("\n" + "=".repeat(70));
 console.log("  CS_DevOpsAgent - Intelligent Git Automation System");
-console.log("  Version 1.4.7 | Build 20251008.1");
+console.log("  Version 1.4.8 | Build 20251008.1");
 console.log("  \n  Copyright (c) 2024 SecondBrain Labs");
 console.log("  Author: Sachin Dev Duggal");
 console.log("  \n  Licensed under the MIT License");
