@@ -41,7 +41,7 @@ show_copyright() {
     echo "======================================================================"
     echo
     echo "  CS_DevOpsAgent - Intelligent Git Automation System"
-    echo "  Version 1.5.3 | Build 20251009.5"
+    echo "  Version 1.5.4 | Build 20251009.6"
     echo "  "
     echo "  Copyright (c) 2024 SecondBrain Labs"
     echo "  Author: Sachin Dev Duggal"
@@ -183,12 +183,35 @@ select_session() {
         return 0
     elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le "${#session_files[@]}" ]]; then
         # Use existing session
+        # In zsh, arrays are 1-indexed, so $choice maps directly
         local selected_file="${session_files[$choice]}"
+        
+        # Validate that the file exists
+        if [[ ! -f "$selected_file" ]]; then
+            echo -e "${RED}Error: Session file not found: $selected_file${NC}"
+            return 1
+        fi
+        
         local session_data=$(cat "$selected_file")
+        
+        # Validate session data was read
+        if [[ -z "$session_data" ]]; then
+            echo -e "${RED}Error: Could not read session data from: $selected_file${NC}"
+            return 1
+        fi
+        
         local session_id=$(echo "$session_data" | grep -o '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
         local worktree_path=$(echo "$session_data" | grep -o '"worktreePath"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
         local task=$(echo "$session_data" | grep -o '"task"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
         local branch_name=$(echo "$session_data" | grep -o '"branchName"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
+        
+        # Validate we got a session ID
+        if [[ -z "$session_id" ]]; then
+            echo -e "${RED}Error: Could not extract session ID from file: $selected_file${NC}"
+            echo -e "${YELLOW}File contents:${NC}"
+            cat "$selected_file"
+            return 1
+        fi
         
         echo
         echo -e "${GREEN}Using existing session: ${session_id}${NC}"
