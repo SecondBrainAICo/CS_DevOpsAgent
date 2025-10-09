@@ -41,7 +41,7 @@ show_copyright() {
     echo "======================================================================"
     echo
     echo "  CS_DevOpsAgent - Intelligent Git Automation System"
-    echo "  Version 1.5.7 | Build 20251009.9"
+    echo "  Version 1.5.8 | Build 20251009.10"
     echo "  "
     echo "  Copyright (c) 2024 SecondBrain Labs"
     echo "  Author: Sachin Dev Duggal"
@@ -302,107 +302,15 @@ setup_house_rules() {
     echo "prevent conflicts when multiple agents work on the same codebase."
     echo
     
-    # Check for existing house rules
-    local HOUSERULES_PATH=""
-    local HOUSERULES_FOUND=false
+    # NOTE: House rules creation is now handled by session-coordinator's ensureHouseRulesSetup()
+    # This provides the interactive prompt for structured vs flexible organization
+    # We only need to ensure file coordination directory exists here
     
-    # Function to search for house rules file
-    find_house_rules() {
-        local search_dir="$1"
-        local depth="${2:-0}"
-        
-        # Limit search depth
-        if [[ $depth -gt 5 ]]; then
-            return 1
-        fi
-        
-        # First check standard locations
-        for possible_path in "houserules.md" "HOUSERULES.md" ".github/HOUSERULES.md" "docs/houserules.md" "docs/HOUSERULES.md"; do
-            if [[ -f "$search_dir/$possible_path" ]]; then
-                echo "$search_dir/$possible_path"
-                return 0
-            fi
-        done
-        
-        # If not found, search recursively (excluding DevOps directories)
-        while IFS= read -r -d '' file; do
-            local rel_path="${file#$search_dir/}"
-            if [[ ! "$file" =~ "DevOpsAgent" ]] && 
-               [[ ! "$file" =~ "CS_DevOpsAgent" ]] && 
-               [[ ! "$file" =~ "node_modules" ]] && 
-               [[ ! "$file" =~ ".git" ]]; then
-                echo "$file"
-                return 0
-            fi
-        done < <(find "$search_dir" -maxdepth 3 -type f \( -iname "houserules.md" -o -iname "HOUSERULES.md" \) -print0 2>/dev/null)
-        
-        return 1
-    }
+    # Create file coordination directory if it doesn't exist
+    mkdir -p "$COORD_DIR/active-edits" "$COORD_DIR/completed-edits" "$COORD_DIR/conflicts"
     
-    # Search for house rules file
-    if FOUND_PATH=$(find_house_rules "$ROOT"); then
-        HOUSERULES_PATH="$FOUND_PATH"
-        HOUSERULES_FOUND=true
-        # Make path relative for display
-        local REL_PATH="${FOUND_PATH#$ROOT/}"
-        echo -e "${GREEN}✓${NC} Found existing house rules at: $REL_PATH"
-    else
-        echo "No existing house rules found."
-        echo
-        echo "Would you like to:"
-        echo "  ${BOLD}1)${NC} Create comprehensive house rules (recommended)"
-        echo "  ${BOLD}2)${NC} Specify path to existing house rules"
-        echo "  ${BOLD}3)${NC} Skip for now"
-        echo
-        echo -n "Your choice [1]: "
-        read CHOICE
-        
-        case "${CHOICE:-1}" in
-            1)
-                HOUSERULES_PATH="$ROOT/houserules.md"
-                HOUSERULES_FOUND=false
-                echo -e "${GREEN}✓${NC} Will create comprehensive house rules at: houserules.md"
-                ;;
-            2)
-                echo -n "Enter path to your house rules (relative to $ROOT): "
-                read CUSTOM_PATH
-                if [[ -f "$ROOT/$CUSTOM_PATH" ]]; then
-                    HOUSERULES_PATH="$ROOT/$CUSTOM_PATH"
-                    HOUSERULES_FOUND=true
-                    echo -e "${GREEN}✓${NC} Using house rules at: $CUSTOM_PATH"
-                else
-                    echo -e "${YELLOW}File not found. Creating new house rules at: houserules.md${NC}"
-                    HOUSERULES_PATH="$ROOT/houserules.md"
-                    HOUSERULES_FOUND=false
-                fi
-                ;;
-            3)
-                echo -e "${YELLOW}⚠ Skipping house rules setup${NC}"
-                echo "You can set them up later by running: ./scripts/setup-file-coordination.sh"
-                return 0
-                ;;
-        esac
-    fi
-    
-    echo
-    echo -e "${BLUE}Setting up file coordination system...${NC}"
-    
-    # Run the actual setup inline (simplified version)
-    if [[ -f "$SCRIPT_DIR/scripts/setup-file-coordination.sh" ]]; then
-        # Pass the house rules path we already found!
-        HOUSERULES_PATH="$HOUSERULES_PATH" bash "$SCRIPT_DIR/scripts/setup-file-coordination.sh"
-    else
-        # Inline setup if script doesn't exist
-        mkdir -p "$COORD_DIR/active-edits" "$COORD_DIR/completed-edits"
-        echo -e "${GREEN}✓${NC} File coordination directories created"
-    fi
-    
-    echo
-    echo -e "${GREEN}✓ Setup complete!${NC} AI agents will now follow house rules and coordinate file edits."
-    echo
-    echo -e "${DIM}Press Enter to continue...${NC}"
-    read -r
-    echo
+    # House rules will be created by session-coordinator when needed
+    # with the proper structured/flexible prompt
 }
 
 # Main function
