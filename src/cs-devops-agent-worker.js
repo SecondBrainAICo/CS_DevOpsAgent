@@ -1789,10 +1789,121 @@ console.log();
           
           if (isWorktree) {
             console.log("\n" + "=".repeat(60));
-            console.log("WORKTREE CLEANUP");
+            console.log("SESSION CLEANUP OPTIONS");
             console.log("=".repeat(60));
             console.log("\nThis session is running in a worktree:");
             console.log(`  ${currentDir}`);
+            
+            // Get current branch
+            const currentBranchName = await currentBranch();
+            
+            // Ask about merging to target branch first
+            const defaultTarget = 'main';
+            console.log("\n" + "─".repeat(60));
+            console.log("MERGE TO TARGET BRANCH");
+            console.log("─".repeat(60));
+            console.log(`\nMerge \x1b[1m${currentBranchName}\x1b[0m → \x1b[1m${defaultTarget}\x1b[0m before cleanup?`);
+            console.log("  y/yes - Merge to target branch");
+            console.log("  n/no  - Skip merge");
+            
+            rl.prompt();
+            const mergeAnswer = await new Promise(resolve => {
+              rl.once('line', resolve);
+            });
+            
+            let mergeCompleted = false;
+            if (mergeAnswer.toLowerCase() === 'y' || mergeAnswer.toLowerCase() === 'yes') {
+              // Ask for target branch confirmation
+              console.log(`\nTarget branch [${defaultTarget}]: `);
+              rl.prompt();
+              const targetAnswer = await new Promise(resolve => {
+                rl.once('line', resolve);
+              });
+              
+              const targetBranch = targetAnswer.trim() || defaultTarget;
+              
+              try {
+                // Get the main repo root
+                const repoRoot = path.resolve(currentDir, '../../../');
+                
+                console.log(`\n\x1b[34mMerging ${currentBranchName} into ${targetBranch}...\x1b[0m`);
+                
+                // Check if target branch exists locally
+                let branchExists = false;
+                try {
+                  execSync(`git rev-parse --verify ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                  branchExists = true;
+                } catch (err) {
+                  // Branch doesn't exist locally
+                }
+                
+                if (!branchExists) {
+                  // Check if branch exists on remote
+                  try {
+                    const remoteCheck = execSync(`git ls-remote --heads origin ${targetBranch}`, { 
+                      cwd: repoRoot, 
+                      encoding: 'utf8' 
+                    }).trim();
+                    
+                    if (remoteCheck) {
+                      // Branch exists on remote, fetch it
+                      console.log(`\x1b[2mTarget branch doesn't exist locally, fetching from remote...\x1b[0m`);
+                      execSync(`git fetch origin ${targetBranch}:${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                    } else {
+                      // Branch doesn't exist on remote either, create it
+                      console.log(`\x1b[33mTarget branch '${targetBranch}' doesn't exist. Creating it...\x1b[0m`);
+                      execSync(`git checkout -b ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                      execSync(`git push -u origin ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                      console.log(`\x1b[32m✓\x1b[0m Created new branch ${targetBranch}`);
+                    }
+                  } catch (err) {
+                    console.error(`\x1b[31m✗ Error checking/creating remote branch: ${err.message}\x1b[0m`);
+                    throw err;
+                  }
+                }
+                
+                // Switch to target branch
+                execSync(`git checkout ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                
+                // Pull latest (if branch already existed)
+                if (branchExists) {
+                  try {
+                    execSync(`git pull origin ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                  } catch (err) {
+                    console.log(`\x1b[2mCould not pull latest changes (may be new branch)\x1b[0m`);
+                  }
+                }
+                
+                // Merge the session branch
+                execSync(`git merge --no-ff ${currentBranchName} -m "Merge session ${sessionId}: session work"`, { 
+                  cwd: repoRoot, 
+                  stdio: 'pipe' 
+                });
+                
+                // Push merged changes
+                execSync(`git push origin ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                
+                console.log(`\x1b[32m✓\x1b[0m Successfully merged to ${targetBranch}`);
+                
+                // Delete remote branch after successful merge
+                try {
+                  execSync(`git push origin --delete ${currentBranchName}`, { cwd: repoRoot, stdio: 'pipe' });
+                  console.log(`\x1b[32m✓\x1b[0m Deleted remote branch ${currentBranchName}`);
+                } catch (err) {
+                  console.log(`\x1b[2mCould not delete remote branch\x1b[0m`);
+                }
+                
+                mergeCompleted = true;
+              } catch (err) {
+                console.error(`\x1b[31m✗ Merge failed: ${err.message}\x1b[0m`);
+                console.log(`\x1b[33mYou may need to resolve conflicts manually\x1b[0m`);
+              }
+            }
+            
+            // Now ask about worktree removal
+            console.log("\n" + "─".repeat(60));
+            console.log("WORKTREE CLEANUP");
+            console.log("─".repeat(60));
             console.log("\nWould you like to remove this worktree now?");
             console.log("  y/yes - Remove worktree and close session");
             console.log("  n/no  - Keep worktree for later use");
