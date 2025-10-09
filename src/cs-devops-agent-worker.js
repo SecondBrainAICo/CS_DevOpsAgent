@@ -1797,35 +1797,67 @@ console.log();
             // Get current branch
             const currentBranchName = await currentBranch();
             
-            // Ask about merging to target branch first
-            const defaultTarget = 'main';
-            console.log("\n" + "─".repeat(60));
-            console.log("MERGE TO TARGET BRANCH");
-            console.log("─".repeat(60));
-            console.log(`\nMerge \x1b[1m${currentBranchName}\x1b[0m → \x1b[1m${defaultTarget}\x1b[0m before cleanup?`);
-            console.log("  y/yes - Merge to target branch");
-            console.log("  n/no  - Skip merge");
+            // Get the main repo root
+            const repoRoot = path.resolve(currentDir, '../../../');
             
-            rl.prompt();
-            const mergeAnswer = await new Promise(resolve => {
-              rl.once('line', resolve);
-            });
+            // Read session lock file to get merge configuration
+            let mergeConfig = null;
+            let shouldMerge = false;
+            let targetBranch = 'main';
             
-            let mergeCompleted = false;
-            if (mergeAnswer.toLowerCase() === 'y' || mergeAnswer.toLowerCase() === 'yes') {
-              // Ask for target branch confirmation
-              console.log(`\nTarget branch [${defaultTarget}]: `);
+            try {
+              const lockFile = path.join(repoRoot, 'local_deploy', 'session-locks', `${sessionId}.lock`);
+              if (fs.existsSync(lockFile)) {
+                const sessionData = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
+                mergeConfig = sessionData.mergeConfig;
+              }
+            } catch (err) {
+              console.log(`\x1b[2mCould not read session config: ${err.message}\x1b[0m`);
+            }
+            
+            // Check if auto-merge is configured
+            if (mergeConfig && mergeConfig.autoMerge && mergeConfig.targetBranch) {
+              // Auto-merge is configured
+              shouldMerge = true;
+              targetBranch = mergeConfig.targetBranch;
+              console.log("\n" + "─".repeat(60));
+              console.log("AUTO-MERGE CONFIGURED");
+              console.log("─".repeat(60));
+              console.log(`\nAuto-merging \x1b[1m${currentBranchName}\x1b[0m → \x1b[1m${targetBranch}\x1b[0m`);
+              console.log(`\x1b[2m(Configured during session start)\x1b[0m`);
+            } else {
+              // No auto-merge configured, ask the user
+              console.log("\n" + "─".repeat(60));
+              console.log("MERGE TO TARGET BRANCH");
+              console.log("─".repeat(60));
+              console.log(`\nMerge \x1b[1m${currentBranchName}\x1b[0m → target branch before cleanup?`);
+              console.log("  y/yes - Merge to target branch");
+              console.log("  n/no  - Skip merge");
+              
               rl.prompt();
-              const targetAnswer = await new Promise(resolve => {
+              const mergeAnswer = await new Promise(resolve => {
                 rl.once('line', resolve);
               });
               
-              const targetBranch = targetAnswer.trim() || defaultTarget;
+              shouldMerge = mergeAnswer.toLowerCase() === 'y' || mergeAnswer.toLowerCase() === 'yes';
               
-              try {
-                // Get the main repo root
-                const repoRoot = path.resolve(currentDir, '../../../');
+              if (shouldMerge) {
+                // Ask for target branch
+                console.log(`\nTarget branch [${targetBranch}]: `);
+                rl.prompt();
+                const targetAnswer = await new Promise(resolve => {
+                  rl.once('line', resolve);
+                });
                 
+                if (targetAnswer.trim()) {
+                  targetBranch = targetAnswer.trim();
+                }
+              }
+            }
+            
+            let mergeCompleted = false;
+            if (shouldMerge) {
+              try {
                 console.log(`\n\x1b[34mMerging ${currentBranchName} into ${targetBranch}...\x1b[0m`);
                 
                 // Check if target branch exists locally
