@@ -879,7 +879,7 @@ class SessionCoordinator {
     // Check for Docker configuration and ask about restart preference
     let dockerConfig = null;
     
-    // Check if user has already set "Never ask" preference
+    // Check if user has already set "Never ask" preference (ONCE, at the top)
     const projectSettings = this.loadProjectSettings();
     if (projectSettings.dockerConfig && projectSettings.dockerConfig.neverAsk === true) {
       // User selected 'Never' - skip Docker configuration entirely
@@ -888,6 +888,7 @@ class SessionCoordinator {
       const dockerInfo = hasDockerConfiguration(process.cwd());
       
       if (dockerInfo.hasCompose || dockerInfo.hasDockerfile) {
+        // Docker detected - show what we found and ask about restart preferences
         console.log(`\n${CONFIG.colors.yellow}Docker Configuration Detected${CONFIG.colors.reset}`);
         
         if (dockerInfo.hasCompose) {
@@ -901,36 +902,49 @@ class SessionCoordinator {
           console.log(`${CONFIG.colors.dim}Found Dockerfile${CONFIG.colors.reset}`);
         }
         
+        // promptForDockerConfig already handles Y/N/A/Never options
         dockerConfig = await this.promptForDockerConfig();
+      } else if (projectSettings.dockerConfig && projectSettings.dockerConfig.alwaysEnabled) {
+        // Use saved configuration even if Docker not auto-detected
+        console.log(`\n${CONFIG.colors.dim}Using saved Docker configuration${CONFIG.colors.reset}`);
+        dockerConfig = projectSettings.dockerConfig;
       } else {
-        // No Docker configuration found - check saved preference first
-        // CRITICAL: Check neverAsk before any prompting
-        if (projectSettings.dockerConfig && projectSettings.dockerConfig.neverAsk === true) {
-          // User selected 'Never' - skip Docker configuration entirely
+        // No Docker detected and no saved preference - ask user
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+        
+        console.log(`\n${CONFIG.colors.yellow}No Docker Configuration Found${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}I couldn't find any docker-compose files in:${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}  • Project directory${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}  • Parent directory${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}  • Parent/Infrastructure or parent/infrastructure${CONFIG.colors.reset}`);
+        console.log();
+        console.log(`${CONFIG.colors.bright}Options:${CONFIG.colors.reset}`);
+        console.log(`  ${CONFIG.colors.green}Y${CONFIG.colors.reset}) Yes - I have a Docker setup to configure`);
+        console.log(`  ${CONFIG.colors.red}N${CONFIG.colors.reset}) No - Skip for this session`);
+        console.log(`  ${CONFIG.colors.magenta}Never${CONFIG.colors.reset}) Never ask again (permanently disable)`);
+        
+        const answer = await new Promise((resolve) => {
+          rl.question(`\nDo you have a Docker setup? (Y/N/Never) [N]: `, (ans) => {
+            resolve(ans.trim().toLowerCase());
+          });
+        });
+        
+        // Handle 'Never' option
+        if (answer === 'never' || answer === 'nev') {
+          rl.close();
+          projectSettings.dockerConfig = {
+            enabled: false,
+            neverAsk: true
+          };
+          this.saveProjectSettings(projectSettings);
+          console.log(`${CONFIG.colors.dim}Docker configuration disabled permanently. Edit local_deploy/project-settings.json to change.${CONFIG.colors.reset}`);
           dockerConfig = { enabled: false, neverAsk: true };
-        } else if (projectSettings.dockerConfig && projectSettings.dockerConfig.alwaysEnabled) {
-          // Use saved configuration even if Docker not auto-detected
-          console.log(`\n${CONFIG.colors.dim}Using saved Docker configuration${CONFIG.colors.reset}`);
-          dockerConfig = projectSettings.dockerConfig;
         } else {
-          // Prompt user
-          const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
-          });
-          
-          console.log(`\n${CONFIG.colors.yellow}No Docker Configuration Found${CONFIG.colors.reset}`);
-          console.log(`${CONFIG.colors.dim}I couldn't find any docker-compose files in:${CONFIG.colors.reset}`);
-          console.log(`${CONFIG.colors.dim}  • Project directory${CONFIG.colors.reset}`);
-          console.log(`${CONFIG.colors.dim}  • Parent directory${CONFIG.colors.reset}`);
-          console.log(`${CONFIG.colors.dim}  • Parent/Infrastructure or parent/infrastructure${CONFIG.colors.reset}`);
-          
-          const hasDocker = await new Promise((resolve) => {
-            rl.question(`\nDo you have a Docker setup you'd like to configure? (y/N): `, (answer) => {
-              resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
-            });
-          });
-          
+          const hasDocker = answer === 'y' || answer === 'yes';
+        
           if (hasDocker) {
             const dockerPath = await new Promise((resolve) => {
               rl.question(`\nEnter the full path to your docker-compose file: `, (answer) => {
