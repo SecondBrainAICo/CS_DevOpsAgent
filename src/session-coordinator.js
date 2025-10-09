@@ -1689,15 +1689,15 @@ The DevOps agent is monitoring this worktree for changes.
       
       console.log(`\n${CONFIG.colors.yellow}Worktree Cleanup Options${CONFIG.colors.reset}`);
       
+      // Get target branch from merge config or default to 'main'
+      let targetBranch = session.mergeConfig?.targetBranch || 'main';
+      
       const mergeFirst = await new Promise(resolve => {
-        rl.question(`\nMerge ${session.branchName} to target branch before cleanup? (y/N): `, resolve);
+        rl.question(`\nMerge ${CONFIG.colors.bright}${session.branchName}${CONFIG.colors.reset} → ${CONFIG.colors.bright}${targetBranch}${CONFIG.colors.reset} before cleanup? (y/N): `, resolve);
       });
       rl.close();
       
       if (mergeFirst.toLowerCase() === 'y') {
-        // Get target branch from merge config or ask
-        let targetBranch = session.mergeConfig?.targetBranch || 'main';
-        
         rl = readline.createInterface({
           input: process.stdin,
           output: process.stdout
@@ -1715,11 +1715,42 @@ The DevOps agent is monitoring this worktree for changes.
         try {
           console.log(`\n${CONFIG.colors.blue}Merging ${session.branchName} into ${targetBranch}...${CONFIG.colors.reset}`);
           
+          // Check if target branch exists locally
+          let branchExists = false;
+          try {
+            execSync(`git rev-parse --verify ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            branchExists = true;
+          } catch (err) {
+            // Branch doesn't exist locally
+          }
+          
+          if (!branchExists) {
+            // Check if branch exists on remote
+            try {
+              execSync(`git ls-remote --heads origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+              // Branch exists on remote, fetch it
+              console.log(`${CONFIG.colors.dim}Target branch doesn't exist locally, fetching from remote...${CONFIG.colors.reset}`);
+              execSync(`git fetch origin ${targetBranch}:${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            } catch (err) {
+              // Branch doesn't exist on remote either, create it
+              console.log(`${CONFIG.colors.yellow}Target branch '${targetBranch}' doesn't exist. Creating it...${CONFIG.colors.reset}`);
+              execSync(`git checkout -b ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+              execSync(`git push -u origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+              console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Created new branch ${targetBranch}`);
+            }
+          }
+          
           // Switch to target branch in main repo
           execSync(`git checkout ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
           
-          // Pull latest
-          execSync(`git pull origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+          // Pull latest (if branch already existed)
+          if (branchExists) {
+            try {
+              execSync(`git pull origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            } catch (err) {
+              console.log(`${CONFIG.colors.dim}Could not pull latest changes (may be new branch)${CONFIG.colors.reset}`);
+            }
+          }
           
           // Merge the session branch
           execSync(`git merge --no-ff ${session.branchName} -m "Merge session ${sessionId}: ${session.task}"`, { 
