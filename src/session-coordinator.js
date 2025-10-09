@@ -1565,20 +1565,14 @@ The DevOps agent is monitoring this worktree for changes.
     
     console.log(`\n${CONFIG.colors.yellow}Starting agent for session ${session.sessionId}...${CONFIG.colors.reset}`);
     
-    // Start the agent first
+    // Start the agent
     await this.startAgent(session.sessionId);
     
     // Wait for agent to initialize and show its interactive commands
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Now display the instructions AFTER the agent is running
-    console.log('\n'.repeat(2)); // Add some spacing
-    // Create instructions object with worktreePath for display
-    const instructionsForDisplay = {
-      worktreePath: session.worktreePath,
-      sessionId: session.sessionId
-    };
-    this.displayInstructions(instructionsForDisplay, session.sessionId, options.task || 'development');
+    // Instructions were already displayed by createSession() - no need to display again
+    // This prevents duplicate copy-paste instructions
     
     return session;
   }

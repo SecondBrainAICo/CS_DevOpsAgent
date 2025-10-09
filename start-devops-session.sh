@@ -41,7 +41,7 @@ show_copyright() {
     echo "======================================================================"
     echo
     echo "  CS_DevOpsAgent - Intelligent Git Automation System"
-    echo "  Version 1.5.0 | Build 20251009.2"
+    echo "  Version 1.5.1 | Build 20251009.3"
     echo "  "
     echo "  Copyright (c) 2024 SecondBrain Labs"
     echo "  Author: Sachin Dev Duggal"
@@ -62,36 +62,8 @@ show_header() {
     echo
 }
 
-# Function to display session instructions
-display_instructions() {
-    local session_id="$1"
-    local worktree_path="$2"
-    local branch_name="$3"
-    local task="$4"
-    
-    echo
-    echo -e "${BG_GREEN}${BOLD} Instructions for Your Coding Agent ${NC}"
-    echo
-    echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BOLD}COPY AND PASTE THIS ENTIRE BLOCK INTO YOUR CODING AGENT BEFORE YOUR PROMPT:${NC}"
-    echo -e "${YELLOW}──────────────────────────────────────────────────────────────${NC}"
-    echo
-    echo "I'm working in a DevOps-managed session with the following setup:"
-    echo "- Session ID: ${session_id}"
-    echo "- Working Directory: ${worktree_path}"
-    echo "- Task: ${task}"
-    echo ""
-    echo "Please switch to this directory before making any changes:"
-    echo "cd \"${worktree_path}\""
-    echo ""
-    echo "Write commit messages to: .devops-commit-${session_id}.msg"
-    echo "The DevOps agent will automatically commit and push changes."
-    echo
-    echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
-    echo
-    echo -e "${GREEN}✓ DevOps agent will monitor for changes${NC}"
-    echo
-}
+# NOTE: display_instructions function removed - session coordinator handles this now
+# to prevent duplicate copy-paste instructions
 
 # Function to list existing sessions
 list_sessions() {
