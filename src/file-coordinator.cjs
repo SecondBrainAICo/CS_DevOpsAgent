@@ -194,6 +194,8 @@ class FileCoordinator {
 
   /**
    * Find our current declaration file
+   * Matches files like: warp-8sf9-c9ea.json or claude-8sf9-c9ea.json
+   * where sessionId is 8sf9-c9ea
    */
   findOurDeclaration() {
     if (!fs.existsSync(this.activeEditsDir)) {
@@ -202,13 +204,27 @@ class FileCoordinator {
     
     const files = fs.readdirSync(this.activeEditsDir);
     
+    // First try: Look for session ID in filename (with or without agent prefix)
+    // Handles: warp-8sf9-c9ea.json, claude-8sf9-c9ea.json, 8sf9-c9ea.json
     for (const file of files) {
-      if (file.includes(this.sessionId) && file.endsWith('.json')) {
-        return path.join(this.activeEditsDir, file);
+      if (file.endsWith('.json')) {
+        // Extract potential session ID from filename
+        // Remove .json extension
+        const baseName = file.replace('.json', '');
+        
+        // Check if filename ends with our session ID (handles agent-sessionId format)
+        if (baseName.endsWith(this.sessionId) || baseName === this.sessionId) {
+          return path.join(this.activeEditsDir, file);
+        }
+        
+        // Also check if session ID appears anywhere in the filename
+        if (file.includes(this.sessionId)) {
+          return path.join(this.activeEditsDir, file);
+        }
       }
     }
     
-    // Try to find by session ID in content
+    // Second try: Look for session ID in file content
     for (const file of files) {
       if (file.endsWith('.json')) {
         try {

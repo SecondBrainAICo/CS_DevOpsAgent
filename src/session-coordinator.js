@@ -174,8 +174,37 @@ class SessionCoordinator {
         console.log(`\n${CONFIG.colors.yellow}▲ Update Available!${CONFIG.colors.reset}`);
         console.log(`${CONFIG.colors.dim}Current version: ${this.currentVersion}${CONFIG.colors.reset}`);
         console.log(`${CONFIG.colors.bright}Latest version:  ${result}${CONFIG.colors.reset}`);
-        console.log(`\n${CONFIG.colors.green}To update, run:${CONFIG.colors.reset}`);
-        console.log(`  ${CONFIG.colors.bright}npm install -g s9n-devops-agent@latest${CONFIG.colors.reset}`);
+        console.log();
+        
+        // Ask if user wants to update now
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+        
+        const updateNow = await new Promise((resolve) => {
+          rl.question(`${CONFIG.colors.green}Would you like to update now? (Y/n):${CONFIG.colors.reset} `, (answer) => {
+            rl.close();
+            resolve(answer.toLowerCase() !== 'n');
+          });
+        });
+        
+        if (updateNow) {
+          console.log(`\n${CONFIG.colors.blue}Updating s9n-devops-agent...${CONFIG.colors.reset}`);
+          try {
+            execSync('npm install -g s9n-devops-agent@latest', {
+              stdio: 'inherit',
+              cwd: process.cwd()
+            });
+            console.log(`\n${CONFIG.colors.green}✓ Update complete! Please restart the agent.${CONFIG.colors.reset}`);
+            process.exit(0);
+          } catch (err) {
+            console.log(`\n${CONFIG.colors.red}✗ Update failed: ${err.message}${CONFIG.colors.reset}`);
+            console.log(`${CONFIG.colors.dim}You can manually update with: npm install -g s9n-devops-agent@latest${CONFIG.colors.reset}`);
+          }
+        } else {
+          console.log(`${CONFIG.colors.dim}You can update later with: npm install -g s9n-devops-agent@latest${CONFIG.colors.reset}`);
+        }
         console.log();
       }
     } catch (err) {
