@@ -1067,11 +1067,14 @@ class SessionCoordinator {
       const instructionsFile = path.join(this.instructionsPath, `${sessionId}.md`);
       fs.writeFileSync(instructionsFile, instructions.markdown);
       
-      // Display instructions
-      this.displayInstructions(instructions, sessionId, task);
+      // DON'T display instructions here - they will be shown after agent starts
+      // to avoid showing them before the agent's interactive commands
       
       // Create session config in worktree
       this.createWorktreeConfig(worktreePath, lockData);
+      
+      // Store instructions in lockData so createAndStart can access them
+      lockData.instructions = instructions;
       
       return {
         sessionId,
@@ -1571,8 +1574,15 @@ The DevOps agent is monitoring this worktree for changes.
     // Wait for agent to initialize and show its interactive commands
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Instructions were already displayed by createSession() - no need to display again
-    // This prevents duplicate copy-paste instructions
+    // NOW display instructions AFTER the agent's interactive commands have been shown
+    // Read the lock file to get the stored instructions
+    const lockFile = path.join(this.locksPath, `${session.sessionId}.lock`);
+    const lockData = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
+    
+    if (lockData.instructions) {
+      console.log('\n'); // Add spacing
+      this.displayInstructions(lockData.instructions, session.sessionId, options.task || 'development');
+    }
     
     return session;
   }
