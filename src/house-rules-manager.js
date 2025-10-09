@@ -550,20 +550,24 @@ ${endMarker}`;
     });
 
     return new Promise((resolve) => {
-      console.log('\n📋 House Rules Setup');
-      console.log('━'.repeat(60));
-      console.log('\nWould you like to enforce a structured folder organization?');
-      console.log('\n  ✅ YES - Get comprehensive folder structure with guidelines');
-      console.log('     • Modular organization (/ModuleName/src/featurename/)');
-      console.log('     • Best for: New projects, large applications');
-      console.log('     • Includes: houserules + folders.md guide');
-      console.log('\n  ❌ NO  - Use flexible structure (organize your own way)');
-      console.log('     • No enforced folder structure');
-      console.log('     • Best for: Existing projects, quick setup');
-      console.log('     • Includes: Core house rules only');
+      console.log('\n' + '='.repeat(70));
+      console.log('📋 FIRST-TIME PROJECT SETUP: House Rules Configuration');
+      console.log('='.repeat(70));
+      console.log('\nChoose your project organization style:\n');
+      console.log('  ✅ STRUCTURED (Recommended for new projects)');
+      console.log('     • Enforced modular folder organization');
+      console.log('     • Pattern: /ModuleName/src/featurename/');
+      console.log('     • Includes: houserules.md + folders.md guide');
+      console.log('     • Best for: New projects, large applications, teams');
       console.log();
+      console.log('  ❌ FLEXIBLE (Recommended for existing projects)');
+      console.log('     • No enforced folder structure');
+      console.log('     • Organize files your own way');
+      console.log('     • Includes: houserules.md only');
+      console.log('     • Best for: Existing projects, personal projects');
+      console.log('\n' + '─'.repeat(70));
       
-      rl.question('Do you want structured folder organization? (Y/N) [N]: ', (answer) => {
+      rl.question('\nDo you want STRUCTURED folder organization? (Y/N) [N]: ', (answer) => {
         const wantStructure = answer.trim().toLowerCase() === 'y' || answer.trim().toLowerCase() === 'yes';
         rl.close();
         
