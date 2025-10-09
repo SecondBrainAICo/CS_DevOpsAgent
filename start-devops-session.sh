@@ -41,7 +41,7 @@ show_copyright() {
     echo "======================================================================"
     echo
     echo "  CS_DevOpsAgent - Intelligent Git Automation System"
-    echo "  Version 2.4.0 | Build 20240930.1"
+    echo "  Version 1.4.9 | Build 20251009.1"
     echo "  "
     echo "  Copyright (c) 2024 SecondBrain Labs"
     echo "  Author: Sachin Dev Duggal"
@@ -221,12 +221,8 @@ select_session() {
         echo
         echo -e "${GREEN}Using existing session: ${session_id}${NC}"
         
-        # Display instructions for coding agent IMMEDIATELY after selection
-        display_instructions "$session_id" "$worktree_path" "$branch_name" "$task"
-        
-        # Add a pause and visual separator before starting the agent
-        echo -e "${DIM}Press Enter to start the DevOps agent monitoring...${NC}"
-        read -r
+        # Instructions will be displayed by the session coordinator
+        # No need to display them here to avoid duplication
         
         echo
         echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"

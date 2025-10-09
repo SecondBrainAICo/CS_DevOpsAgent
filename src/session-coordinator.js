@@ -904,7 +904,11 @@ class SessionCoordinator {
         dockerConfig = await this.promptForDockerConfig();
       } else {
         // No Docker configuration found - check saved preference first
-        if (projectSettings.dockerConfig && projectSettings.dockerConfig.alwaysEnabled) {
+        // CRITICAL: Check neverAsk before any prompting
+        if (projectSettings.dockerConfig && projectSettings.dockerConfig.neverAsk === true) {
+          // User selected 'Never' - skip Docker configuration entirely
+          dockerConfig = { enabled: false, neverAsk: true };
+        } else if (projectSettings.dockerConfig && projectSettings.dockerConfig.alwaysEnabled) {
           // Use saved configuration even if Docker not auto-detected
           console.log(`\n${CONFIG.colors.dim}Using saved Docker configuration${CONFIG.colors.reset}`);
           dockerConfig = projectSettings.dockerConfig;
