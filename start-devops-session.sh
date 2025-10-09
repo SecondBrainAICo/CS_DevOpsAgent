@@ -183,12 +183,22 @@ select_session() {
         return 0
     elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le "${#session_files[@]}" ]]; then
         # Use existing session
+        # Debug: Show what we're trying to access
+        echo -e "${DIM}[Debug] Choice: $choice, Array size: ${#session_files[@]}${NC}"
+        echo -e "${DIM}[Debug] Array contents: ${session_files[@]}${NC}"
+        
         # In zsh, arrays are 1-indexed, so $choice maps directly
         local selected_file="${session_files[$choice]}"
+        
+        echo -e "${DIM}[Debug] Selected file: $selected_file${NC}"
         
         # Validate that the file exists
         if [[ ! -f "$selected_file" ]]; then
             echo -e "${RED}Error: Session file not found: $selected_file${NC}"
+            echo -e "${YELLOW}All files in array:${NC}"
+            for idx in "${!session_files[@]}"; do
+                echo -e "  [$idx] = ${session_files[$idx]}"
+            done
             return 1
         fi
         
