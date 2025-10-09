@@ -1681,8 +1681,72 @@ The DevOps agent is monitoring this worktree for changes.
         console.log(`${CONFIG.colors.dim}Could not check git status${CONFIG.colors.reset}`);
       }
       
+      // Ask about merging to target branch before cleanup
+      let rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+      
+      console.log(`\n${CONFIG.colors.yellow}Worktree Cleanup Options${CONFIG.colors.reset}`);
+      
+      const mergeFirst = await new Promise(resolve => {
+        rl.question(`\nMerge ${session.branchName} to target branch before cleanup? (y/N): `, resolve);
+      });
+      rl.close();
+      
+      if (mergeFirst.toLowerCase() === 'y') {
+        // Get target branch from merge config or ask
+        let targetBranch = session.mergeConfig?.targetBranch || 'main';
+        
+        rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+        
+        const confirmTarget = await new Promise(resolve => {
+          rl.question(`Target branch [${targetBranch}]: `, resolve);
+        });
+        rl.close();
+        
+        if (confirmTarget.trim()) {
+          targetBranch = confirmTarget.trim();
+        }
+        
+        try {
+          console.log(`\n${CONFIG.colors.blue}Merging ${session.branchName} into ${targetBranch}...${CONFIG.colors.reset}`);
+          
+          // Switch to target branch in main repo
+          execSync(`git checkout ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+          
+          // Pull latest
+          execSync(`git pull origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+          
+          // Merge the session branch
+          execSync(`git merge --no-ff ${session.branchName} -m "Merge session ${sessionId}: ${session.task}"`, { 
+            cwd: this.repoRoot, 
+            stdio: 'pipe' 
+          });
+          
+          // Push merged changes
+          execSync(`git push origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+          
+          console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Successfully merged to ${targetBranch}`);
+          
+          // Delete remote branch after successful merge
+          try {
+            execSync(`git push origin --delete ${session.branchName}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Deleted remote branch ${session.branchName}`);
+          } catch (err) {
+            console.log(`${CONFIG.colors.dim}Could not delete remote branch${CONFIG.colors.reset}`);
+          }
+        } catch (err) {
+          console.error(`${CONFIG.colors.red}✗ Merge failed: ${err.message}${CONFIG.colors.reset}`);
+          console.log(`${CONFIG.colors.yellow}You may need to resolve conflicts manually${CONFIG.colors.reset}`);
+        }
+      }
+      
       // Ask about removing worktree
-      const rl = readline.createInterface({
+      rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
       });
@@ -1697,6 +1761,14 @@ The DevOps agent is monitoring this worktree for changes.
           // Remove worktree
           execSync(`git worktree remove "${session.worktreePath}" --force`, { stdio: 'pipe' });
           console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Worktree removed`);
+          
+          // Delete local branch
+          try {
+            execSync(`git branch -D ${session.branchName}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Deleted local branch ${session.branchName}`);
+          } catch (err) {
+            console.log(`${CONFIG.colors.dim}Could not delete local branch${CONFIG.colors.reset}`);
+          }
           
           // Prune worktree list
           execSync('git worktree prune', { stdio: 'pipe' });
