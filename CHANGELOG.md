@@ -5,6 +5,44 @@ All notable changes to s9n-devops-agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2025-01-10
+
+### 🚨 CRITICAL FIX
+- 🔒 **File Lock Timing**: Fixed critical race condition where locks were released after commit instead of after session close
+- ⏱️ **Session-Lifetime Locks**: Locks now held for ENTIRE session until merge/worktree removal
+- 🛑 **Stop-and-Ask Protocol**: Agents must explicitly request user permission to edit files locked by other agents
+- 💥 **Prevents Merge Conflicts**: Eliminates race conditions where two agents edit same files in parallel sessions
+
+### ✨ Added - Enhanced Branch Management
+- 🔀 **Dual Merge Support**: Merges to both daily branch (`manus_MMDD_*`) and main branch
+- 📅 **Weekly Consolidation**: Automatic weekly branch cleanup and consolidation
+- 🧹 **Orphan Session Cleanup**: Detects and cleans up stale session branches
+- 🌳 **Hierarchical Branching**: `session → daily → main` branch structure
+- ✅ **Comprehensive Tests**: 7 automated test cases covering all merge scenarios
+- 📊 **Enhanced Status Display**: Shows both daily and main merge status
+
+### 🔄 Changed
+- House rules updated to clarify file lock lifetime requirements
+- Session close now releases locks only after successful merge
+- Enhanced-close-session script handles dual merges automatically
+- Documentation updated with lock timing best practices
+
+### 🐛 Fixed
+- Prevents overlapping edits when agents finish at different times
+- Eliminates duplicate work from parallel edits to same files
+- Removes race condition in file coordination system
+
+### 💡 Why This Matters
+- **Before**: Agent A finishes editing and releases locks → Agent B starts editing same files → Both conflict when merging
+- **After**: Agent A holds locks until session merged → Agent B blocked from editing → Zero conflicts
+- **Impact**: Enables true parallel multi-agent workflows without manual conflict resolution
+
+### 📚 Documentation
+- Updated README with session-lifetime lock behavior
+- Added file coordination best practices
+- Documented stop-and-ask protocol for conflict resolution
+- Created comprehensive test results and analysis documents
+
 ## [1.4.3] - 2025-10-08
 
 ### Fixed

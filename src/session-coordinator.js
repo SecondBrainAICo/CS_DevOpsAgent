@@ -158,6 +158,9 @@ class SessionCoordinator {
     }
     
     try {
+      // Show checking message
+      console.log(`${CONFIG.colors.dim}🔍 Checking for DevOps Agent updates...${CONFIG.colors.reset}`);
+      
       // Check npm for latest version
       const result = execSync('npm view s9n-devops-agent version', {
         encoding: 'utf8',
@@ -206,9 +209,13 @@ class SessionCoordinator {
           console.log(`${CONFIG.colors.dim}You can update later with: npm install -g s9n-devops-agent@latest${CONFIG.colors.reset}`);
         }
         console.log();
+      } else {
+        // Version is up to date
+        console.log(`${CONFIG.colors.dim}✓ DevOps Agent is up to date (v${this.currentVersion})${CONFIG.colors.reset}`);
       }
     } catch (err) {
       // Silently fail - don't block execution on update check
+      console.log(`${CONFIG.colors.dim}✗ Could not check for updates (offline or npm unavailable)${CONFIG.colors.reset}`);
     }
   }
   
