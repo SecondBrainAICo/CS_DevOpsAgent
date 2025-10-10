@@ -34,9 +34,17 @@
    - Never edit files you haven't declared
    - Stay within your declared scope
 
-4. **RELEASE WHEN DONE**
-   - Delete your declaration file after completing edits
-   - Or move it to `.file-coordination/completed-edits/`
+4. **HOLD LOCKS FOR ENTIRE SESSION**
+   - Keep your declaration active for the ENTIRE session
+   - DO NOT release locks after committing - keep them until session closes
+   - Locks protect files from other agents until your changes are merged
+   
+5. **RELEASE ONLY WHEN SESSION CLOSES**
+   - Delete your declaration file ONLY when:
+     - Session is being closed/merged, OR
+     - Worktree is being removed
+   - Move it to `.file-coordination/completed-edits/` during session closure
+   - **CRITICAL**: Never release locks while session is still active!
 
 ### If You Detect a Conflict:
 - **STOP IMMEDIATELY** - DO NOT proceed with any edits
@@ -54,8 +62,15 @@
 # 2. Create your declaration in .file-coordination/active-edits/
 # 3. Make your edits
 # 4. Write commit message to the session-specific file
-# 5. Remove your declaration
+# 5. Continue working (locks stay active!)
+# 6. When session closes: merge changes THEN remove declaration
 ```
+
+### Why Locks Must Stay Active:
+- **Problem**: If you release locks after committing, another agent can declare and edit the same files
+- **Result**: Both sessions will conflict when merging
+- **Solution**: Hold locks until session is merged and worktree removed
+- **Benefit**: Prevents duplicate work and merge conflicts
 
 **This coordination prevents wasted work and merge conflicts!**
 
