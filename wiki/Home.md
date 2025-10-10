@@ -68,10 +68,13 @@ CS_DevOpsAgent is an intelligent automation system that:
 
 ## 🆕 Latest Updates
 
-**Version 1.4.3** (2025-10-08)
-- 🔒 **Shared File Coordination** - Fixed multi-agent lock visibility
-- 🐋 **Docker Never Option** - Persistent Docker settings
-- 🔄 **Auto Version Check** - Daily update notifications
+**Version 1.7.2** (2025-01-10)
+- 🔢 **Version Display Fix** - All components now show correct v1.7.2
+- 🔍 **Visible Update Check** - Transparent update status messages (v1.7.1)
+- 🔒 **Critical Lock Timing Fix** - Session-lifetime file locks prevent race conditions (v1.7.0)
+- 🔀 **Dual Merge Support** - Merges to both daily and main branches (v1.7.0)
+- 📅 **Weekly Consolidation** - Automated branch cleanup (v1.7.0)
+- 🧹 **Orphan Session Cleanup** - Automatic detection of stale sessions (v1.7.0)
 
 [See full changelog →](Changelog)
 

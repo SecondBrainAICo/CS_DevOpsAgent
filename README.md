@@ -498,15 +498,25 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## Release Notes 📢
+
+### Latest: v1.7.2 (January 10, 2025)
+
+For complete release history, feature details, and upgrade guides:
+- **[v1.7.x Release Notes](docs/RELEASE_NOTES_v1.7.md)** - Comprehensive documentation for v1.7.x series
+- **[CHANGELOG.md](CHANGELOG.md)** - Full version history
+- **[GitHub Releases](https://github.com/SecondBrainAICo/CS_DevOpsAgent/releases)** - Official releases with binaries
+
 ## License 📄
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support 💬
 
-- 📧 Email: support@secondbrain.ai
 - 🐛 Issues: [GitHub Issues](https://github.com/SecondBrainAICo/CS_DevOpsAgent/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/SecondBrainAICo/CS_DevOpsAgent/discussions)
 - 📖 Documentation: [GitHub Wiki](https://github.com/SecondBrainAICo/CS_DevOpsAgent/wiki)
+- 📦 NPM Package: [s9n-devops-agent](https://www.npmjs.com/package/s9n-devops-agent)
 
 ## Acknowledgments 🙏
 
