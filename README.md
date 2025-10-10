@@ -1,26 +1,28 @@
-# DevOps Agent 🚀 v1.3.1
+# DevOps Agent 🚀 v1.7.0
 
 [![npm version](https://badge.fury.io/js/s9n-devops-agent.svg)](https://badge.fury.io/js/s9n-devops-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-blue)](https://github.com/SecondBrainAICo/CS_DevOpsAgent)
 
-An intelligent Git automation system with multi-agent support, real-time file coordination, session management, and seamless integration with AI coding assistants like Claude, GitHub Copilot, and Cursor.
+An intelligent Git automation system with multi-agent support, enhanced branch management, real-time file coordination, and seamless integration with AI coding assistants like Claude, GitHub Copilot, and Cursor.
 
-## 🆕 What's New in v1.3.1
+## 🆕 What's New in v1.7.0
 
-### Latest Updates (v1.3.1)
-- **🔒 Enhanced File Locking**: Improved coordination scripts with proper empty directory handling
-- **🧪 File Locking Demo**: New comprehensive test showing how multi-agent coordination prevents conflicts
-- **📁 Better Organization**: Coordination scripts moved to `scripts/coordination/` for clarity
-- **🐛 Bug Fixes**: Fixed glob expansion issues in file coordination scripts
+### Major Release: Enhanced Branch Management System
 
-### Previous Features (v1.3.0)
-- **📚 Intelligent House Rules System**: Auto-creates and updates project conventions for AI agents
-- **🟧 Real-time Undeclared Edit Detection**: Instantly alerts when files are edited without declaration
-- **🔴 File Conflict Prevention**: Detects and reports when multiple agents try to edit the same files
-- **🔄 Smart Version Updates**: House rules sections update independently while preserving user content
-- **🚀 Streamlined Setup**: One-command setup with `npm start` - handles everything automatically
-- **🔧 Self-Healing**: Automatically recovers if house rules are deleted
+- **🔀 Dual Merge Support**: Sessions merge to BOTH daily branch AND target branch (e.g., main)
+- **📅 Weekly Consolidation**: Automated rollup of daily branches into weekly branches
+- **🧹 Orphaned Session Cleanup**: Automatic detection and cleanup of inactive sessions
+- **🌲 Hierarchical Branching**: Clear structure: `session/* → daily/* → weekly/* → target`
+- **🔒 Critical Lock Timing Fix**: File locks now held for entire session lifetime (not just during editing)
+- **✅ Comprehensive Testing**: 10/10 automated tests passing + E2E validation with 2 parallel agents
+- **📚 Enhanced Documentation**: Complete branch management guide and testing strategy
+
+### File Coordination Improvements
+- **⏱️ Correct Lock Timing**: Locks held until session closes/merges (prevents race conditions)
+- **🛑 Stop-and-Ask Policy**: Agents must ask user permission before editing declared files
+- **📊 Detailed Conflict Reports**: Shows which agent, which files, and what they're working on
+- **🔐 Session-Lifetime Protection**: Files protected from other agents until changes are merged
 
 ## 🔗 Quick Links
 
@@ -178,11 +180,20 @@ Prevents multiple AI agents from editing the same files simultaneously:
 
 1. **Declaration Phase**: Agents declare which files they'll modify
 2. **Conflict Check**: System checks if files are already being edited
-3. **Real-time Monitoring**: Detects violations within 2 seconds
-4. **Alert System**: 
+3. **Session-Lifetime Locks**: 🔒 **CRITICAL** - Locks held for ENTIRE session, not just during editing
+4. **Release Only on Close**: Locks released ONLY when session closes/merges (prevents race conditions)
+5. **Real-time Monitoring**: Detects violations within 2 seconds
+6. **Alert System**: 
    - 🟧 **Orange Alert**: Files edited without declaration
    - 🔴 **Red Alert**: Files being edited by another agent
-5. **Copy-Paste Instructions**: Provides exact commands to correct agent behavior
+   - 🛑 **Stop-and-Ask**: Agents must get user permission to override
+7. **Copy-Paste Instructions**: Provides exact commands to correct agent behavior
+
+#### Why Locks Stay Active During Entire Session:
+- ❌ **Problem**: Releasing locks after commit allows another agent to edit same files
+- 💥 **Result**: Both sessions conflict when merging
+- ✅ **Solution**: Hold locks until session is merged and worktree removed
+- 🎯 **Benefit**: Zero race conditions, no duplicate work
 
 **Coordination Commands:**
 ```bash
