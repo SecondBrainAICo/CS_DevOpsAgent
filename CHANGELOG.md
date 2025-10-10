@@ -5,6 +5,22 @@ All notable changes to s9n-devops-agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2025-01-10
+
+### ✨ Added
+- 🔍 **Visible Update Check**: Shows "Checking for DevOps Agent updates..." message when checking npm registry
+- ✅ **Up-to-Date Confirmation**: Displays confirmation message when version is current
+- ✗ **Offline Handling**: Shows helpful message if update check fails due to network/npm issues
+
+### 🔄 Changed
+- Update check now provides transparent feedback instead of running silently
+- Users can see when version check happens and its result
+
+### 💡 Why
+- Previously update check ran invisibly in background, causing confusion
+- Users couldn't tell if check was happening or if they were up to date
+- Better transparency builds trust and reduces support questions
+
 ## [1.7.0] - 2025-01-10
 
 ### 🚨 CRITICAL FIX
