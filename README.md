@@ -1,4 +1,4 @@
-# DevOps Agent 🚀 v1.7.1
+# DevOps Agent 🚀 v1.7.2
 
 [![npm version](https://badge.fury.io/js/s9n-devops-agent.svg)](https://badge.fury.io/js/s9n-devops-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -6,9 +6,13 @@
 
 An intelligent Git automation system with multi-agent support, enhanced branch management, real-time file coordination, and seamless integration with AI coding assistants like Claude, GitHub Copilot, and Cursor.
 
-## 🆕 What's New in v1.7.1
+## 🆕 What's New in v1.7.2
 
-### Update Check Visibility Improvements
+### Version Display Fix
+- **🔢 Consistent Versioning**: Fixed all version numbers to display correctly across all components
+- **📦 Session Coordinator**: Updated to show v1.7.2 in copyright banner
+
+### v1.7.1 - Update Check Visibility Improvements
 - **🔍 Visible Update Check**: Now shows "Checking for DevOps Agent updates..." when checking npm
 - **✅ Up-to-Date Confirmation**: Displays confirmation when your version is current  
 - **✗ Offline Handling**: Shows helpful error message if update check fails

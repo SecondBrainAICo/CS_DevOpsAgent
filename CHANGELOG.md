@@ -5,6 +5,19 @@ All notable changes to s9n-devops-agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2025-01-10
+
+### 🔧 Fixed
+- 🔢 **Version Display**: Fixed session-coordinator.js to show correct version (was showing 1.4.8)
+- 📝 **README**: Updated header to reflect v1.7.2
+- 📦 **Start Script**: Updated version banner to v1.7.2
+- ✅ **Consistency**: All components now display matching version numbers
+
+### 💡 Why
+- User reported seeing v1.4.8 after updating to v1.7.1
+- Old version number was hardcoded in session coordinator CLI banner
+- Ensures users see correct version across all entry points
+
 ## [1.7.1] - 2025-01-10
 
 ### ✨ Added

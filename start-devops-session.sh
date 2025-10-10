@@ -41,7 +41,7 @@ show_copyright() {
     echo "======================================================================"
     echo
     echo "  CS_DevOpsAgent - Intelligent Git Automation System"
-    echo "  Version 1.7.1 | Build 20251010.02"
+    echo "  Version 1.7.2 | Build 20251010.03"
     echo "  "
     echo "  Copyright (c) 2024 SecondBrain Labs"
     echo "  Author: Sachin Dev Duggal"

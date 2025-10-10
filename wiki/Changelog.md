@@ -6,6 +6,23 @@ This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ---
 
+## [1.7.2] - 2025-01-10
+
+### 🔧 Fixed
+- 🔢 **Version Display**: Fixed session-coordinator.js to show correct version (was showing 1.4.8)
+- 📝 **README**: Updated header to reflect v1.7.2
+- 📦 **Start Script**: Updated version banner to v1.7.2
+- ✅ **Consistency**: All components now display matching version numbers
+
+### 💡 Why
+- User reported seeing v1.4.8 after updating to v1.7.1
+- Old version number was hardcoded in session coordinator CLI banner
+- Ensures users see correct version across all entry points
+
+[Full diff →](https://github.com/SecondBrainAICo/CS_DevOpsAgent/compare/v1.7.1...v1.7.2)
+
+---
+
 ## [1.7.1] - 2025-01-10
 
 ### ✨ Added
