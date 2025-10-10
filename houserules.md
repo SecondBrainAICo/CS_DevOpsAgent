@@ -23,8 +23,12 @@
 2. **CHECK FOR CONFLICTS**
    - Read ALL files in `.file-coordination/active-edits/`
    - If ANY other agent has declared the same files, you must:
-     - WAIT for them to finish, OR
+     - **STOP IMMEDIATELY** - DO NOT proceed with any edits
+     - **ASK THE USER** for explicit permission before editing those files
+     - Inform the user which agent has declared the files and for what purpose
+     - WAIT for the other agent to finish, OR
      - Choose different files to edit
+   - **CRITICAL**: Never edit files another agent has declared without explicit user confirmation
 
 3. **ONLY EDIT DECLARED FILES**
    - Never edit files you haven't declared
@@ -35,9 +39,14 @@
    - Or move it to `.file-coordination/completed-edits/`
 
 ### If You Detect a Conflict:
-- DO NOT proceed with edits
-- Report the conflict to the user
-- Wait or choose alternative files
+- **STOP IMMEDIATELY** - DO NOT proceed with any edits
+- **ASK THE USER** for explicit permission before editing conflicting files
+- Report the conflict to the user with details:
+  - Which files are in conflict
+  - Which agent has declared them
+  - What that agent is working on (from their declaration)
+- Wait for user decision: override, wait, or choose alternative files
+- **NEVER edit conflicting files without explicit user approval**
 
 ### Example Workflow:
 ```bash
