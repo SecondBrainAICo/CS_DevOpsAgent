@@ -1239,9 +1239,9 @@ The DevOps agent will automatically:
    * Display instructions in a user-friendly format
    */
   displayInstructions(instructions, sessionId, task) {
-    // Get the parent repository root (where the session was started from)
-    const parentRepoRoot = process.cwd();
-    const houseRulesPath = path.join(parentRepoRoot, 'houserules.md');
+    // Get the repository root (not the worktree, but the actual repo root)
+    // this.repoRoot is the repository root where houserules.md lives
+    const houseRulesPath = path.join(this.repoRoot, 'houserules.md');
     
     console.log(`\n${CONFIG.colors.bgGreen}${CONFIG.colors.bright} Instructions for Your Coding Agent ${CONFIG.colors.reset}\n`);
     
@@ -1277,6 +1277,14 @@ The DevOps agent will automatically:
     console.log(``);
     console.log(`Write commit messages to: .devops-commit-${sessionId}.msg`);
     console.log(`The DevOps agent will automatically commit and push changes.`);
+    console.log(``);
+    
+    // Add house rules reference
+    const houseRulesExists = fs.existsSync(houseRulesPath);
+    if (houseRulesExists) {
+      console.log(`📋 IMPORTANT: Review project conventions and rules:`);
+      console.log(`Read the house rules at: ${houseRulesPath}`);
+    }
     console.log();
     
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);

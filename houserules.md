@@ -155,13 +155,17 @@ This change was needed because [specific problem or requirement].
 - File(s): docs/README.md, config.json - Related updates or side effects
 ```
 
-**Commit Types**:
-- `feat`: New feature or capability added
-- `fix`: Bug fix or error correction
-- `refactor`: Code restructuring without changing functionality
-- `docs`: Documentation updates (README, comments, PRDs)
-- `test`: Adding or modifying tests
-- `chore`: Maintenance tasks (configs, dependencies, cleanup)
+**Commit Types (REQUIRED - MUST use one of these)**:
+- `feat:` - New feature or capability added
+- `fix:` - Bug fix or error correction
+- `refactor:` - Code restructuring without changing functionality
+- `docs:` - Documentation updates (README, comments, PRDs)
+- `test:` - Adding or modifying tests
+- `chore:` - Maintenance tasks (configs, dependencies, cleanup)
+- `style:` - Code formatting, no functional changes
+
+**CRITICAL**: All commit messages MUST start with one of these prefixes followed by a colon.
+The DevOps agent will reject commits that don't follow this format.
 
 **Rules**:
 - Always start with WHY (2 lines): Explain the problem/need that motivated these changes

@@ -1576,6 +1576,8 @@ console.log();
     
     // ========== FILE COORDINATION CHECK ==========
     // Check for undeclared file edits whenever a non-message file changes
+    // NOTE: This is ADVISORY ONLY - warnings are shown but commits proceed
+    // Since worktrees are isolated, file coordination warnings don't block commits
     if (!isMsg && sessionId && (evt === 'add' || evt === 'change')) {
       try {
         const coordinator = new FileCoordinator(sessionId, process.cwd(), repoRoot);
@@ -1583,8 +1585,9 @@ console.log();
         
         if (conflictCheck.hasConflicts) {
           const reportPath = coordinator.createConflictReport(conflictCheck);
-          // Don't block the watcher, but alert the user
-          console.log(`\n⚠️  File coordination warning: See ${reportPath}\n`);
+          // ADVISORY ONLY - Don't block commits, just warn
+          console.log(`\n⚠️  File coordination advisory: See ${reportPath}`);
+          console.log(`    (Commits will proceed normally in isolated worktree)\n`);
         }
       } catch (err) {
         // Don't break the watcher if coordination check fails
