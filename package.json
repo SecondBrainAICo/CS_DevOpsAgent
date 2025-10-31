@@ -1,7 +1,7 @@
 {
   "name": "s9n-devops-agent",
-  "version": "1.7.4",
-  "description": "CS_DevOpsAgent - Intelligent Git Automation System with multi-agent support and session management",
+  "version": "2.0.0",
+  "description": "AI-Powered Git Workflow Automation - Let AI assistants work safely on your codebase with automatic commits, branch management, and multi-agent conflict prevention",
   "type": "module",
   "main": "src/cs-devops-agent-worker.js",
   "bin": {
