@@ -32,9 +32,13 @@ function runScript(scriptPath, scriptArgs = []) {
 
 // Helper function to run a shell script
 function runShellScript(scriptPath, scriptArgs = []) {
-  const child = spawn('bash', [scriptPath, ...scriptArgs], {
+  // Detect shell based on platform
+  const shell = process.platform === 'win32' ? 'bash.exe' : 'bash';
+  
+  const child = spawn(shell, [scriptPath, ...scriptArgs], {
     stdio: 'inherit',
-    cwd: process.cwd()
+    cwd: process.cwd(),
+    shell: process.platform === 'win32' ? true : false
   });
   
   child.on('exit', (code) => {
