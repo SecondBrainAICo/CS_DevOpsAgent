@@ -28,9 +28,14 @@ const colors = {
 async function main() {
   try {
     // Skip post-install for global installs to avoid module resolution issues
+    // Check multiple indicators for global install
     const isGlobalInstall = process.env.npm_config_global === 'true' || 
                            process.argv.includes('-g') || 
-                           process.argv.includes('--global');
+                           process.argv.includes('--global') ||
+                           // Windows: Check if in Roaming/npm or ProgramData/npm
+                           (__dirname.includes('AppData\\Roaming\\npm') || 
+                            __dirname.includes('AppData/Roaming/npm') ||
+                            __dirname.includes('ProgramData\\npm'));
     
     if (isGlobalInstall) {
       // Silently skip for global installs
