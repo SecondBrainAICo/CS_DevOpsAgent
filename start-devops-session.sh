@@ -1,15 +1,22 @@
 #!/usr/bin/env zsh
 
 # ============================================================================
-# INTERACTIVE DEVOPS SESSION STARTER
+# INTERACTIVE DEVOPS SESSION STARTER (v2.0)
 # ============================================================================
 # 
-# This script provides a user-friendly way to start DevOps agent sessions.
-# It handles the complete workflow:
-# 1. Ask if using existing session or creating new
-# 2. If new, creates session and generates instructions for Claude
-# 3. Starts the DevOps agent monitoring the appropriate worktree
-#
+# Enhanced user experience for starting DevOps agent sessions.
+# 
+# What this does:
+# - Guides you through creating or resuming sessions
+# - Generates beautiful instructions for your AI assistant
+# - Monitors your session automatically
+# 
+# Why it matters:
+# - Simple, visual interface
+# - No manual git commands needed
+# - Automatic conflict detection
+# 
+# Usage: ./start-devops-session.sh
 # ============================================================================
 
 # Colors for output (using printf for better compatibility)
@@ -56,9 +63,11 @@ show_copyright() {
 # Function to display header
 show_header() {
     echo
-    echo -e "${BG_BLUE}${BOLD}                                                              ${NC}"
-    echo -e "${BG_BLUE}${BOLD}           DevOps Agent Session Manager                      ${NC}"
-    echo -e "${BG_BLUE}${BOLD}                                                              ${NC}"
+    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${NC}${BOLD}              DevOps Agent Session Manager v2.0                 ${NC}${BLUE}║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo
+    echo -e "${DIM}Intelligent Git automation with AI agent coordination${NC}"
     echo
 }
 
@@ -109,27 +118,48 @@ list_sessions() {
 
 # Function to create a new session
 create_new_session() {
-    echo -e "${BOLD}Creating New Session${NC}"
+    echo
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}📝 Create New Session${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo
+    echo -e "${DIM}What:${NC} Your session gets an isolated workspace"
+    echo -e "${DIM}Why:${NC} Prevents conflicts with other AI agents"
+    echo -e "${DIM}How:${NC} Creates git worktree + branch + file locks"
     echo
     
     # Ask for task name
-    echo -n "Enter task/feature name (e.g., 'authentication', 'api-endpoints'): "
+    echo -e "${BOLD}Task/Feature Name:${NC}"
+    echo -e "${DIM}Examples: implement-auth, build-api, fix-login-bug${NC}"
+    echo -n "➜ "
     read task_name
     
     if [[ -z "$task_name" ]]; then
         task_name="development"
-    fi
-    
-    # Ask for agent type
-    echo -n "Agent type (claude/cline/copilot/cursor) [default: claude]: "
-    read agent_type
-    
-    if [[ -z "$agent_type" ]]; then
-        agent_type="claude"
+        echo -e "${YELLOW}Using default: development${NC}"
     fi
     
     echo
-    echo -e "${YELLOW}Creating session for: ${task_name}${NC}"
+    
+    # Ask for agent type
+    echo -e "${BOLD}AI Agent Type:${NC}"
+    echo -e "  ${GREEN}1)${NC} Claude (Anthropic)"
+    echo -e "  ${GREEN}2)${NC} Cursor"
+    echo -e "  ${GREEN}3)${NC} GitHub Copilot"
+    echo -e "  ${GREEN}4)${NC} Cline (VS Code)"
+    echo -n "➜ Your choice [1-4, default: 1]: "
+    read agent_choice
+    
+    case "$agent_choice" in
+        2) agent_type="cursor" ;;
+        3) agent_type="copilot" ;;
+        4) agent_type="cline" ;;
+        *) agent_type="claude" ;;
+    esac
+    
+    echo
+    echo -e "${GREEN}✓${NC} Creating session: ${BOLD}${task_name}${NC} (Agent: ${BLUE}${agent_type}${NC})"
+    echo
     
     # Run the session coordinator to create AND START the session
     # Keep current directory to ensure session is created for the right repo
@@ -138,9 +168,12 @@ create_new_session() {
 
 # Function to prompt for session selection
 select_session() {
-    echo -e "${BOLD}Select an Option:${NC}"
     echo
-    echo "  ${BOLD}N)${NC} Create a ${GREEN}new${NC} session"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}🚀 Session Selection${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo
+    echo "  ${BOLD}${GREEN}N)${NC} Create a ${BOLD}new${NC} session"
     
     # List existing sessions
     local sessions_dir="local_deploy/session-locks"
@@ -166,9 +199,11 @@ select_session() {
     fi
     
     echo
-    echo -e "  ${BOLD}Q)${NC} ${RED}Quit${NC} - Exit the session manager"
+    echo -e "  ${BOLD}${RED}Q)${NC} Quit - Exit the session manager"
     echo
-    echo -n "Your choice: "
+    echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo
+    echo -n "➜ Your choice: "
     read choice
     
     # Handle the choice
@@ -224,15 +259,18 @@ select_session() {
         fi
         
         echo
-        echo -e "${GREEN}Using existing session: ${session_id}${NC}"
+        echo -e "${GREEN}✓${NC} Resuming session: ${BOLD}${session_id}${NC}"
+        echo -e "${DIM}Task: ${task}${NC}"
         
         # Instructions will be displayed by the session coordinator
         # No need to display them here to avoid duplication
         
         echo
-        echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
-        echo -e "${BOLD}Starting DevOps Agent${NC}"
-        echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}🤖 Starting DevOps Agent Monitoring${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo
+        echo -e "${DIM}Press Ctrl+C to stop monitoring${NC}"
         
         # Start the agent for this session
         # Keep current directory to ensure agent runs in the right repo
@@ -335,12 +373,14 @@ main() {
     # Check and setup house rules on first run
     setup_house_rules "$REPO_ROOT"
     
-    echo -e "${BOLD}Welcome to DevOps Agent Session Manager${NC}"
+    echo -e "${BOLD}Welcome to DevOps Agent${NC}"
     echo
-    echo "This tool will:"
-    echo "  1. Help you create or select a session"
-    echo "  2. Generate instructions for your coding agent"
-    echo "  3. Start the DevOps agent to monitor changes"
+    echo -e "${GREEN}✓${NC} Isolated workspaces for each AI agent"
+    echo -e "${GREEN}✓${NC} Automatic git commits and pushes"
+    echo -e "${GREEN}✓${NC} File coordination prevents conflicts"
+    echo -e "${GREEN}✓${NC} Beautiful instructions for your agent"
+    echo
+    echo -e "${DIM}💡 New to DevOps Agent? Run: s9n-devops-agent tutorial${NC}"
     echo
     
     # Main selection loop
