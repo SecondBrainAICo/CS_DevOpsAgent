@@ -8,8 +8,6 @@
  * Preserves user customizations while updating our managed sections.
  */
 
-import HouseRulesManager from '../src/house-rules-manager.js';
-import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -28,10 +26,20 @@ const colors = {
 };
 
 async function main() {
-  console.log(`\n${colors.bright}DevOps Agent Post-Install${colors.reset}`);
-  console.log(`${colors.dim}Checking house rules...${colors.reset}\n`);
-
   try {
+    // Skip post-install for global installs to avoid module resolution issues
+    const isGlobalInstall = process.env.npm_config_global === 'true' || 
+                           process.argv.includes('-g') || 
+                           process.argv.includes('--global');
+    
+    if (isGlobalInstall) {
+      // Silently skip for global installs
+      return;
+    }
+
+    console.log(`\n${colors.bright}DevOps Agent Post-Install${colors.reset}`);
+    console.log(`${colors.dim}Checking house rules...${colors.reset}\n`);
+
     // Find project root (where npm install was run)
     const projectRoot = process.env.INIT_CWD || process.cwd();
     
@@ -52,6 +60,8 @@ async function main() {
       }
     }
 
+    // Dynamically import HouseRulesManager only when needed
+    const { default: HouseRulesManager } = await import('../src/house-rules-manager.js');
     const manager = new HouseRulesManager(projectRoot);
     const status = manager.getStatus();
 
