@@ -51,8 +51,23 @@ switch(command) {
   case 'start':
   case 'session':
     // Start interactive session manager
+    // Try bash script first (for Unix/Mac), fallback to Node implementation for Windows
     const sessionScript = join(rootDir, 'start-devops-session.sh');
-    if (fs.existsSync(sessionScript)) {
+    
+    if (process.platform === 'win32') {
+      // On Windows, check if bash is available, otherwise use Node coordinator
+      import('child_process').then(({ execSync }) => {
+        try {
+          execSync('bash --version', { stdio: 'ignore' });
+          // Bash is available, use the shell script
+          runShellScript(sessionScript, args.slice(1));
+        } catch (e) {
+          // Bash not available, use Node.js session coordinator directly
+          console.log('Starting DevOps Agent session manager...\n');
+          runScript(join(rootDir, 'src', 'session-coordinator.js'), ['start', ...args.slice(1)]);
+        }
+      });
+    } else if (fs.existsSync(sessionScript)) {
       runShellScript(sessionScript, args.slice(1));
     } else {
       console.error('Session script not found. Please ensure the package is properly installed.');
