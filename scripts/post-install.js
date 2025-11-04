@@ -8,7 +8,6 @@
  * Preserves user customizations while updating our managed sections.
  */
 
-import HouseRulesManager from '../src/house-rules-manager.js';
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
@@ -28,10 +27,23 @@ const colors = {
 };
 
 async function main() {
-  console.log(`\n${colors.bright}DevOps Agent Post-Install${colors.reset}`);
-  console.log(`${colors.dim}Checking house rules...${colors.reset}\n`);
-
   try {
+    // Check if this is a global install - skip if so
+    const isGlobal = process.env.npm_config_global === 'true' ||
+                     process.env.npm_config_global === true ||
+                     (process.env.npm_config_prefix && 
+                      (process.cwd().startsWith(process.env.npm_config_prefix) ||
+                       // Windows specific global paths
+                       process.cwd().includes('\\npm\\') ||
+                       process.cwd().includes('\\npm-cache\\') ||
+                       process.cwd().includes('/lib/node_modules/') ||
+                       process.cwd().includes('\\node_modules\\')));
+    
+    if (isGlobal) {
+      // Skip post-install for global installations
+      return;
+    }
+
     // Find project root (where npm install was run)
     const projectRoot = process.env.INIT_CWD || process.cwd();
     
@@ -51,6 +63,12 @@ async function main() {
         }
       }
     }
+
+    console.log(`\n${colors.bright}DevOps Agent Post-Install${colors.reset}`);
+    console.log(`${colors.dim}Checking house rules...${colors.reset}\n`);
+
+    // Dynamically import HouseRulesManager only when needed
+    const { default: HouseRulesManager } = await import('../src/house-rules-manager.js');
 
     const manager = new HouseRulesManager(projectRoot);
     const status = manager.getStatus();
