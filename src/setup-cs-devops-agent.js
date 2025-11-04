@@ -2,48 +2,59 @@
 
 /**
  * ============================================================================
- * DEVOPS-AGENT WORKER SETUP SCRIPT
+ * DEVOPS-AGENT SETUP WIZARD (v2.0)
  * ============================================================================
  * 
- * This script sets up the cs-devops-agent worker for a new developer:
- * 1. Prompts for developer's 3-letter initials
- * 2. Configures branch prefix (e.g., dev_sdd_ becomes dev_abc_)
- * 3. Installs required npm packages
- * 4. Creates/updates VS Code settings and tasks
- * 5. Sets up commit message files
- * 6. Creates a personalized run script
+ * Enhanced setup experience with explanations and auto-detection.
  * 
- * Usage: node setup-cs-devops-agent.js
+ * What this does:
+ * - Configures your developer environment
+ * - Sets up git automation
+ * - Creates VS Code integration
+ * - Installs required dependencies
+ * 
+ * Why it matters:
+ * - One-time setup for smooth development
+ * - Personalized configuration
+ * - Ready-to-use AI agent integration
+ * 
+ * Usage: s9n-devops-agent setup
  * ============================================================================
  */
 
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
-import readline from 'readline';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import {
+  colors,
+  status,
+  showWelcome,
+  sectionTitle,
+  explain,
+  tip,
+  warn,
+  info,
+  success,
+  error as errorMsg,
+  confirm,
+  prompt as uiPrompt,
+  progressStep,
+  drawSection
+} from './ui-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Colors for console output
-const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[36m',
-  red: '\x1b[31m',
-};
-
+// Backward compatibility log functions
 const log = {
-  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
-  success: (msg) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
-  warn: (msg) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
-  error: (msg) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
-  header: (msg) => console.log(`\n${colors.bright}${colors.blue}${'='.repeat(60)}${colors.reset}`),
-  title: (msg) => console.log(`${colors.bright}${msg}${colors.reset}`),
+  info: (msg) => info(msg),
+  success: (msg) => success(msg),
+  warn: (msg) => warn(msg),
+  error: (msg) => errorMsg(msg),
+  header: () => console.log('\n' + '━'.repeat(70) + '\n'),
+  title: (msg) => sectionTitle(msg),
 };
 
 // ============================================================================
@@ -65,18 +76,11 @@ function findProjectRoot() {
   return process.cwd();
 }
 
+// Use UI utilities prompt with fallback
 async function prompt(question) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer);
-    });
-  });
+  // Strip ANSI codes and clean question for display
+  const cleanQuestion = question.replace(/\x1b\[[0-9;]*m/g, '').trim();
+  return await uiPrompt(cleanQuestion);
 }
 
 function validateInitials(initials) {
@@ -917,12 +921,24 @@ function cleanupDevOpsAgentFiles(projectRoot) {
 
 async function main() {
   console.clear();
-  log.header();
-  console.log(colors.bright + '       DEVOPS-AGENT WORKER SETUP WIZARD' + colors.reset);
-  log.header();
-  console.log('');
-  log.info('This wizard will configure the cs-devops-agent system for you.');
-  console.log('');
+  
+  // Show welcome
+  showWelcome('DevOps Agent Setup Wizard');
+  console.log();
+  
+  explain(`
+Welcome to the DevOps Agent setup! This wizard will configure everything
+you need to start working with AI assistants on your project.
+
+${colors.bright}What we'll set up:${colors.reset}
+${status.checkmark} Your personal developer configuration
+${status.checkmark} Git automation and branch management  
+${status.checkmark} VS Code integration and shortcuts
+${status.checkmark} Required npm dependencies
+
+${colors.dim}This takes about 2 minutes.${colors.reset}
+  `);
+  console.log();
   
   // Find project root
   const projectRoot = findProjectRoot();
@@ -937,30 +953,50 @@ async function main() {
   }
   
   // Get developer initials
+  console.log();
+  sectionTitle('Developer Identification');
+  explain(`
+${colors.bright}What:${colors.reset} Your 3-letter initials (e.g., abc, xyz)
+${colors.bright}Why:${colors.reset} Identifies your branches and configuration
+${colors.bright}How:${colors.reset} Creates branches like dev_abc_2025-10-31
+  `);
+  
   let initials = null;
   while (!initials) {
-    const input = await prompt('\n👤 Enter your 3-letter initials (e.g., abc): ');
+    const input = await prompt('Enter your 3-letter initials');
     initials = validateInitials(input);
     
     if (!initials) {
-      log.error('Please enter exactly 3 letters (a-z)');
+      errorMsg('Please enter exactly 3 letters (a-z)');
+      tip('Examples: abc, xyz, jdoe');
     }
   }
   
-  log.success(`Using initials: ${initials}`);
+  success(`Using initials: ${colors.cyan}${initials.toUpperCase()}${colors.reset}`);
+  tip(`Your branches will be named: ${colors.cyan}dev_${initials}_YYYY-MM-DD${colors.reset}`);
+  console.log();
   
   // Confirm before proceeding
-  const proceed = await prompt(`\n📋 This will configure:\n` +
-    `   • Branch prefix: dev_${initials}_\n` +
-    `   • Daily branches: dev_${initials}_YYYY-MM-DD\n` +
-    `   • VS Code settings and tasks\n` +
-    `   • NPM packages and scripts\n\n` +
-    `Continue? (y/n): `);
+  drawSection('Configuration Summary', [
+    `${status.folder} Branch prefix: ${colors.cyan}dev_${initials}_${colors.reset}`,
+    `${status.branch} Daily branches: ${colors.cyan}dev_${initials}_YYYY-MM-DD${colors.reset}`,
+    `${status.checkmark} VS Code settings and tasks`,
+    `${status.checkmark} NPM packages and scripts`,
+    `${status.checkmark} Commit message files`,
+    `${status.checkmark} House rules for AI agents`
+  ]);
+  console.log();
   
-  if (proceed.toLowerCase() !== 'y' && proceed.toLowerCase() !== 'yes') {
-    log.warn('Setup cancelled');
+  const proceed = await confirm('Ready to configure DevOps Agent?', true);
+  
+  if (!proceed) {
+    warn('Setup cancelled');
     process.exit(0);
   }
+  
+  console.log();
+  info('Starting configuration...');
+  console.log();
   
   try {
     // Run setup steps
