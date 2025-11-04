@@ -12,19 +12,19 @@ Before editing any files, agents MUST:
 
 1. **Check availability** first:
    ```bash
-   ./check-file-availability.sh src/file1.js src/file2.js
+   ./scripts/coordination/check-file-availability.sh src/file1.js src/file2.js
    ```
    
 2. **Declare intent** if files are available:
    ```bash
-   ./declare-file-edits.sh <agent-name> <session-id> src/file1.js src/file2.js
+   ./scripts/coordination/declare-file-edits.sh <agent-name> <session-id> src/file1.js src/file2.js
    ```
 
 3. **Make edits** only to declared files
 
 4. **Release files** when done:
    ```bash
-   ./release-file-edits.sh <agent-name> <session-id>
+   ./scripts/coordination/release-file-edits.sh <agent-name> <session-id>
    ```
 
 #### For AI Agents (Claude, Copilot, etc.)
@@ -263,10 +263,10 @@ ls -la .file-coordination/completed-edits/
 2. Test the system:
    ```bash
    # Terminal 1 - Agent 1
-   ./declare-file-edits.sh agent1 sess1 src/main.js
+   ./scripts/coordination/declare-file-edits.sh agent1 sess1 src/main.js
    
    # Terminal 2 - Agent 2 (will be blocked)
-   ./check-file-availability.sh src/main.js
+   ./scripts/coordination/check-file-availability.sh src/main.js
    ```
 
 3. Add to your agent prompts:

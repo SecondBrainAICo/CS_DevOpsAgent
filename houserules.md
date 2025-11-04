@@ -23,21 +23,38 @@
 2. **CHECK FOR CONFLICTS**
    - Read ALL files in `.file-coordination/active-edits/`
    - If ANY other agent has declared the same files, you must:
-     - WAIT for them to finish, OR
+     - **STOP IMMEDIATELY** - DO NOT proceed with any edits
+     - **ASK THE USER** for explicit permission before editing those files
+     - Inform the user which agent has declared the files and for what purpose
+     - WAIT for the other agent to finish, OR
      - Choose different files to edit
+   - **CRITICAL**: Never edit files another agent has declared without explicit user confirmation
 
 3. **ONLY EDIT DECLARED FILES**
    - Never edit files you haven't declared
    - Stay within your declared scope
 
-4. **RELEASE WHEN DONE**
-   - Delete your declaration file after completing edits
-   - Or move it to `.file-coordination/completed-edits/`
+4. **HOLD LOCKS FOR ENTIRE SESSION**
+   - Keep your declaration active for the ENTIRE session
+   - DO NOT release locks after committing - keep them until session closes
+   - Locks protect files from other agents until your changes are merged
+   
+5. **RELEASE ONLY WHEN SESSION CLOSES**
+   - Delete your declaration file ONLY when:
+     - Session is being closed/merged, OR
+     - Worktree is being removed
+   - Move it to `.file-coordination/completed-edits/` during session closure
+   - **CRITICAL**: Never release locks while session is still active!
 
 ### If You Detect a Conflict:
-- DO NOT proceed with edits
-- Report the conflict to the user
-- Wait or choose alternative files
+- **STOP IMMEDIATELY** - DO NOT proceed with any edits
+- **ASK THE USER** for explicit permission before editing conflicting files
+- Report the conflict to the user with details:
+  - Which files are in conflict
+  - Which agent has declared them
+  - What that agent is working on (from their declaration)
+- Wait for user decision: override, wait, or choose alternative files
+- **NEVER edit conflicting files without explicit user approval**
 
 ### Example Workflow:
 ```bash
@@ -45,8 +62,15 @@
 # 2. Create your declaration in .file-coordination/active-edits/
 # 3. Make your edits
 # 4. Write commit message to the session-specific file
-# 5. Remove your declaration
+# 5. Continue working (locks stay active!)
+# 6. When session closes: merge changes THEN remove declaration
 ```
+
+### Why Locks Must Stay Active:
+- **Problem**: If you release locks after committing, another agent can declare and edit the same files
+- **Result**: Both sessions will conflict when merging
+- **Solution**: Hold locks until session is merged and worktree removed
+- **Benefit**: Prevents duplicate work and merge conflicts
 
 **This coordination prevents wasted work and merge conflicts!**
 
@@ -131,13 +155,17 @@ This change was needed because [specific problem or requirement].
 - File(s): docs/README.md, config.json - Related updates or side effects
 ```
 
-**Commit Types**:
-- `feat`: New feature or capability added
-- `fix`: Bug fix or error correction
-- `refactor`: Code restructuring without changing functionality
-- `docs`: Documentation updates (README, comments, PRDs)
-- `test`: Adding or modifying tests
-- `chore`: Maintenance tasks (configs, dependencies, cleanup)
+**Commit Types (REQUIRED - MUST use one of these)**:
+- `feat:` - New feature or capability added
+- `fix:` - Bug fix or error correction
+- `refactor:` - Code restructuring without changing functionality
+- `docs:` - Documentation updates (README, comments, PRDs)
+- `test:` - Adding or modifying tests
+- `chore:` - Maintenance tasks (configs, dependencies, cleanup)
+- `style:` - Code formatting, no functional changes
+
+**CRITICAL**: All commit messages MUST start with one of these prefixes followed by a colon.
+The DevOps agent will reject commits that don't follow this format.
 
 **Rules**:
 - Always start with WHY (2 lines): Explain the problem/need that motivated these changes
@@ -368,7 +396,7 @@ npm start
 
 This will:
 1. Ask if you want to use an existing session or create new
-2. Generate instructions for Claude/Cline
+2. Generate instructions for your coding agent
 3. Start the DevOps agent monitoring the appropriate worktree
 
 ### Worktree Organization
@@ -383,7 +411,7 @@ This will:
 - `.devops-commit-<session-id>.msg` - Session-specific commit message file
 - `SESSION_README.md` - Session documentation
 
-### Multiple Claude/Cline Sessions
+### Multiple Coding Agent Sessions
 
 **Each session gets**:
 - Unique session ID
@@ -393,7 +421,7 @@ This will:
 
 **Coordination Files**:
 - `.session-locks/` - Active session locks
-- `.claude-sessions.json` - Session registry
+- `.agent-sessions.json` - Session registry
 - `.worktrees/` - Agent worktrees
 
 ## Environment Variables
@@ -498,7 +526,7 @@ function appendToLogFile(message) {
 npm start
 # Select "N" for new session
 # Enter task name
-# Copy instructions to Claude/Cline
+# Copy instructions to your coding agent
 ```
 
 ### 2. Handling Push-Behind Scenarios
@@ -518,7 +546,7 @@ The agent automatically:
 ./start-devops-session.sh
 # Creates session def-456
 
-# Each Claude/Cline works in their respective worktree
+# Each coding agent works in their respective worktree
 ```
 
 ## Review Cadence

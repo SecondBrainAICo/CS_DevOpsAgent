@@ -114,7 +114,12 @@ import { execa } from "execa";
 import readline from "node:readline";
 import { stdin as input, stdout as output } from 'node:process';
 import { execSync } from 'child_process';
+import { createRequire } from 'module';
 import { restartDockerContainers } from './docker-utils.js';
+
+// Import CommonJS module (FileCoordinator)
+const require = createRequire(import.meta.url);
+const FileCoordinator = require('./file-coordinator.cjs');
 
 // ============================================================================
 // CONFIGURATION SECTION - All settings can be overridden via environment vars
@@ -1352,7 +1357,7 @@ function saveProjectSettings(settings, settingsPath) {
 // Display copyright and license information immediately
 console.log("\n" + "=".repeat(70));
 console.log("  CS_DevOpsAgent - Intelligent Git Automation System");
-console.log("  Version 2.4.0 | Build 20240930.1");
+console.log("  Version 1.4.8 | Build 20251008.1");
 console.log("  \n  Copyright (c) 2024 SecondBrain Labs");
 console.log("  Author: Sachin Dev Duggal");
 console.log("  \n  Licensed under the MIT License");
@@ -1454,7 +1459,109 @@ console.log();
     ignoreInitial: true,
     usePolling: USE_POLLING,
     interval: 500,
-    ignored: ["**/__pycache__/**", "**/*.pyc", "**/.DS_Store", "**/logs/**"],
+    ignored: [
+      // Python artifacts
+      "**/__pycache__/**",
+      "**/*.pyc",
+      "**/*.pyo",
+      "**/*.pyd",
+      "**/.pytest_cache/**",
+      "**/.mypy_cache/**",
+      "**/*.egg-info/**",
+      
+      // System files
+      "**/.DS_Store",
+      "**/Thumbs.db",
+      
+      // Logs and temp files
+      "**/logs/**",
+      "**/log/**",
+      "**/*.log",
+      "**/tmp/**",
+      "**/temp/**",
+      "**/.tmp/**",
+      
+      // Dependencies
+      "**/node_modules/**",
+      "**/vendor/**",
+      "**/bower_components/**",
+      
+      // Version control
+      "**/.git/**",
+      "**/.svn/**",
+      "**/.hg/**",
+      
+      // Build artifacts
+      "**/local_deploy/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/out/**",
+      "**/.next/**",
+      "**/.nuxt/**",
+      "**/.output/**",
+      "**/public/build/**",
+      
+      // Test and coverage
+      "**/coverage/**",
+      "**/.nyc_output/**",
+      "**/htmlcov/**",
+      "**/.coverage",
+      "**/lcov-report/**",
+      
+      // Database and migrations (can be very large)
+      "**/migrations/**",
+      "**/database/**",
+      "**/*.sqlite",
+      "**/*.db",
+      
+      // IDE and editor files
+      "**/.vscode/**",
+      "**/.idea/**",
+      "**/.fleet/**",
+      "**/.vs/**",
+      "**/*.swp",
+      "**/*.swo",
+      "**/*~",
+      
+      // Cache directories
+      "**/.cache/**",
+      "**/.parcel-cache/**",
+      "**/.eslintcache",
+      "**/.stylelintcache",
+      
+      // Lock files (don't need to trigger commits)
+      "**/*.lock",
+      "**/package-lock.json",
+      "**/yarn.lock",
+      "**/pnpm-lock.yaml",
+      "**/poetry.lock",
+      "**/Pipfile.lock",
+      "**/Gemfile.lock",
+      "**/composer.lock",
+      
+      // Archived worktrees (from DevOps Agent)
+      "**/archived_*_worktree/**",
+      "**/archived_*/**",
+      
+      // Media and binary files that change frequently
+      "**/*.mp4",
+      "**/*.avi",
+      "**/*.mov",
+      "**/*.pdf",
+      "**/*.zip",
+      "**/*.tar",
+      "**/*.gz",
+      "**/*.7z",
+      
+      // Environment and secrets
+      "**/.env.local",
+      "**/.env.*.local",
+      
+      // OS-specific
+      "**/.Trashes",
+      "**/.Spotlight-V100",
+      "**/.fseventsd"
+    ],
   })
   .on("all", async (evt, p) => {
     const now = Date.now();
@@ -1466,6 +1573,27 @@ console.log();
       lastNonMsgChangeTs = now;
     }
     dlog(`watcher: ${evt} ${p}`);
+    
+    // ========== FILE COORDINATION CHECK ==========
+    // Check for undeclared file edits whenever a non-message file changes
+    // NOTE: This is ADVISORY ONLY - warnings are shown but commits proceed
+    // Since worktrees are isolated, file coordination warnings don't block commits
+    if (!isMsg && sessionId && (evt === 'add' || evt === 'change')) {
+      try {
+        const coordinator = new FileCoordinator(sessionId, process.cwd(), repoRoot);
+        const conflictCheck = await coordinator.detectUndeclaredEdits();
+        
+        if (conflictCheck.hasConflicts) {
+          const reportPath = coordinator.createConflictReport(conflictCheck);
+          // ADVISORY ONLY - Don't block commits, just warn
+          console.log(`\n⚠️  File coordination advisory: See ${reportPath}`);
+          console.log(`    (Commits will proceed normally in isolated worktree)\n`);
+        }
+      } catch (err) {
+        // Don't break the watcher if coordination check fails
+        dlog('File coordination check error:', err.message);
+      }
+    }
     
     // ========== SPECIAL HANDLING FOR MESSAGE FILE ==========
     // When .claude-commit-msg changes, wait a bit then commit
@@ -1664,10 +1792,153 @@ console.log();
           
           if (isWorktree) {
             console.log("\n" + "=".repeat(60));
-            console.log("WORKTREE CLEANUP");
+            console.log("SESSION CLEANUP OPTIONS");
             console.log("=".repeat(60));
             console.log("\nThis session is running in a worktree:");
             console.log(`  ${currentDir}`);
+            
+            // Get current branch
+            const currentBranchName = await currentBranch();
+            
+            // Get the main repo root
+            const repoRoot = path.resolve(currentDir, '../../../');
+            
+            // Read session lock file to get merge configuration
+            let mergeConfig = null;
+            let shouldMerge = false;
+            let targetBranch = 'main';
+            
+            try {
+              const lockFile = path.join(repoRoot, 'local_deploy', 'session-locks', `${sessionId}.lock`);
+              if (fs.existsSync(lockFile)) {
+                const sessionData = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
+                mergeConfig = sessionData.mergeConfig;
+              }
+            } catch (err) {
+              console.log(`\x1b[2mCould not read session config: ${err.message}\x1b[0m`);
+            }
+            
+            // Check if auto-merge is configured
+            if (mergeConfig && mergeConfig.autoMerge && mergeConfig.targetBranch) {
+              // Auto-merge is configured
+              shouldMerge = true;
+              targetBranch = mergeConfig.targetBranch;
+              console.log("\n" + "─".repeat(60));
+              console.log("AUTO-MERGE CONFIGURED");
+              console.log("─".repeat(60));
+              console.log(`\nAuto-merging \x1b[1m${currentBranchName}\x1b[0m → \x1b[1m${targetBranch}\x1b[0m`);
+              console.log(`\x1b[2m(Configured during session start)\x1b[0m`);
+            } else {
+              // No auto-merge configured, ask the user
+              console.log("\n" + "─".repeat(60));
+              console.log("MERGE TO TARGET BRANCH");
+              console.log("─".repeat(60));
+              console.log(`\nMerge \x1b[1m${currentBranchName}\x1b[0m → target branch before cleanup?`);
+              console.log("  y/yes - Merge to target branch");
+              console.log("  n/no  - Skip merge");
+              
+              rl.prompt();
+              const mergeAnswer = await new Promise(resolve => {
+                rl.once('line', resolve);
+              });
+              
+              shouldMerge = mergeAnswer.toLowerCase() === 'y' || mergeAnswer.toLowerCase() === 'yes';
+              
+              if (shouldMerge) {
+                // Ask for target branch
+                console.log(`\nTarget branch [${targetBranch}]: `);
+                rl.prompt();
+                const targetAnswer = await new Promise(resolve => {
+                  rl.once('line', resolve);
+                });
+                
+                if (targetAnswer.trim()) {
+                  targetBranch = targetAnswer.trim();
+                }
+              }
+            }
+            
+            let mergeCompleted = false;
+            if (shouldMerge) {
+              try {
+                console.log(`\n\x1b[34mMerging ${currentBranchName} into ${targetBranch}...\x1b[0m`);
+                
+                // Check if target branch exists locally
+                let branchExists = false;
+                try {
+                  execSync(`git rev-parse --verify ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                  branchExists = true;
+                } catch (err) {
+                  // Branch doesn't exist locally
+                }
+                
+                if (!branchExists) {
+                  // Check if branch exists on remote
+                  try {
+                    const remoteCheck = execSync(`git ls-remote --heads origin ${targetBranch}`, { 
+                      cwd: repoRoot, 
+                      encoding: 'utf8' 
+                    }).trim();
+                    
+                    if (remoteCheck) {
+                      // Branch exists on remote, fetch it
+                      console.log(`\x1b[2mTarget branch doesn't exist locally, fetching from remote...\x1b[0m`);
+                      execSync(`git fetch origin ${targetBranch}:${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                    } else {
+                      // Branch doesn't exist on remote either, create it
+                      console.log(`\x1b[33mTarget branch '${targetBranch}' doesn't exist. Creating it...\x1b[0m`);
+                      execSync(`git checkout -b ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                      execSync(`git push -u origin ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                      console.log(`\x1b[32m✓\x1b[0m Created new branch ${targetBranch}`);
+                    }
+                  } catch (err) {
+                    console.error(`\x1b[31m✗ Error checking/creating remote branch: ${err.message}\x1b[0m`);
+                    throw err;
+                  }
+                }
+                
+                // Switch to target branch
+                execSync(`git checkout ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                
+                // Pull latest (if branch already existed)
+                if (branchExists) {
+                  try {
+                    execSync(`git pull origin ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                  } catch (err) {
+                    console.log(`\x1b[2mCould not pull latest changes (may be new branch)\x1b[0m`);
+                  }
+                }
+                
+                // Merge the session branch
+                execSync(`git merge --no-ff ${currentBranchName} -m "Merge session ${sessionId}: session work"`, { 
+                  cwd: repoRoot, 
+                  stdio: 'pipe' 
+                });
+                
+                // Push merged changes
+                execSync(`git push origin ${targetBranch}`, { cwd: repoRoot, stdio: 'pipe' });
+                
+                console.log(`\x1b[32m✓\x1b[0m Successfully merged to ${targetBranch}`);
+                
+                // Delete remote branch after successful merge
+                try {
+                  execSync(`git push origin --delete ${currentBranchName}`, { cwd: repoRoot, stdio: 'pipe' });
+                  console.log(`\x1b[32m✓\x1b[0m Deleted remote branch ${currentBranchName}`);
+                } catch (err) {
+                  console.log(`\x1b[2mCould not delete remote branch\x1b[0m`);
+                }
+                
+                mergeCompleted = true;
+              } catch (err) {
+                console.error(`\x1b[31m✗ Merge failed: ${err.message}\x1b[0m`);
+                console.log(`\x1b[33mYou may need to resolve conflicts manually\x1b[0m`);
+              }
+            }
+            
+            // Now ask about worktree removal
+            console.log("\n" + "─".repeat(60));
+            console.log("WORKTREE CLEANUP");
+            console.log("─".repeat(60));
             console.log("\nWould you like to remove this worktree now?");
             console.log("  y/yes - Remove worktree and close session");
             console.log("  n/no  - Keep worktree for later use");

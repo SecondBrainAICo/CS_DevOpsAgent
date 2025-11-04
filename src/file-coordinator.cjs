@@ -14,16 +14,48 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 class FileCoordinator {
-  constructor(sessionId, workingDir = process.cwd()) {
+  constructor(sessionId, workingDir = process.cwd(), repoRoot = null) {
     this.sessionId = sessionId;
     this.workingDir = workingDir;
-    this.coordDir = path.join(workingDir, '.file-coordination');
+    
+    // Find repository root (shared across all worktrees)
+    this.repoRoot = repoRoot || this.findRepoRoot(workingDir);
+    
+    // Use shared coordination directory in local_deploy
+    // This ensures all agents can see each other's file locks
+    this.coordDir = path.join(this.repoRoot, 'local_deploy', '.file-coordination');
     this.activeEditsDir = path.join(this.coordDir, 'active-edits');
     this.completedEditsDir = path.join(this.coordDir, 'completed-edits');
     this.conflictsDir = path.join(this.coordDir, 'conflicts');
     
     // Ensure directories exist
     this.ensureDirectories();
+  }
+  
+  /**
+   * Find the repository root (works from worktrees too)
+   */
+  findRepoRoot(startDir) {
+    try {
+      const { execSync } = require('child_process');
+      // This works even from worktrees - returns main repo root
+      const superproject = execSync('git rev-parse --show-superproject-working-tree', { 
+        cwd: startDir, 
+        encoding: 'utf8' 
+      }).trim();
+      
+      if (superproject) {
+        return superproject;
+      }
+      
+      return execSync('git rev-parse --show-toplevel', { 
+        cwd: startDir, 
+        encoding: 'utf8' 
+      }).trim();
+    } catch (err) {
+      // Fallback to working directory if git fails
+      return startDir;
+    }
   }
 
   ensureDirectories() {
@@ -162,6 +194,8 @@ class FileCoordinator {
 
   /**
    * Find our current declaration file
+   * Matches files like: warp-8sf9-c9ea.json or claude-8sf9-c9ea.json
+   * where sessionId is 8sf9-c9ea
    */
   findOurDeclaration() {
     if (!fs.existsSync(this.activeEditsDir)) {
@@ -170,13 +204,27 @@ class FileCoordinator {
     
     const files = fs.readdirSync(this.activeEditsDir);
     
+    // First try: Look for session ID in filename (with or without agent prefix)
+    // Handles: warp-8sf9-c9ea.json, claude-8sf9-c9ea.json, 8sf9-c9ea.json
     for (const file of files) {
-      if (file.includes(this.sessionId) && file.endsWith('.json')) {
-        return path.join(this.activeEditsDir, file);
+      if (file.endsWith('.json')) {
+        // Extract potential session ID from filename
+        // Remove .json extension
+        const baseName = file.replace('.json', '');
+        
+        // Check if filename ends with our session ID (handles agent-sessionId format)
+        if (baseName.endsWith(this.sessionId) || baseName === this.sessionId) {
+          return path.join(this.activeEditsDir, file);
+        }
+        
+        // Also check if session ID appears anywhere in the filename
+        if (file.includes(this.sessionId)) {
+          return path.join(this.activeEditsDir, file);
+        }
       }
     }
     
-    // Try to find by session ID in content
+    // Second try: Look for session ID in file content
     for (const file of files) {
       if (file.endsWith('.json')) {
         try {
@@ -236,7 +284,7 @@ class FileCoordinator {
       report += `\n### ⚠️ ADVISORY WARNING\n\n`;
       report += `These files were modified without following the coordination protocol.\n\n`;
       report += `**To fix this:**\n`;
-      report += `1. Run: \`./declare-file-edits.sh ${this.sessionId.split('-')[0]} ${this.sessionId} ${conflictData.undeclaredEdits.join(' ')}\`\n`;
+      report += `1. Run: \`./scripts/coordination/declare-file-edits.sh ${this.sessionId.split('-')[0]} ${this.sessionId} ${conflictData.undeclaredEdits.join(' ')}\`\n`;
       report += `2. Or revert these changes if they were unintentional\n\n`;
     }
     
@@ -247,11 +295,11 @@ class FileCoordinator {
     report += `   \`\`\`\n\n`;
     report += `2. **Declare your intended edits:**\n`;
     report += `   \`\`\`bash\n`;
-    report += `   ./declare-file-edits.sh <agent-name> ${this.sessionId} <files...>\n`;
+    report += `   ./scripts/coordination/declare-file-edits.sh <agent-name> ${this.sessionId} <files...>\n`;
     report += `   \`\`\`\n\n`;
     report += `3. **Release files when done:**\n`;
     report += `   \`\`\`bash\n`;
-    report += `   ./release-file-edits.sh <agent-name> ${this.sessionId}\n`;
+    report += `   ./scripts/coordination/release-file-edits.sh <agent-name> ${this.sessionId}\n`;
     report += `   \`\`\`\n\n`;
     
     report += `---\n`;

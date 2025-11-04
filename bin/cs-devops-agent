@@ -102,6 +102,17 @@ switch(command) {
     }
     break;
     
+  case 'tutorial':
+    // Run interactive tutorial
+    runScript(join(rootDir, 'src', 'tutorial-mode.js'), args.slice(1));
+    break;
+    
+  case 'help-topics':
+  case 'help-browser':
+    // Run interactive help browser
+    import(join(rootDir, 'src', 'help-system.js')).then(m => m.helpBrowser());
+    break;
+    
   case 'version':
   case '--version':
   case '-v':
@@ -121,23 +132,26 @@ Usage: cs-devops-agent [command] [options]
 
 Commands:
   start, session     Start interactive DevOps session manager
-  worker            Run the DevOps agent worker directly  
-  setup             Run interactive setup wizard
-  worktree          Manage git worktrees for agents
-  coordinator       Session coordinator operations
-  list              List all active sessions
-  create            Create a new session
-  close             Close an active session
-  cleanup           Clean up stale sessions
-  version           Show version information
-  help              Show this help message
+  tutorial           Run interactive tutorial (new users start here!)
+  help-topics        Browse comprehensive help topics
+  worker             Run the DevOps agent worker directly  
+  setup              Run interactive setup wizard
+  worktree           Manage git worktrees for agents
+  coordinator        Session coordinator operations
+  list               List all active sessions
+  create             Create a new session
+  close              Close an active session
+  cleanup            Clean up stale sessions
+  version            Show version information
+  help               Show this help message
 
 Examples:
+  cs-devops-agent tutorial           # Learn how to use DevOps Agent (recommended)
   cs-devops-agent start              # Start interactive session manager
   cs-devops-agent setup              # Run first-time setup
+  cs-devops-agent help-topics        # Browse comprehensive help
   cs-devops-agent list               # List active sessions
   cs-devops-agent create --task api  # Create new session for API work
-  cs-devops-agent worker             # Run worker directly
 
 Environment Variables:
   AC_BRANCH_PREFIX     Branch prefix for daily branches

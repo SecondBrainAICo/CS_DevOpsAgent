@@ -25,6 +25,7 @@ import { execSync, spawn, fork } from 'child_process';
 import crypto from 'crypto';
 import readline from 'readline';
 import { hasDockerConfiguration } from './docker-utils.js';
+import HouseRulesManager from './house-rules-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -73,6 +74,12 @@ class SessionCoordinator {
     // Store project-specific settings in local_deploy
     this.projectSettingsPath = path.join(this.repoRoot, 'local_deploy', 'project-settings.json');
     
+    // Package version
+    const packageJsonPath = path.join(__dirname, '../package.json');
+    this.currentVersion = fs.existsSync(packageJsonPath) 
+      ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')).version 
+      : '0.0.0';
+    
     this.ensureDirectories();
     this.cleanupStaleLocks();
     this.ensureSettingsFile();
@@ -81,6 +88,14 @@ class SessionCoordinator {
 
   getRepoRoot() {
     try {
+      // Check if we're in a submodule
+      const superproject = execSync('git rev-parse --show-superproject-working-tree', { encoding: 'utf8' }).trim();
+      if (superproject) {
+        // We're in a submodule, use the parent repository root
+        console.log(`${CONFIG.colors.dim}Running from submodule, using parent repository: ${superproject}${CONFIG.colors.reset}`);
+        return superproject;
+      }
+      // Not in a submodule, use current repository root
       return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
     } catch (error) {
       console.error('Error: Not in a git repository');
@@ -91,6 +106,17 @@ class SessionCoordinator {
   ensureDirectories() {
     // Ensure local project directories
     [this.sessionsPath, this.locksPath, this.worktreesPath, this.instructionsPath].forEach(dir => {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    });
+    
+    // Ensure file-coordination directory
+    const fileCoordinationDir = path.join(this.repoRoot, 'local_deploy', '.file-coordination');
+    const activeEditsDir = path.join(fileCoordinationDir, 'active-edits');
+    const completedEditsDir = path.join(fileCoordinationDir, 'completed-edits');
+    
+    [fileCoordinationDir, activeEditsDir, completedEditsDir].forEach(dir => {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
@@ -120,6 +146,99 @@ class SessionCoordinator {
   }
   
   /**
+   * Check for newer version on npm registry
+   */
+  async checkForUpdates() {
+    const globalSettings = this.loadGlobalSettings();
+    const now = Date.now();
+    
+    // Only check once per day
+    if (globalSettings.lastUpdateCheck && (now - globalSettings.lastUpdateCheck) < 86400000) {
+      return;
+    }
+    
+    try {
+      // Show checking message
+      console.log(`${CONFIG.colors.dim}🔍 Checking for DevOps Agent updates...${CONFIG.colors.reset}`);
+      
+      // Check npm for latest version
+      const result = execSync('npm view s9n-devops-agent version', {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 5000
+      }).trim();
+      
+      // Update last check time
+      globalSettings.lastUpdateCheck = now;
+      this.saveGlobalSettings(globalSettings);
+      
+      // Compare versions
+      if (result && this.compareVersions(result, this.currentVersion) > 0) {
+        console.log(`\n${CONFIG.colors.yellow}▲ Update Available!${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}Current version: ${this.currentVersion}${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.bright}Latest version:  ${result}${CONFIG.colors.reset}`);
+        console.log();
+        
+        // Ask if user wants to update now
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+        
+        const updateNow = await new Promise((resolve) => {
+          rl.question(`${CONFIG.colors.green}Would you like to update now? (Y/n):${CONFIG.colors.reset} `, (answer) => {
+            rl.close();
+            resolve(answer.toLowerCase() !== 'n');
+          });
+        });
+        
+        if (updateNow) {
+          console.log(`\n${CONFIG.colors.blue}Updating s9n-devops-agent...${CONFIG.colors.reset}`);
+          try {
+            execSync('npm install -g s9n-devops-agent@latest', {
+              stdio: 'inherit',
+              cwd: process.cwd()
+            });
+            console.log(`\n${CONFIG.colors.green}✓ Update complete! Please restart the agent.${CONFIG.colors.reset}`);
+            process.exit(0);
+          } catch (err) {
+            console.log(`\n${CONFIG.colors.red}✗ Update failed: ${err.message}${CONFIG.colors.reset}`);
+            console.log(`${CONFIG.colors.dim}You can manually update with: npm install -g s9n-devops-agent@latest${CONFIG.colors.reset}`);
+          }
+        } else {
+          console.log(`${CONFIG.colors.dim}You can update later with: npm install -g s9n-devops-agent@latest${CONFIG.colors.reset}`);
+        }
+        console.log();
+      } else {
+        // Version is up to date
+        console.log(`${CONFIG.colors.dim}✓ DevOps Agent is up to date (v${this.currentVersion})${CONFIG.colors.reset}`);
+      }
+    } catch (err) {
+      // Silently fail - don't block execution on update check
+      console.log(`${CONFIG.colors.dim}✗ Could not check for updates (offline or npm unavailable)${CONFIG.colors.reset}`);
+    }
+  }
+  
+  /**
+   * Compare semantic versions
+   * Returns: 1 if v1 > v2, -1 if v1 < v2, 0 if equal
+   */
+  compareVersions(v1, v2) {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+      const p1 = parts1[i] || 0;
+      const p2 = parts2[i] || 0;
+      
+      if (p1 > p2) return 1;
+      if (p1 < p2) return -1;
+    }
+    
+    return 0;
+  }
+  
+  /**
    * Ensure developer initials are configured globally
    */
   async ensureGlobalSetup() {
@@ -139,6 +258,36 @@ class SessionCoordinator {
       
       console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Developer initials saved globally: ${CONFIG.colors.bright}${initials}${CONFIG.colors.reset}`);
       console.log(`${CONFIG.colors.dim}Your initials are saved in ~/.devops-agent/settings.json${CONFIG.colors.reset}`);
+    }
+  }
+  
+  /**
+   * Ensure house rules are set up for the project
+   */
+  async ensureHouseRulesSetup() {
+    const houseRulesManager = new HouseRulesManager(this.repoRoot);
+    
+    // Check if house rules exist
+    if (!houseRulesManager.houseRulesPath || !fs.existsSync(houseRulesManager.houseRulesPath)) {
+      console.log(`\n${CONFIG.colors.yellow}House rules not found - setting up now...${CONFIG.colors.reset}`);
+      await houseRulesManager.initialSetup();
+    } else {
+      // House rules exist - check if they need updating
+      const status = houseRulesManager.getStatus();
+      if (status.needsUpdate) {
+        console.log(`\n${CONFIG.colors.yellow}House rules updates available${CONFIG.colors.reset}`);
+        const updatedSections = Object.entries(status.managedSections)
+          .filter(([_, info]) => info.needsUpdate)
+          .map(([name]) => name);
+        
+        if (updatedSections.length > 0) {
+          console.log(`${CONFIG.colors.dim}Sections with updates: ${updatedSections.join(', ')}${CONFIG.colors.reset}`);
+          const result = await houseRulesManager.updateHouseRules();
+          if (result.updated) {
+            console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Updated ${result.totalChanges} section(s)`);
+          }
+        }
+      }
     }
   }
   
@@ -371,17 +520,55 @@ class SessionCoordinator {
    * Prompt for Docker restart configuration
    */
   async promptForDockerConfig() {
+    // Check if Docker setting is already configured with 'Never'
+    const projectSettings = this.loadProjectSettings();
+    if (projectSettings.dockerConfig && projectSettings.dockerConfig.neverAsk === true) {
+      // User selected 'Never' - skip Docker configuration
+      return { enabled: false, neverAsk: true };
+    }
+    
+    if (projectSettings.dockerConfig && projectSettings.dockerConfig.alwaysEnabled === true) {
+      // User selected 'Always' - use saved configuration
+      console.log(`\n${CONFIG.colors.dim}Using saved Docker configuration${CONFIG.colors.reset}`);
+      return projectSettings.dockerConfig;
+    }
+    
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
     });
     
+    console.log(`\n${CONFIG.colors.yellow}═══ Docker Configuration ═══${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.dim}Automatically restart Docker containers after each push.${CONFIG.colors.reset}`);
+    console.log();
+    console.log(`${CONFIG.colors.bright}Options:${CONFIG.colors.reset}`);
+    console.log(`  ${CONFIG.colors.green}Y${CONFIG.colors.reset}) Yes - Enable for this session only`);
+    console.log(`  ${CONFIG.colors.red}N${CONFIG.colors.reset}) No - Disable for this session`);
+    console.log(`  ${CONFIG.colors.blue}A${CONFIG.colors.reset}) Always - Enable and remember settings`);
+    console.log(`  ${CONFIG.colors.magenta}Never${CONFIG.colors.reset}) Never ask again (permanently disable)`);
+    
     // Ask if they want automatic Docker restarts
-    const autoRestart = await new Promise((resolve) => {
-      rl.question('\nAuto-restart Docker containers after push? (y/N): ', (answer) => {
-        resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+    const answer = await new Promise((resolve) => {
+      rl.question('\nAuto-restart Docker containers after push? (Y/N/A/Never) [N]: ', (ans) => {
+        resolve(ans.trim().toLowerCase());
       });
     });
+    
+    // Handle 'Never' option
+    if (answer === 'never' || answer === 'nev') {
+      rl.close();
+      // Save 'Never' setting
+      projectSettings.dockerConfig = {
+        enabled: false,
+        neverAsk: true
+      };
+      this.saveProjectSettings(projectSettings);
+      console.log(`${CONFIG.colors.dim}Docker configuration disabled permanently. Edit local_deploy/project-settings.json to change.${CONFIG.colors.reset}`);
+      return { enabled: false, neverAsk: true };
+    }
+    
+    const autoRestart = answer === 'y' || answer === 'yes' || answer === 'a' || answer === 'always';
+    const alwaysAutoRestart = answer === 'a' || answer === 'always';
     
     if (!autoRestart) {
       rl.close();
@@ -435,11 +622,19 @@ class SessionCoordinator {
       composeFile: selectedComposeFile,
       rebuild: rebuild,
       service: specificService,
-      forceRecreate: false
+      forceRecreate: false,
+      alwaysEnabled: alwaysAutoRestart
     };
     
+    // Save configuration if 'Always' was selected
+    if (alwaysAutoRestart) {
+      projectSettings.dockerConfig = config;
+      this.saveProjectSettings(projectSettings);
+      console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Docker configuration saved permanently`);
+    }
+    
     console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Docker restart configuration:`);
-    console.log(`  ${CONFIG.colors.bright}Auto-restart:${CONFIG.colors.reset} Enabled`);
+    console.log(`  ${CONFIG.colors.bright}Auto-restart:${CONFIG.colors.reset} Enabled${alwaysAutoRestart ? ' (Always)' : ' (This session)'}`);
     if (selectedComposeFile) {
       console.log(`  ${CONFIG.colors.bright}Compose file:${CONFIG.colors.reset} ${path.basename(selectedComposeFile)}`);
     }
@@ -455,6 +650,16 @@ class SessionCoordinator {
    * Prompt for auto-merge configuration
    */
   async promptForMergeConfig() {
+    // Check if auto-merge setting is already configured
+    const projectSettings = this.loadProjectSettings();
+    if (projectSettings.autoMergeConfig && projectSettings.autoMergeConfig.alwaysEnabled !== undefined) {
+      // Already configured with 'Always', use saved settings
+      if (projectSettings.autoMergeConfig.alwaysEnabled) {
+        console.log(`\n${CONFIG.colors.dim}Using saved auto-merge configuration${CONFIG.colors.reset}`);
+        return projectSettings.autoMergeConfig;
+      }
+    }
+    
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -468,18 +673,26 @@ class SessionCoordinator {
     console.log(`  • At the end of each day, your work is automatically merged`);
     console.log(`  • This keeps your target branch (main/develop) up to date`);
     console.log(`  • Prevents accumulation of stale feature branches`);
+    console.log();
+    console.log(`${CONFIG.colors.bright}Options:${CONFIG.colors.reset}`);
+    console.log(`  ${CONFIG.colors.green}Y${CONFIG.colors.reset}) Yes - Enable for this session only`);
+    console.log(`  ${CONFIG.colors.red}N${CONFIG.colors.reset}) No - Disable for this session`);
+    console.log(`  ${CONFIG.colors.blue}A${CONFIG.colors.reset}) Always - Enable and remember for all sessions (24x7 operation)`);
     
     // Ask if they want auto-merge
-    const autoMerge = await new Promise((resolve) => {
-      rl.question('\nEnable auto-merge at end of day? (y/N): ', (answer) => {
-        resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+    const answer = await new Promise((resolve) => {
+      rl.question('\nEnable auto-merge? (Y/N/A) [N]: ', (ans) => {
+        resolve(ans.trim().toLowerCase());
       });
     });
+    
+    const autoMerge = answer === 'y' || answer === 'yes' || answer === 'a' || answer === 'always';
+    const alwaysAutoMerge = answer === 'a' || answer === 'always';
     
     if (!autoMerge) {
       rl.close();
       console.log(`${CONFIG.colors.dim}Auto-merge disabled. You'll need to manually merge your work.${CONFIG.colors.reset}`);
-      return { autoMerge: false };
+      return { autoMerge: false, alwaysEnabled: false };
     }
     
     // Get available branches
@@ -541,12 +754,23 @@ class SessionCoordinator {
       autoMerge: true,
       targetBranch,
       strategy,
-      requireTests: strategy !== 'pull-request'
+      requireTests: strategy !== 'pull-request',
+      alwaysEnabled: alwaysAutoMerge
     };
     
     console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Auto-merge configuration saved:`);
     console.log(`  ${CONFIG.colors.bright}Today's work${CONFIG.colors.reset} → ${CONFIG.colors.bright}${targetBranch}${CONFIG.colors.reset}`);
     console.log(`  Strategy: ${CONFIG.colors.bright}${strategy}${CONFIG.colors.reset}`);
+    
+    if (alwaysAutoMerge) {
+      console.log(`  ${CONFIG.colors.blue}Mode: Always enabled${CONFIG.colors.reset} (24x7 operation - auto rollover)`);
+      // Save to project settings
+      projectSettings.autoMergeConfig = config;
+      this.saveProjectSettings(projectSettings);
+    } else {
+      console.log(`  ${CONFIG.colors.dim}Mode: This session only${CONFIG.colors.reset}`);
+    }
+    
     console.log(`${CONFIG.colors.dim}  (Daily branches will be merged into ${targetBranch} at end of day)${CONFIG.colors.reset}`);
     
     return config;
@@ -666,9 +890,13 @@ class SessionCoordinator {
    * Create a new session and generate Claude instructions
    */
   async createSession(options = {}) {
+    // Check for updates (once per day)
+    await this.checkForUpdates();
+    
     // Ensure both global and project setup are complete
     await this.ensureGlobalSetup();     // Developer initials (once per user)
     await this.ensureProjectSetup();    // Version strategy (once per project)
+    await this.ensureHouseRulesSetup(); // House rules setup (once per project)
     
     const sessionId = this.generateSessionId();
     const task = options.task || 'development';
@@ -686,35 +914,169 @@ class SessionCoordinator {
     
     // Check for Docker configuration and ask about restart preference
     let dockerConfig = null;
-    const dockerInfo = hasDockerConfiguration(process.cwd());
     
-    if (dockerInfo.hasCompose || dockerInfo.hasDockerfile) {
-      console.log(`\n${CONFIG.colors.yellow}Docker Configuration Detected${CONFIG.colors.reset}`);
+    // Check if user has already set "Never ask" preference (ONCE, at the top)
+    const projectSettings = this.loadProjectSettings();
+    if (projectSettings.dockerConfig && projectSettings.dockerConfig.neverAsk === true) {
+      // User selected 'Never' - skip Docker configuration entirely
+      dockerConfig = { enabled: false, neverAsk: true };
+    } else {
+      const dockerInfo = hasDockerConfiguration(process.cwd());
       
-      if (dockerInfo.hasCompose) {
-        console.log(`${CONFIG.colors.dim}Found docker-compose files:${CONFIG.colors.reset}`);
-        dockerInfo.composeFiles.forEach(file => {
-          console.log(`  • ${file.name}`);
+      if (dockerInfo.hasCompose || dockerInfo.hasDockerfile) {
+        // Docker detected - show what we found and ask about restart preferences
+        console.log(`\n${CONFIG.colors.yellow}Docker Configuration Detected${CONFIG.colors.reset}`);
+        
+        if (dockerInfo.hasCompose) {
+          console.log(`${CONFIG.colors.dim}Found docker-compose files:${CONFIG.colors.reset}`);
+          dockerInfo.composeFiles.forEach(file => {
+            console.log(`  • ${file.name} ${CONFIG.colors.dim}(in ${file.location})${CONFIG.colors.reset}`);
+          });
+        }
+        
+        if (dockerInfo.hasDockerfile) {
+          console.log(`${CONFIG.colors.dim}Found Dockerfile${CONFIG.colors.reset}`);
+        }
+        
+        // promptForDockerConfig already handles Y/N/A/Never options
+        dockerConfig = await this.promptForDockerConfig();
+      } else if (projectSettings.dockerConfig && projectSettings.dockerConfig.alwaysEnabled) {
+        // Use saved configuration even if Docker not auto-detected
+        console.log(`\n${CONFIG.colors.dim}Using saved Docker configuration${CONFIG.colors.reset}`);
+        dockerConfig = projectSettings.dockerConfig;
+      } else {
+        // No Docker detected and no saved preference - ask user
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
         });
+        
+        console.log(`\n${CONFIG.colors.yellow}No Docker Configuration Found${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}I couldn't find any docker-compose files in:${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}  • Project directory${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}  • Parent directory${CONFIG.colors.reset}`);
+        console.log(`${CONFIG.colors.dim}  • Parent/Infrastructure or parent/infrastructure${CONFIG.colors.reset}`);
+        console.log();
+        console.log(`${CONFIG.colors.bright}Options:${CONFIG.colors.reset}`);
+        console.log(`  ${CONFIG.colors.green}Y${CONFIG.colors.reset}) Yes - I have a Docker setup to configure`);
+        console.log(`  ${CONFIG.colors.red}N${CONFIG.colors.reset}) No - Skip for this session`);
+        console.log(`  ${CONFIG.colors.magenta}Never${CONFIG.colors.reset}) Never ask again (permanently disable)`);
+        
+        const answer = await new Promise((resolve) => {
+          rl.question(`\nDo you have a Docker setup? (Y/N/Never) [N]: `, (ans) => {
+            resolve(ans.trim().toLowerCase());
+          });
+        });
+        
+        // Handle 'Never' option
+        if (answer === 'never' || answer === 'nev') {
+          rl.close();
+          projectSettings.dockerConfig = {
+            enabled: false,
+            neverAsk: true
+          };
+          this.saveProjectSettings(projectSettings);
+          console.log(`${CONFIG.colors.dim}Docker configuration disabled permanently. Edit local_deploy/project-settings.json to change.${CONFIG.colors.reset}`);
+          dockerConfig = { enabled: false, neverAsk: true };
+        } else {
+          const hasDocker = answer === 'y' || answer === 'yes';
+        
+          if (hasDocker) {
+            const dockerPath = await new Promise((resolve) => {
+              rl.question(`\nEnter the full path to your docker-compose file: `, (answer) => {
+                resolve(answer.trim());
+              });
+            });
+            
+            if (dockerPath && fs.existsSync(dockerPath)) {
+              console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Found docker-compose file at: ${dockerPath}`);
+              
+              // Ask about rebuild and service preferences
+              const rebuild = await new Promise((resolve) => {
+                rl.question('\nRebuild containers on restart? (y/N): ', (answer) => {
+                  resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+                });
+              });
+              
+              const specificService = await new Promise((resolve) => {
+                rl.question('\nSpecific service to restart (leave empty for all): ', (answer) => {
+                  resolve(answer.trim() || null);
+                });
+              });
+              
+              dockerConfig = {
+                enabled: true,
+                composeFile: dockerPath,
+                rebuild: rebuild,
+                service: specificService,
+                forceRecreate: false
+              };
+              
+              console.log(`\n${CONFIG.colors.green}✓${CONFIG.colors.reset} Docker restart configuration:`);
+              console.log(`  ${CONFIG.colors.bright}Auto-restart:${CONFIG.colors.reset} Enabled`);
+              console.log(`  ${CONFIG.colors.bright}Compose file:${CONFIG.colors.reset} ${path.basename(dockerPath)}`);
+              console.log(`  ${CONFIG.colors.bright}Rebuild:${CONFIG.colors.reset} ${rebuild ? 'Yes' : 'No'}`);
+              if (specificService) {
+                console.log(`  ${CONFIG.colors.bright}Service:${CONFIG.colors.reset} ${specificService}`);
+              }
+            } else if (dockerPath) {
+              console.log(`${CONFIG.colors.red}✗${CONFIG.colors.reset} File not found: ${dockerPath}`);
+              console.log(`${CONFIG.colors.dim}Skipping Docker configuration${CONFIG.colors.reset}`);
+            }
+          } else {
+            console.log(`${CONFIG.colors.dim}Skipping Docker configuration${CONFIG.colors.reset}`);
+          }
+          
+          rl.close();
+        }
       }
-      
-      if (dockerInfo.hasDockerfile) {
-        console.log(`${CONFIG.colors.dim}Found Dockerfile${CONFIG.colors.reset}`);
-      }
-      
-      dockerConfig = await this.promptForDockerConfig();
     }
-    
-    // Create worktree with developer initials in the name
-    const worktreeName = `${agentType}-${devInitials}-${sessionId}-${task.replace(/\s+/g, '-')}`;
+    // Create worktree with developer initials first in the name
+    const worktreeName = `${devInitials}-${agentType}-${sessionId}-${task.replace(/\s+/g, '-')}`;
     const worktreePath = path.join(this.worktreesPath, worktreeName);
-    const branchName = `${agentType}/${devInitials}/${sessionId}/${task.replace(/\s+/g, '-')}`;
+    const branchName = `${devInitials}/${agentType}/${sessionId}/${task.replace(/\s+/g, '-')}`;
     
     try {
+      // Detect if we're in a submodule and get the parent repository
+      let repoRoot = process.cwd();
+      let isSubmodule = false;
+      let parentRemote = null;
+      
+      try {
+        // Check if we're in a submodule
+        execSync('git rev-parse --show-superproject-working-tree', { stdio: 'pipe' });
+        const superproject = execSync('git rev-parse --show-superproject-working-tree', { encoding: 'utf8' }).trim();
+        
+        if (superproject) {
+          isSubmodule = true;
+          // Get the parent repository's remote
+          parentRemote = execSync(`git -C "${superproject}" remote get-url origin`, { encoding: 'utf8' }).trim();
+          console.log(`\n${CONFIG.colors.yellow}Detected submodule - will configure worktree for parent repository${CONFIG.colors.reset}`);
+          console.log(`${CONFIG.colors.dim}Parent repository: ${superproject}${CONFIG.colors.reset}`);
+          console.log(`${CONFIG.colors.dim}Parent remote: ${parentRemote}${CONFIG.colors.reset}`);
+        }
+      } catch (e) {
+        // Not a submodule, continue normally
+      }
+      
       // Create worktree
       console.log(`\n${CONFIG.colors.yellow}Creating worktree...${CONFIG.colors.reset}`);
       execSync(`git worktree add -b ${branchName} "${worktreePath}" HEAD`, { stdio: 'pipe' });
       console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Worktree created at: ${worktreePath}`);
+      
+      // If we're in a submodule, set up the correct remote for the worktree
+      if (isSubmodule && parentRemote) {
+        console.log(`${CONFIG.colors.yellow}Configuring worktree to use parent repository remote...${CONFIG.colors.reset}`);
+        // Remove the default origin that points to the submodule
+        try {
+          execSync(`git -C "${worktreePath}" remote remove origin`, { stdio: 'pipe' });
+        } catch (e) {
+          // Origin might not exist, continue
+        }
+        // Add the parent repository as origin
+        execSync(`git -C "${worktreePath}" remote add origin ${parentRemote}`, { stdio: 'pipe' });
+        console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Worktree configured to push to parent repository`);
+      }
       
       // Create session lock
       const lockData = {
@@ -741,11 +1103,14 @@ class SessionCoordinator {
       const instructionsFile = path.join(this.instructionsPath, `${sessionId}.md`);
       fs.writeFileSync(instructionsFile, instructions.markdown);
       
-      // Display instructions
-      this.displayInstructions(instructions, sessionId, task);
+      // DON'T display instructions here - they will be shown after agent starts
+      // to avoid showing them before the agent's interactive commands
       
       // Create session config in worktree
       this.createWorktreeConfig(worktreePath, lockData);
+      
+      // Store instructions in lockData so createAndStart can access them
+      lockData.instructions = instructions;
       
       return {
         sessionId,
@@ -753,7 +1118,7 @@ class SessionCoordinator {
         branchName,
         lockFile,
         instructionsFile,
-        instructions: instructions.plaintext
+        task
       };
       
     } catch (error) {
@@ -763,7 +1128,7 @@ class SessionCoordinator {
   }
 
   /**
-   * Generate instructions for Claude/Cline
+   * Generate instructions for the coding agent
    */
   generateClaudeInstructions(sessionData) {
     const { sessionId, worktreePath, branchName, task } = sessionData;
@@ -796,7 +1161,7 @@ INSTRUCTIONS:
 
 1. **Declare your intent** by creating:
    \`\`\`json
-   // File: .file-coordination/active-edits/<agent>-${sessionId}.json
+   // File: ${path.join(this.repoRoot, 'local_deploy/.file-coordination/active-edits')}/<agent>-${sessionId}.json
    {
      "agent": "<your-name>",
      "session": "${sessionId}",
@@ -808,11 +1173,11 @@ INSTRUCTIONS:
    }
    \`\`\`
 
-2. **Check for conflicts** - read all files in \`.file-coordination/active-edits/\`
+2. **Check for conflicts** - read all files in \`${path.join(this.repoRoot, 'local_deploy/.file-coordination/active-edits')}\`
 3. **Only proceed if no conflicts** - wait or choose different files if blocked
 4. **Release files when done** - delete your declaration after edits
 
-## Instructions for Claude/Cline
+## Instructions for Your Coding Agent
 
 ### Step 1: Navigate to Your Worktree
 \`\`\`bash
@@ -826,7 +1191,7 @@ git branch --show-current
 \`\`\`
 
 ### Step 3: Declare Files Before Editing
-Create your declaration in \`.file-coordination/active-edits/\`
+Create your declaration in \`${path.join(this.repoRoot, 'local_deploy/.file-coordination/active-edits')}\`
 
 ### Step 4: Work on Your Task
 Make changes for: **${task}**
@@ -838,7 +1203,7 @@ echo "feat: your commit message here" > .devops-commit-${sessionId}.msg
 \`\`\`
 
 ### Step 6: Release Your File Locks
-Delete your declaration from \`.file-coordination/active-edits/\`
+Delete your declaration from \`${path.join(this.repoRoot, 'local_deploy/.file-coordination/active-edits')}\`
 
 ### Step 7: Automatic Processing
 The DevOps agent will automatically:
@@ -874,11 +1239,15 @@ The DevOps agent will automatically:
    * Display instructions in a user-friendly format
    */
   displayInstructions(instructions, sessionId, task) {
-    console.log(`\n${CONFIG.colors.bgGreen}${CONFIG.colors.bright} Instructions for Claude/Cline ${CONFIG.colors.reset}\n`);
+    // Get the repository root (not the worktree, but the actual repo root)
+    // this.repoRoot is the repository root where houserules.md lives
+    const houseRulesPath = path.join(this.repoRoot, 'houserules.md');
+    
+    console.log(`\n${CONFIG.colors.bgGreen}${CONFIG.colors.bright} Instructions for Your Coding Agent ${CONFIG.colors.reset}\n`);
     
     // Clean separator
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);
-    console.log(`${CONFIG.colors.bright}COPY AND PASTE THIS ENTIRE BLOCK INTO CLAUDE BEFORE YOUR PROMPT:${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.bright}COPY AND PASTE THIS ENTIRE BLOCK INTO YOUR CODING AGENT BEFORE YOUR PROMPT:${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.yellow}──────────────────────────────────────────────────────────────${CONFIG.colors.reset}`);
     console.log();
     
@@ -888,27 +1257,44 @@ The DevOps agent will automatically:
     console.log(`- Working Directory: ${instructions.worktreePath}`);
     console.log(`- Task: ${task || 'development'}`);
     console.log(``);
-    console.log(`CRITICAL FIRST STEP:`);
-    console.log(`1. Read and follow the house rules: cat "${instructions.worktreePath}/houserules.md"`);
-    console.log(`2. Switch to the working directory: cd "${instructions.worktreePath}"`);
+    console.log(`Please switch to this directory before making any changes:`);
+    console.log(`cd "${instructions.worktreePath}"`);
     console.log(``);
-    console.log(`FILE COORDINATION PROTOCOL (from house rules at ${instructions.worktreePath}/houserules.md):`);
-    console.log(`Before editing ANY files, you MUST:`);
-    console.log(`- Declare your intent in .file-coordination/active-edits/<agent>-${sessionId}.json`);
-    console.log(`- Check for conflicts with other agents`);
-    console.log(`- Only edit files you've declared`);
-    console.log(`- Release files when done`);
+    console.log(`⚠️ FILE COORDINATION (MANDATORY):`);
+    console.log(`Shared coordination directory: local_deploy/.file-coordination/`);
+    console.log(``);
+    console.log(`BEFORE editing ANY files:`);
+    console.log(`1. Check for conflicts: ls ../../../local_deploy/.file-coordination/active-edits/`);
+    console.log(`2. Create declaration: local_deploy/.file-coordination/active-edits/<agent>-${sessionId}.json`);
+    console.log(``);
+    console.log(`Example declaration:`);
+    console.log(`{`);
+    console.log(`  "agent": "claude", "session": "${sessionId}",`);
+    console.log(`  "files": ["src/app.js"], "operation": "edit",`);
+    console.log(`  "reason": "${task}", "declaredAt": "${new Date().toISOString()}",`);
+    console.log(`  "estimatedDuration": 300`);
+    console.log(`}`);
     console.log(``);
     console.log(`Write commit messages to: .devops-commit-${sessionId}.msg`);
     console.log(`The DevOps agent will automatically commit and push changes.`);
     console.log(``);
-    console.log(`Remember: ALWAYS check house rules first for the latest protocols!`);
+    
+    // Add house rules reference
+    const houseRulesExists = fs.existsSync(houseRulesPath);
+    if (houseRulesExists) {
+      console.log(`📋 IMPORTANT: Review project conventions and rules:`);
+      console.log(`Read the house rules at: ${houseRulesPath}`);
+    }
     console.log();
     
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);
+    console.log();
+    
+    // Pause before continuing
+    console.log(`${CONFIG.colors.dim}Press Enter to start the DevOps agent monitoring...${CONFIG.colors.reset}`);
     
     // Status info
-    console.log(`\n${CONFIG.colors.green}✓ DevOps agent is starting...${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.green}✓ DevOps agent is starting...${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.dim}Full instructions saved to: ${CONFIG.instructionsDir}/${sessionId}.md${CONFIG.colors.reset}`);
   }
 
@@ -916,6 +1302,9 @@ The DevOps agent will automatically:
    * Create configuration in the worktree
    */
   createWorktreeConfig(worktreePath, sessionData) {
+    // NOTE: File coordination now uses shared local_deploy/.file-coordination/
+    // No need to create per-worktree coordination directories
+    
     // Session config file
     const configPath = path.join(worktreePath, '.devops-session.json');
     fs.writeFileSync(configPath, JSON.stringify(sessionData, null, 2));
@@ -937,7 +1326,7 @@ The DevOps agent will automatically:
         'DEVOPS_WORKTREE': path.basename(worktreePath),
         'DEVOPS_BRANCH': sessionData.branchName,
         'AC_MSG_FILE': `.devops-commit-${sessionData.sessionId}.msg`,
-        'AC_BRANCH_PREFIX': `${sessionData.agentType}_${sessionData.sessionId}_`
+        'AC_BRANCH_PREFIX': `${sessionData.developerInitials || 'dev'}_${sessionData.agentType}_${sessionData.sessionId}_`
       }
     };
     
@@ -1070,11 +1459,11 @@ The DevOps agent is monitoring this worktree for changes.
     fs.writeFileSync(lockFile, JSON.stringify(session, null, 2));
     
     const instructions = this.generateClaudeInstructions(session);
-    this.displayInstructions(instructions, session.sessionId, session.task);
+    // Don't display instructions here - they'll be shown after agent starts
     
     return {
       ...session,
-      instructions: instructions.plaintext
+      instructions: instructions
     };
   }
 
@@ -1111,12 +1500,12 @@ The DevOps agent is monitoring this worktree for changes.
       ...process.env,
       DEVOPS_SESSION_ID: sessionId,
       AC_MSG_FILE: `.devops-commit-${sessionId}.msg`,
-      AC_BRANCH_PREFIX: `${sessionData.agentType}_${devInitials}_${sessionId}_`,
+      AC_BRANCH_PREFIX: `${devInitials}_${sessionData.agentType}_${sessionId}_`,
       AC_WORKING_DIR: sessionData.worktreePath,
       // Don't set AC_BRANCH - let the agent create daily branches within the worktree
       // AC_BRANCH would force a static branch, preventing daily/weekly rollover
       AC_PUSH: 'true',  // Enable auto-push for session branches
-      AC_DAILY_PREFIX: `${sessionData.agentType}_${devInitials}_${sessionId}_`,  // Daily branches with dev initials
+      AC_DAILY_PREFIX: `${devInitials}_${sessionData.agentType}_${sessionId}_`,  // Daily branches with dev initials first
       AC_TZ: process.env.AC_TZ || 'Asia/Dubai',  // Preserve timezone for daily branches
       AC_DATE_STYLE: process.env.AC_DATE_STYLE || 'dash',  // Preserve date style
       // Apply version configuration if set
@@ -1138,6 +1527,16 @@ The DevOps agent is monitoring this worktree for changes.
       stdio: 'inherit',
       silent: false
     });
+    
+    // Wait for agent to initialize and display its interactive commands
+    // Then show the copy-paste instructions
+    setTimeout(async () => {
+      console.log('\n'); // Add spacing
+      
+      // Generate and display instructions
+      const instructions = this.generateClaudeInstructions(sessionData);
+      this.displayInstructions(instructions, sessionId, sessionData.task);
+    }, 3000); // Wait 3 seconds for agent to show interactive commands
     
     child.on('exit', (code) => {
       console.log(`${CONFIG.colors.yellow}Agent exited with code: ${code}${CONFIG.colors.reset}`);
@@ -1223,10 +1622,21 @@ The DevOps agent is monitoring this worktree for changes.
     
     console.log(`\n${CONFIG.colors.yellow}Starting agent for session ${session.sessionId}...${CONFIG.colors.reset}`);
     
-    // Wait a moment for user to see instructions
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    // Start the agent
     await this.startAgent(session.sessionId);
+    
+    // Wait for agent to initialize and show its interactive commands
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // NOW display instructions AFTER the agent's interactive commands have been shown
+    // Read the lock file to get the stored instructions
+    const lockFile = path.join(this.locksPath, `${session.sessionId}.lock`);
+    const lockData = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
+    
+    if (lockData.instructions) {
+      console.log('\n'); // Add spacing
+      this.displayInstructions(lockData.instructions, session.sessionId, options.task || 'development');
+    }
     
     return session;
   }
@@ -1286,8 +1696,103 @@ The DevOps agent is monitoring this worktree for changes.
         console.log(`${CONFIG.colors.dim}Could not check git status${CONFIG.colors.reset}`);
       }
       
+      // Ask about merging to target branch before cleanup
+      let rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+      
+      console.log(`\n${CONFIG.colors.yellow}Worktree Cleanup Options${CONFIG.colors.reset}`);
+      
+      // Get target branch from merge config or default to 'main'
+      let targetBranch = session.mergeConfig?.targetBranch || 'main';
+      
+      const mergeFirst = await new Promise(resolve => {
+        rl.question(`\nMerge ${CONFIG.colors.bright}${session.branchName}${CONFIG.colors.reset} → ${CONFIG.colors.bright}${targetBranch}${CONFIG.colors.reset} before cleanup? (y/N): `, resolve);
+      });
+      rl.close();
+      
+      if (mergeFirst.toLowerCase() === 'y') {
+        rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+        
+        const confirmTarget = await new Promise(resolve => {
+          rl.question(`Target branch [${targetBranch}]: `, resolve);
+        });
+        rl.close();
+        
+        if (confirmTarget.trim()) {
+          targetBranch = confirmTarget.trim();
+        }
+        
+        try {
+          console.log(`\n${CONFIG.colors.blue}Merging ${session.branchName} into ${targetBranch}...${CONFIG.colors.reset}`);
+          
+          // Check if target branch exists locally
+          let branchExists = false;
+          try {
+            execSync(`git rev-parse --verify ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            branchExists = true;
+          } catch (err) {
+            // Branch doesn't exist locally
+          }
+          
+          if (!branchExists) {
+            // Check if branch exists on remote
+            try {
+              execSync(`git ls-remote --heads origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+              // Branch exists on remote, fetch it
+              console.log(`${CONFIG.colors.dim}Target branch doesn't exist locally, fetching from remote...${CONFIG.colors.reset}`);
+              execSync(`git fetch origin ${targetBranch}:${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            } catch (err) {
+              // Branch doesn't exist on remote either, create it
+              console.log(`${CONFIG.colors.yellow}Target branch '${targetBranch}' doesn't exist. Creating it...${CONFIG.colors.reset}`);
+              execSync(`git checkout -b ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+              execSync(`git push -u origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+              console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Created new branch ${targetBranch}`);
+            }
+          }
+          
+          // Switch to target branch in main repo
+          execSync(`git checkout ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+          
+          // Pull latest (if branch already existed)
+          if (branchExists) {
+            try {
+              execSync(`git pull origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            } catch (err) {
+              console.log(`${CONFIG.colors.dim}Could not pull latest changes (may be new branch)${CONFIG.colors.reset}`);
+            }
+          }
+          
+          // Merge the session branch
+          execSync(`git merge --no-ff ${session.branchName} -m "Merge session ${sessionId}: ${session.task}"`, { 
+            cwd: this.repoRoot, 
+            stdio: 'pipe' 
+          });
+          
+          // Push merged changes
+          execSync(`git push origin ${targetBranch}`, { cwd: this.repoRoot, stdio: 'pipe' });
+          
+          console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Successfully merged to ${targetBranch}`);
+          
+          // Delete remote branch after successful merge
+          try {
+            execSync(`git push origin --delete ${session.branchName}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Deleted remote branch ${session.branchName}`);
+          } catch (err) {
+            console.log(`${CONFIG.colors.dim}Could not delete remote branch${CONFIG.colors.reset}`);
+          }
+        } catch (err) {
+          console.error(`${CONFIG.colors.red}✗ Merge failed: ${err.message}${CONFIG.colors.reset}`);
+          console.log(`${CONFIG.colors.yellow}You may need to resolve conflicts manually${CONFIG.colors.reset}`);
+        }
+      }
+      
       // Ask about removing worktree
-      const rl = readline.createInterface({
+      rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
       });
@@ -1302,6 +1807,14 @@ The DevOps agent is monitoring this worktree for changes.
           // Remove worktree
           execSync(`git worktree remove "${session.worktreePath}" --force`, { stdio: 'pipe' });
           console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Worktree removed`);
+          
+          // Delete local branch
+          try {
+            execSync(`git branch -D ${session.branchName}`, { cwd: this.repoRoot, stdio: 'pipe' });
+            console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Deleted local branch ${session.branchName}`);
+          } catch (err) {
+            console.log(`${CONFIG.colors.dim}Could not delete local branch${CONFIG.colors.reset}`);
+          }
           
           // Prune worktree list
           execSync('git worktree prune', { stdio: 'pipe' });
@@ -1451,7 +1964,7 @@ async function main() {
   console.log("=".repeat(70));
   console.log();
   console.log("  CS_DevOpsAgent - Intelligent Git Automation System");
-  console.log("  Version 2.4.0 | Build 20240930.1");
+  console.log("  Version 1.7.2 | Build 20251010.03");
   console.log("  ");
   console.log("  Copyright (c) 2024 SecondBrain Labs");
   console.log("  Author: Sachin Dev Duggal");

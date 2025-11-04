@@ -46,32 +46,76 @@ export async function isDockerComposeAvailable() {
 }
 
 /**
- * Find docker-compose files in the project
+ * Recursively search for docker-compose files in a directory
  */
-export function findDockerComposeFiles(projectPath) {
-  const possibleFiles = [
-    'docker-compose.yml',
-    'docker-compose.yaml',
-    'compose.yml',
-    'compose.yaml',
-    'docker-compose.dev.yml',
-    'docker-compose.dev.yaml',
-    'docker-compose.local.yml',
-    'docker-compose.local.yaml'
-  ];
-  
+function searchDockerFilesRecursive(dir, maxDepth = 3, currentDepth = 0, label = '') {
   const found = [];
-  for (const file of possibleFiles) {
-    const filePath = path.join(projectPath, file);
-    if (fs.existsSync(filePath)) {
-      found.push({
-        name: file,
-        path: filePath
-      });
+  
+  if (currentDepth > maxDepth || !fs.existsSync(dir)) {
+    return found;
+  }
+  
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      
+      if (entry.isFile() && /^docker-compose.*\.ya?ml$/i.test(entry.name)) {
+        found.push({
+          name: entry.name,
+          path: fullPath,
+          location: label || path.relative(process.cwd(), dir) || 'current directory'
+        });
+      } else if (entry.isDirectory() && !entry.name.startsWith('.') && 
+                 entry.name !== 'node_modules' && entry.name !== 'local_deploy') {
+        // Recursively search subdirectories
+        const subResults = searchDockerFilesRecursive(fullPath, maxDepth, currentDepth + 1, label);
+        found.push(...subResults);
+      }
     }
+  } catch (err) {
+    // Ignore permission errors
   }
   
   return found;
+}
+
+/**
+ * Find docker-compose files in the project, parent directory, and Infrastructure folders
+ */
+export function findDockerComposeFiles(projectPath) {
+  const found = [];
+  
+  const searchLocations = [
+    { path: projectPath, label: 'project directory', depth: 2 },
+    { path: path.dirname(projectPath), label: 'parent directory', depth: 1 },
+    { path: path.join(path.dirname(projectPath), 'Infrastructure'), label: 'parent/Infrastructure', depth: 3 },
+    { path: path.join(path.dirname(projectPath), 'infrastructure'), label: 'parent/infrastructure', depth: 3 },
+    { path: path.join(projectPath, 'Infrastructure'), label: 'Infrastructure', depth: 3 },
+    { path: path.join(projectPath, 'infrastructure'), label: 'infrastructure', depth: 3 }
+  ];
+  
+  for (const location of searchLocations) {
+    if (fs.existsSync(location.path)) {
+      const results = searchDockerFilesRecursive(location.path, location.depth, 0, location.label);
+      found.push(...results);
+    }
+  }
+  
+  // Remove duplicates based on absolute path
+  const uniqueFound = [];
+  const seenPaths = new Set();
+  
+  for (const file of found) {
+    const absPath = path.resolve(file.path);
+    if (!seenPaths.has(absPath)) {
+      seenPaths.add(absPath);
+      uniqueFound.push(file);
+    }
+  }
+  
+  return uniqueFound;
 }
 
 /**

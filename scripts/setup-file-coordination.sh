@@ -9,7 +9,19 @@
 
 set -euo pipefail
 
-ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# Check if we're in the CS_DevOpsAgent directory and go up to the actual project
+CURRENT_DIR="$(pwd)"
+if [[ "$CURRENT_DIR" == *"/CS_DevOpsAgent"* ]] || [[ "$CURRENT_DIR" == *"/DevOpsAgent"* ]]; then
+    # Go up to the parent of Scripts_Dev (or wherever DevOpsAgent is)
+    ROOT="$(cd "$(dirname "$(dirname "$CURRENT_DIR")")" && pwd)"
+    # If that's MVPEmails, go up one more to DistilledConceptExtractor
+    if [[ "$(basename "$ROOT")" == "Scripts_Dev" ]]; then
+        ROOT="$(dirname "$ROOT")"
+    fi
+else
+    ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+fi
+
 COORD_DIR="$ROOT/.file-coordination"
 ACTIVE_EDITS="$COORD_DIR/active-edits"
 COMPLETED_EDITS="$COORD_DIR/completed-edits"
@@ -18,10 +30,12 @@ BLOCKED_FILES="$COORD_DIR/blocked-files"
 echo "[INFO] Setting up file coordination system at: $ROOT"
 
 # Check for existing house rules
-HOUSERULES_PATH=""
-HOUSERULES_FOUND=false
-
-if [ -f "$ROOT/houserules.md" ]; then
+# First check if HOUSERULES_PATH was passed from the parent script
+if [ -n "$HOUSERULES_PATH" ] && [ -f "$HOUSERULES_PATH" ]; then
+    # Use the path that was already found by the parent script
+    HOUSERULES_FOUND=true
+    echo "[INFO] Using house rules from parent script: $HOUSERULES_PATH"
+elif [ -f "$ROOT/houserules.md" ]; then
     HOUSERULES_PATH="$ROOT/houserules.md"
     HOUSERULES_FOUND=true
     echo "[INFO] Found existing house rules at: houserules.md"
@@ -310,9 +324,9 @@ To prevent conflicts with other agents editing the same files, you MUST follow t
 - Wait or choose alternative files
 
 ### Helper Scripts Available:
-- `./check-file-availability.sh <files>` - Check if files are available
-- `./declare-file-edits.sh <agent> <session> <files>` - Declare your intent
-- `./release-file-edits.sh <agent> <session>` - Release files after editing
+- `./scripts/coordination/check-file-availability.sh <files>` - Check if files are available
+- `./scripts/coordination/declare-file-edits.sh <agent> <session> <files>` - Declare your intent
+- `./scripts/coordination/release-file-edits.sh <agent> <session>` - Release files after editing
 
 **This coordination prevents wasted work and merge conflicts!**
 
@@ -367,9 +381,9 @@ To prevent conflicts with other agents editing the same files, you MUST follow t
 - Wait or choose alternative files
 
 ### Helper Scripts Available:
-- `./check-file-availability.sh <files>` - Check if files are available
-- `./declare-file-edits.sh <agent> <session> <files>` - Declare your intent
-- `./release-file-edits.sh <agent> <session>` - Release files after editing
+- `./scripts/coordination/check-file-availability.sh <files>` - Check if files are available
+- `./scripts/coordination/declare-file-edits.sh <agent> <session> <files>` - Declare your intent
+- `./scripts/coordination/release-file-edits.sh <agent> <session>` - Release files after editing
 
 **This coordination prevents wasted work and merge conflicts!**
 
@@ -397,6 +411,6 @@ fi
 echo "[SUCCESS] File coordination system created!"
 echo ""
 echo "Usage:"
-echo "  1. Check availability:  ./check-file-availability.sh file1 file2"
-echo "  2. Declare edits:       ./declare-file-edits.sh agent-name session-id file1 file2"
-echo "  3. Release files:       ./release-file-edits.sh agent-name session-id"
+echo "  1. Check availability:  ./scripts/coordination/check-file-availability.sh file1 file2"
+echo "  2. Declare edits:       ./scripts/coordination/declare-file-edits.sh agent-name session-id file1 file2"
+echo "  3. Release files:       ./scripts/coordination/release-file-edits.sh agent-name session-id"

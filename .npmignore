@@ -55,6 +55,9 @@ docs/development/
 docs/testing/
 docs/internal/
 
+# Archived files
+archive/
+
 # Build scripts
 build-binary.sh
 

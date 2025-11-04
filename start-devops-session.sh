@@ -1,32 +1,45 @@
 #!/usr/bin/env zsh
 
 # ============================================================================
-# INTERACTIVE DEVOPS SESSION STARTER
+# INTERACTIVE DEVOPS SESSION STARTER (v2.0)
 # ============================================================================
 # 
-# This script provides a user-friendly way to start DevOps agent sessions.
-# It handles the complete workflow:
-# 1. Ask if using existing session or creating new
-# 2. If new, creates session and generates instructions for Claude
-# 3. Starts the DevOps agent monitoring the appropriate worktree
-#
+# Enhanced user experience for starting DevOps agent sessions.
+# 
+# What this does:
+# - Guides you through creating or resuming sessions
+# - Generates beautiful instructions for your AI assistant
+# - Monitors your session automatically
+# 
+# Why it matters:
+# - Simple, visual interface
+# - No manual git commands needed
+# - Automatic conflict detection
+# 
+# Usage: ./start-devops-session.sh
 # ============================================================================
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;36m'
-MAGENTA='\033[0;35m'
-BOLD='\033[1m'
-DIM='\033[2m'
-NC='\033[0m' # No Color
-BG_BLUE='\033[44m'
-BG_GREEN='\033[42m'
-BG_YELLOW='\033[43m'
+# Colors for output (using printf for better compatibility)
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+BLUE=$'\033[0;36m'
+MAGENTA=$'\033[0;35m'
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+NC=$'\033[0m' # No Color
+BG_BLUE=$'\033[44m'
+BG_GREEN=$'\033[42m'
+BG_YELLOW=$'\033[43m'
 
-# Get the directory where this script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Get the directory where this script is located (compatible with both bash and zsh)
+if [[ -n "${BASH_SOURCE[0]}" ]]; then
+    # Running in bash
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+else
+    # Running in zsh
+    SCRIPT_DIR="${0:A:h}"
+fi
 SRC_DIR="$SCRIPT_DIR/src"
 
 # Function to display copyright
@@ -35,7 +48,7 @@ show_copyright() {
     echo "======================================================================"
     echo
     echo "  CS_DevOpsAgent - Intelligent Git Automation System"
-    echo "  Version 2.4.0 | Build 20240930.1"
+    echo "  Version 1.7.2 | Build 20251010.03"
     echo "  "
     echo "  Copyright (c) 2024 SecondBrain Labs"
     echo "  Author: Sachin Dev Duggal"
@@ -50,42 +63,16 @@ show_copyright() {
 # Function to display header
 show_header() {
     echo
-    echo -e "${BG_BLUE}${BOLD}                                                              ${NC}"
-    echo -e "${BG_BLUE}${BOLD}           DevOps Agent Session Manager                      ${NC}"
-    echo -e "${BG_BLUE}${BOLD}                                                              ${NC}"
+    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${NC}${BOLD}              DevOps Agent Session Manager v2.0                 ${NC}${BLUE}║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo
+    echo -e "${DIM}Intelligent Git automation with AI agent coordination${NC}"
     echo
 }
 
-# Function to display session instructions
-display_instructions() {
-    local session_id="$1"
-    local worktree_path="$2"
-    local branch_name="$3"
-    local task="$4"
-    
-    echo
-    echo -e "${BG_GREEN}${BOLD} Instructions for Claude/Cline ${NC}"
-    echo
-    echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BOLD}COPY AND PASTE THIS ENTIRE BLOCK INTO CLAUDE BEFORE YOUR PROMPT:${NC}"
-    echo -e "${YELLOW}──────────────────────────────────────────────────────────────${NC}"
-    echo
-    echo "I'm working in a DevOps-managed session with the following setup:"
-    echo "- Session ID: ${session_id}"
-    echo "- Working Directory: ${worktree_path}"
-    echo "- Task: ${task}"
-    echo ""
-    echo "Please switch to this directory before making any changes:"
-    echo "cd \"${worktree_path}\""
-    echo ""
-    echo "Write commit messages to: .devops-commit-${session_id}.msg"
-    echo "The DevOps agent will automatically commit and push changes."
-    echo
-    echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
-    echo
-    echo -e "${GREEN}✓ DevOps agent will monitor for changes${NC}"
-    echo
-}
+# NOTE: display_instructions function removed - session coordinator handles this now
+# to prevent duplicate copy-paste instructions
 
 # Function to list existing sessions
 list_sessions() {
@@ -131,38 +118,62 @@ list_sessions() {
 
 # Function to create a new session
 create_new_session() {
-    echo -e "${BOLD}Creating New Session${NC}"
+    echo
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}📝 Create New Session${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo
+    echo -e "${DIM}What:${NC} Your session gets an isolated workspace"
+    echo -e "${DIM}Why:${NC} Prevents conflicts with other AI agents"
+    echo -e "${DIM}How:${NC} Creates git worktree + branch + file locks"
     echo
     
     # Ask for task name
-    echo -n "Enter task/feature name (e.g., 'authentication', 'api-endpoints'): "
+    echo -e "${BOLD}Task/Feature Name:${NC}"
+    echo -e "${DIM}Examples: implement-auth, build-api, fix-login-bug${NC}"
+    echo -n "➜ "
     read task_name
     
     if [[ -z "$task_name" ]]; then
         task_name="development"
-    fi
-    
-    # Ask for agent type
-    echo -n "Agent type (claude/cline/copilot/cursor) [default: claude]: "
-    read agent_type
-    
-    if [[ -z "$agent_type" ]]; then
-        agent_type="claude"
+        echo -e "${YELLOW}Using default: development${NC}"
     fi
     
     echo
-    echo -e "${YELLOW}Creating session for: ${task_name}${NC}"
+    
+    # Ask for agent type
+    echo -e "${BOLD}AI Agent Type:${NC}"
+    echo -e "  ${GREEN}1)${NC} Claude (Anthropic)"
+    echo -e "  ${GREEN}2)${NC} Cursor"
+    echo -e "  ${GREEN}3)${NC} GitHub Copilot"
+    echo -e "  ${GREEN}4)${NC} Cline (VS Code)"
+    echo -n "➜ Your choice [1-4, default: 1]: "
+    read agent_choice
+    
+    case "$agent_choice" in
+        2) agent_type="cursor" ;;
+        3) agent_type="copilot" ;;
+        4) agent_type="cline" ;;
+        *) agent_type="claude" ;;
+    esac
+    
+    echo
+    echo -e "${GREEN}✓${NC} Creating session: ${BOLD}${task_name}${NC} (Agent: ${BLUE}${agent_type}${NC})"
+    echo
     
     # Run the session coordinator to create AND START the session
-    cd "$SCRIPT_DIR"
+    # Keep current directory to ensure session is created for the right repo
     node "$SRC_DIR/session-coordinator.js" create-and-start --task "$task_name" --agent "$agent_type"
 }
 
 # Function to prompt for session selection
 select_session() {
-    echo -e "${BOLD}Select an Option:${NC}"
     echo
-    echo "  ${BOLD}N)${NC} Create a ${GREEN}new${NC} session"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}🚀 Session Selection${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo
+    echo "  ${BOLD}${GREEN}N)${NC} Create a ${BOLD}new${NC} session"
     
     # List existing sessions
     local sessions_dir="local_deploy/session-locks"
@@ -188,9 +199,11 @@ select_session() {
     fi
     
     echo
-    echo -e "  ${BOLD}Q)${NC} ${RED}Quit${NC} - Exit the session manager"
+    echo -e "  ${BOLD}${RED}Q)${NC} Quit - Exit the session manager"
     echo
-    echo -n "Your choice: "
+    echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo
+    echo -n "➜ Your choice: "
     read choice
     
     # Handle the choice
@@ -205,30 +218,62 @@ select_session() {
         return 0
     elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le "${#session_files[@]}" ]]; then
         # Use existing session
+        # Debug: Show what we're trying to access
+        echo -e "${DIM}[Debug] Choice: $choice, Array size: ${#session_files[@]}${NC}"
+        echo -e "${DIM}[Debug] Array contents: ${session_files[@]}${NC}"
+        
+        # In zsh, arrays are 1-indexed, so $choice maps directly
         local selected_file="${session_files[$choice]}"
+        
+        echo -e "${DIM}[Debug] Selected file: $selected_file${NC}"
+        
+        # Validate that the file exists
+        if [[ ! -f "$selected_file" ]]; then
+            echo -e "${RED}Error: Session file not found: $selected_file${NC}"
+            echo -e "${YELLOW}All files in array:${NC}"
+            for idx in "${!session_files[@]}"; do
+                echo -e "  [$idx] = ${session_files[$idx]}"
+            done
+            return 1
+        fi
+        
         local session_data=$(cat "$selected_file")
+        
+        # Validate session data was read
+        if [[ -z "$session_data" ]]; then
+            echo -e "${RED}Error: Could not read session data from: $selected_file${NC}"
+            return 1
+        fi
+        
         local session_id=$(echo "$session_data" | grep -o '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
         local worktree_path=$(echo "$session_data" | grep -o '"worktreePath"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
         local task=$(echo "$session_data" | grep -o '"task"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
         local branch_name=$(echo "$session_data" | grep -o '"branchName"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"\([^"]*\)".*/\1/')
         
-        echo
-        echo -e "${GREEN}Using existing session: ${session_id}${NC}"
-        
-        # Display instructions for Claude/Cline IMMEDIATELY after selection
-        display_instructions "$session_id" "$worktree_path" "$branch_name" "$task"
-        
-        # Add a pause and visual separator before starting the agent
-        echo -e "${DIM}Press Enter to start the DevOps agent monitoring...${NC}"
-        read -r
+        # Validate we got a session ID
+        if [[ -z "$session_id" ]]; then
+            echo -e "${RED}Error: Could not extract session ID from file: $selected_file${NC}"
+            echo -e "${YELLOW}File contents:${NC}"
+            cat "$selected_file"
+            return 1
+        fi
         
         echo
-        echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
-        echo -e "${BOLD}Starting DevOps Agent${NC}"
-        echo -e "${YELLOW}═══════════════════════════════════════════════════════════${NC}"
+        echo -e "${GREEN}✓${NC} Resuming session: ${BOLD}${session_id}${NC}"
+        echo -e "${DIM}Task: ${task}${NC}"
+        
+        # Instructions will be displayed by the session coordinator
+        # No need to display them here to avoid duplication
+        
+        echo
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}🤖 Starting DevOps Agent Monitoring${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo
+        echo -e "${DIM}Press Ctrl+C to stop monitoring${NC}"
         
         # Start the agent for this session
-        cd "$SCRIPT_DIR"
+        # Keep current directory to ensure agent runs in the right repo
         node "$SRC_DIR/session-coordinator.js" start "$session_id"
         return 0
     else
@@ -295,82 +340,15 @@ setup_house_rules() {
     echo "prevent conflicts when multiple agents work on the same codebase."
     echo
     
-    # Check for existing house rules
-    local HOUSERULES_PATH=""
-    local HOUSERULES_FOUND=false
+    # NOTE: House rules creation is now handled by session-coordinator's ensureHouseRulesSetup()
+    # This provides the interactive prompt for structured vs flexible organization
+    # We only need to ensure file coordination directory exists here
     
-    if [[ -f "$ROOT/houserules.md" ]]; then
-        HOUSERULES_PATH="$ROOT/houserules.md"
-        HOUSERULES_FOUND=true
-        echo -e "${GREEN}✓${NC} Found existing house rules at: houserules.md"
-    elif [[ -f "$ROOT/HOUSERULES.md" ]]; then
-        HOUSERULES_PATH="$ROOT/HOUSERULES.md"
-        HOUSERULES_FOUND=true
-        echo -e "${GREEN}✓${NC} Found existing house rules at: HOUSERULES.md"
-    elif [[ -f "$ROOT/.github/HOUSERULES.md" ]]; then
-        HOUSERULES_PATH="$ROOT/.github/HOUSERULES.md"
-        HOUSERULES_FOUND=true
-        echo -e "${GREEN}✓${NC} Found existing house rules at: .github/HOUSERULES.md"
-    elif [[ -f "$ROOT/docs/houserules.md" ]]; then
-        HOUSERULES_PATH="$ROOT/docs/houserules.md"
-        HOUSERULES_FOUND=true
-        echo -e "${GREEN}✓${NC} Found existing house rules at: docs/houserules.md"
-    else
-        echo "No existing house rules found."
-        echo
-        echo "Would you like to:"
-        echo "  ${BOLD}1)${NC} Create comprehensive house rules (recommended)"
-        echo "  ${BOLD}2)${NC} Specify path to existing house rules"
-        echo "  ${BOLD}3)${NC} Skip for now"
-        echo
-        echo -n "Your choice [1]: "
-        read CHOICE
-        
-        case "${CHOICE:-1}" in
-            1)
-                HOUSERULES_PATH="$ROOT/houserules.md"
-                HOUSERULES_FOUND=false
-                echo -e "${GREEN}✓${NC} Will create comprehensive house rules at: houserules.md"
-                ;;
-            2)
-                echo -n "Enter path to your house rules (relative to $ROOT): "
-                read CUSTOM_PATH
-                if [[ -f "$ROOT/$CUSTOM_PATH" ]]; then
-                    HOUSERULES_PATH="$ROOT/$CUSTOM_PATH"
-                    HOUSERULES_FOUND=true
-                    echo -e "${GREEN}✓${NC} Using house rules at: $CUSTOM_PATH"
-                else
-                    echo -e "${YELLOW}File not found. Creating new house rules at: houserules.md${NC}"
-                    HOUSERULES_PATH="$ROOT/houserules.md"
-                    HOUSERULES_FOUND=false
-                fi
-                ;;
-            3)
-                echo -e "${YELLOW}⚠ Skipping house rules setup${NC}"
-                echo "You can set them up later by running: ./scripts/setup-file-coordination.sh"
-                return 0
-                ;;
-        esac
-    fi
+    # Create file coordination directory if it doesn't exist
+    mkdir -p "$COORD_DIR/active-edits" "$COORD_DIR/completed-edits" "$COORD_DIR/conflicts"
     
-    echo
-    echo -e "${BLUE}Setting up file coordination system...${NC}"
-    
-    # Run the actual setup inline (simplified version)
-    if [[ -f "$SCRIPT_DIR/scripts/setup-file-coordination.sh" ]]; then
-        bash "$SCRIPT_DIR/scripts/setup-file-coordination.sh"
-    else
-        # Inline setup if script doesn't exist
-        mkdir -p "$COORD_DIR/active-edits" "$COORD_DIR/completed-edits"
-        echo -e "${GREEN}✓${NC} File coordination directories created"
-    fi
-    
-    echo
-    echo -e "${GREEN}✓ Setup complete!${NC} AI agents will now follow house rules and coordinate file edits."
-    echo
-    echo -e "${DIM}Press Enter to continue...${NC}"
-    read -r
-    echo
+    # House rules will be created by session-coordinator when needed
+    # with the proper structured/flexible prompt
 }
 
 # Main function
@@ -395,12 +373,14 @@ main() {
     # Check and setup house rules on first run
     setup_house_rules "$REPO_ROOT"
     
-    echo -e "${BOLD}Welcome to DevOps Agent Session Manager${NC}"
+    echo -e "${BOLD}Welcome to DevOps Agent${NC}"
     echo
-    echo "This tool will:"
-    echo "  1. Help you create or select a session"
-    echo "  2. Generate instructions for Claude/Cline"
-    echo "  3. Start the DevOps agent to monitor changes"
+    echo -e "${GREEN}✓${NC} Isolated workspaces for each AI agent"
+    echo -e "${GREEN}✓${NC} Automatic git commits and pushes"
+    echo -e "${GREEN}✓${NC} File coordination prevents conflicts"
+    echo -e "${GREEN}✓${NC} Beautiful instructions for your agent"
+    echo
+    echo -e "${DIM}💡 New to DevOps Agent? Run: s9n-devops-agent tutorial${NC}"
     echo
     
     # Main selection loop
