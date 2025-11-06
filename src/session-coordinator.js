@@ -1331,9 +1331,8 @@ The DevOps agent will automatically:
     });
     rl.close();
     
-    console.log(`\n${CONFIG.colors.green}✓ DevOps agent is starting...${CONFIG.colors.reset}`);
+    console.log(`${CONFIG.colors.green}✓ Instructions copied${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.dim}Full instructions saved to: ${CONFIG.instructionsDir}/${sessionId}.md${CONFIG.colors.reset}`);
-    console.log();
   }
 
   /**
@@ -1658,24 +1657,20 @@ The DevOps agent is monitoring this worktree for changes.
   async createAndStart(options = {}) {
     const session = await this.createSession(options);
     
-    console.log(`\n${CONFIG.colors.yellow}Starting agent for session ${session.sessionId}...${CONFIG.colors.reset}`);
-    
-    // Start the agent
-    await this.startAgent(session.sessionId);
-    
-    // Wait for agent to initialize and show its interactive commands
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // NOW display instructions AFTER the agent's interactive commands have been shown
     // Read the lock file to get the stored instructions
     const lockFile = path.join(this.locksPath, `${session.sessionId}.lock`);
     const lockData = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
     
+    // Display instructions FIRST before starting agent
     if (lockData.instructions) {
       console.log('\n'); // Add spacing
       this.displayInstructions(lockData.instructions, session.sessionId, options.task || 'development');
       await this.waitForConfirmation(session.sessionId);
     }
+    
+    // NOW start the agent after user has copied instructions
+    console.log(`\n${CONFIG.colors.yellow}Starting DevOps agent monitoring...${CONFIG.colors.reset}`);
+    await this.startAgent(session.sessionId);
     
     return session;
   }
