@@ -282,9 +282,25 @@ class SessionCoordinator {
         
         if (updatedSections.length > 0) {
           console.log(`${CONFIG.colors.dim}Sections with updates: ${updatedSections.join(', ')}${CONFIG.colors.reset}`);
-          const result = await houseRulesManager.updateHouseRules();
-          if (result.updated) {
-            console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Updated ${result.totalChanges} section(s)`);
+          console.log(`${CONFIG.colors.dim}Your custom rules will be preserved.${CONFIG.colors.reset}`);
+          
+          const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+          });
+          
+          const answer = await new Promise(resolve => {
+            rl.question(`\nUpdate house rules now? (Y/n): `, resolve);
+          });
+          rl.close();
+          
+          if (answer.toLowerCase() !== 'n' && answer.toLowerCase() !== 'no') {
+            const result = await houseRulesManager.updateHouseRules();
+            if (result.updated) {
+              console.log(`${CONFIG.colors.green}✓${CONFIG.colors.reset} Updated ${result.totalChanges} section(s)`);
+            }
+          } else {
+            console.log(`${CONFIG.colors.dim}Skipped house rules update. Run 'npm run house-rules:update' later.${CONFIG.colors.reset}`);
           }
         }
       }
@@ -1260,6 +1276,22 @@ The DevOps agent will automatically:
     console.log(`Please switch to this directory before making any changes:`);
     console.log(`cd "${instructions.worktreePath}"`);
     console.log(``);
+    
+    // Add house rules reference prominently at the top
+    const houseRulesExists = fs.existsSync(houseRulesPath);
+    if (houseRulesExists) {
+      console.log(`📋 IMPORTANT - READ PROJECT RULES FIRST:`);
+      console.log(`Before making any changes, read the house rules file at:`);
+      console.log(`${houseRulesPath}`);
+      console.log(``);
+      console.log(`The house rules contain:`);
+      console.log(`- Project coding conventions and standards`);
+      console.log(`- Required commit message formats`);
+      console.log(`- File coordination protocols`);
+      console.log(`- Branch naming and workflow rules`);
+      console.log(``);
+    }
+    
     console.log(`⚠️ FILE COORDINATION (MANDATORY):`);
     console.log(`Shared coordination directory: local_deploy/.file-coordination/`);
     console.log(``);
@@ -1277,14 +1309,6 @@ The DevOps agent will automatically:
     console.log(``);
     console.log(`Write commit messages to: .devops-commit-${sessionId}.msg`);
     console.log(`The DevOps agent will automatically commit and push changes.`);
-    console.log(``);
-    
-    // Add house rules reference
-    const houseRulesExists = fs.existsSync(houseRulesPath);
-    if (houseRulesExists) {
-      console.log(`📋 IMPORTANT: Review project conventions and rules:`);
-      console.log(`Read the house rules at: ${houseRulesPath}`);
-    }
     console.log();
     
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);
