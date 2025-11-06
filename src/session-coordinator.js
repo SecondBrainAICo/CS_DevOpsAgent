@@ -1960,11 +1960,12 @@ The DevOps agent is monitoring this worktree for changes.
 
 async function main() {
   // Display copyright and license information immediately
+  const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
   console.log();
   console.log("=".repeat(70));
   console.log();
   console.log("  CS_DevOpsAgent - Intelligent Git Automation System");
-  console.log("  Version 1.7.2 | Build 20251010.03");
+  console.log(`  Version ${packageJson.version} | Build ${new Date().toISOString().split('T')[0].replace(/-/g, '')}`);
   console.log("  ");
   console.log("  Copyright (c) 2024 SecondBrain Labs");
   console.log("  Author: Sachin Dev Duggal");
@@ -1999,8 +2000,42 @@ async function main() {
       // Start agent for a session
       const sessionId = args[1];
       if (!sessionId) {
-        console.error('Usage: start <session-id>');
-        process.exit(1);
+        // No session ID provided - show interactive menu
+        console.log(`${CONFIG.colors.bright}DevOps Agent Session Manager${CONFIG.colors.reset}\n`);
+        console.log('What would you like to do?\n');
+        console.log(`  ${CONFIG.colors.green}1${CONFIG.colors.reset} - Create a new session`);
+        console.log(`  ${CONFIG.colors.green}2${CONFIG.colors.reset} - List existing sessions`);
+        console.log(`  ${CONFIG.colors.green}3${CONFIG.colors.reset} - Close a session`);
+        console.log(`  ${CONFIG.colors.green}q${CONFIG.colors.reset} - Quit\n`);
+        
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+        
+        const choice = await new Promise(resolve => {
+          rl.question('Enter your choice: ', resolve);
+        });
+        rl.close();
+        
+        switch(choice) {
+          case '1':
+            await coordinator.createAndStart({});
+            break;
+          case '2':
+            coordinator.listSessions();
+            break;
+          case '3':
+            await coordinator.selectAndCloseSession();
+            break;
+          case 'q':
+          case 'Q':
+            console.log('Goodbye!');
+            break;
+          default:
+            console.log(`${CONFIG.colors.red}Invalid choice${CONFIG.colors.reset}`);
+        }
+        break;
       }
       await coordinator.startAgent(sessionId);
       break;
