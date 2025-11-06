@@ -1289,13 +1289,27 @@ The DevOps agent will automatically:
     
     console.log(`${CONFIG.colors.yellow}══════════════════════════════════════════════════════════════${CONFIG.colors.reset}`);
     console.log();
+    console.log(`${CONFIG.colors.bright}${CONFIG.colors.bgYellow} IMPORTANT ${CONFIG.colors.reset} ${CONFIG.colors.yellow}Copy the text above and paste it into your coding agent${CONFIG.colors.reset}`);
+    console.log();
+  }
+  
+  /**
+   * Wait for user confirmation after showing instructions
+   */
+  async waitForConfirmation(sessionId) {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
     
-    // Pause before continuing
-    console.log(`${CONFIG.colors.dim}Press Enter to start the DevOps agent monitoring...${CONFIG.colors.reset}`);
+    await new Promise(resolve => {
+      rl.question(`${CONFIG.colors.green}Press Enter once you've copied and pasted the instructions to your agent...${CONFIG.colors.reset} `, resolve);
+    });
+    rl.close();
     
-    // Status info
-    console.log(`${CONFIG.colors.green}✓ DevOps agent is starting...${CONFIG.colors.reset}`);
+    console.log(`\n${CONFIG.colors.green}✓ DevOps agent is starting...${CONFIG.colors.reset}`);
     console.log(`${CONFIG.colors.dim}Full instructions saved to: ${CONFIG.instructionsDir}/${sessionId}.md${CONFIG.colors.reset}`);
+    console.log();
   }
 
   /**
@@ -1636,6 +1650,7 @@ The DevOps agent is monitoring this worktree for changes.
     if (lockData.instructions) {
       console.log('\n'); // Add spacing
       this.displayInstructions(lockData.instructions, session.sessionId, options.task || 'development');
+      await this.waitForConfirmation(session.sessionId);
     }
     
     return session;
@@ -2002,13 +2017,25 @@ async function main() {
       if (!sessionId) {
         // No session ID provided - show interactive menu
         console.log(`${CONFIG.colors.bright}DevOps Agent Session Manager${CONFIG.colors.reset}\n`);
+        
+        // Show existing sessions first
+        const locks = fs.existsSync(coordinator.locksPath) ? 
+          fs.readdirSync(coordinator.locksPath).filter(f => f.endsWith('.lock')) : [];
+        
+        if (locks.length > 0) {
+          console.log(`${CONFIG.colors.blue}Active Sessions:${CONFIG.colors.reset}`);
+          coordinator.listSessions();
+          console.log();
+        } else {
+          console.log(`${CONFIG.colors.dim}No active sessions${CONFIG.colors.reset}\n`);
+        }
+        
         console.log('What would you like to do?\n');
         console.log(`  ${CONFIG.colors.green}1${CONFIG.colors.reset} - Create a new session`);
-        console.log(`  ${CONFIG.colors.green}2${CONFIG.colors.reset} - List existing sessions`);
-        console.log(`  ${CONFIG.colors.green}3${CONFIG.colors.reset} - Close a session`);
+        console.log(`  ${CONFIG.colors.green}2${CONFIG.colors.reset} - Close a session`);
         console.log(`  ${CONFIG.colors.green}q${CONFIG.colors.reset} - Quit\n`);
         
-        const rl = readline.createInterface({
+        let rl = readline.createInterface({
           input: process.stdin,
           output: process.stdout
         });
@@ -2019,13 +2046,43 @@ async function main() {
         rl.close();
         
         switch(choice) {
-          case '1':
-            await coordinator.createAndStart({});
+          case '1': {
+            // Prompt for agent type
+            rl = readline.createInterface({
+              input: process.stdin,
+              output: process.stdout
+            });
+            
+            console.log(`\n${CONFIG.colors.blue}Select Agent Type:${CONFIG.colors.reset}`);
+            console.log(`  1) Claude (default)`);
+            console.log(`  2) Cline`);
+            console.log(`  3) Cursor`);
+            console.log(`  4) Copilot`);
+            console.log(`  5) Custom\n`);
+            
+            const agentChoice = await new Promise(resolve => {
+              rl.question('Agent [1]: ', resolve);
+            });
+            
+            let agent = 'claude';
+            switch(agentChoice.trim() || '1') {
+              case '1': agent = 'claude'; break;
+              case '2': agent = 'cline'; break;
+              case '3': agent = 'cursor'; break;
+              case '4': agent = 'copilot'; break;
+              case '5':
+                const customAgent = await new Promise(resolve => {
+                  rl.question('Enter agent name: ', resolve);
+                });
+                agent = customAgent.trim() || 'claude';
+                break;
+            }
+            
+            rl.close();
+            await coordinator.createAndStart({ agent });
             break;
+          }
           case '2':
-            coordinator.listSessions();
-            break;
-          case '3':
             await coordinator.selectAndCloseSession();
             break;
           case 'q':
