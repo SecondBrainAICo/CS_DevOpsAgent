@@ -1276,21 +1276,19 @@ The DevOps agent will automatically:
     console.log(`Please switch to this directory before making any changes:`);
     console.log(`cd "${instructions.worktreePath}"`);
     console.log(``);
-    
-    // Add house rules reference prominently at the top
-    const houseRulesExists = fs.existsSync(houseRulesPath);
-    if (houseRulesExists) {
-      console.log(`📋 IMPORTANT - READ PROJECT RULES FIRST:`);
-      console.log(`Before making any changes, read the house rules file at:`);
-      console.log(`${houseRulesPath}`);
-      console.log(``);
-      console.log(`The house rules contain:`);
-      console.log(`- Project coding conventions and standards`);
-      console.log(`- Required commit message formats`);
-      console.log(`- File coordination protocols`);
-      console.log(`- Branch naming and workflow rules`);
-      console.log(``);
-    }
+    console.log(`📋 IMPORTANT - READ PROJECT RULES FIRST:`);
+    console.log(`Before making ANY changes, you MUST read the project's house rules at:`);
+    console.log(`${houseRulesPath}`);
+    console.log(``);
+    console.log(`The house rules file contains:`);
+    console.log(`- Project coding conventions and standards`);
+    console.log(`- Required commit message formats`);
+    console.log(`- File coordination protocols`);
+    console.log(`- Branch naming and workflow rules`);
+    console.log(`- Testing and review requirements`);
+    console.log(``);
+    console.log(`You must follow ALL rules in this file. Read it carefully before proceeding.`);
+    console.log(``);
     
     console.log(`⚠️ FILE COORDINATION (MANDATORY):`);
     console.log(`Shared coordination directory: local_deploy/.file-coordination/`);
